@@ -6,21 +6,24 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "assets": "python scripts/download_assets.py"
+    "assets": "python scripts/build_assets.py",
+    "maps": "python scripts/build_maps.py",
+    "music": "python scripts/download_assets.py",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@react-three/fiber": "^9.3.0",
     "next": "^15.5.6",
+    "phaser": "^3.90.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "three": "^0.180.0",
     "zustand": "^5.0.8"
   },
   "devDependencies": {
     "@types/node": "^22.17.0",
     "@types/react": "^19.1.12",
     "@types/react-dom": "^19.1.9",
-    "@types/three": "^0.187.0",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "vitest": "^5.1.0"
   }
 }

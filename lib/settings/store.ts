@@ -44,7 +44,7 @@ export const useSettings = create<Settings>()(
       music: 0.7,
       sfx: 0.8,
       brightness: 1,
-      trackId: "title",
+      trackId: "auto",
       setKeyboard: (keyboard) => set({ keyboard }),
       setPad: (pad) => set({ pad }),
       setDeadzone: (deadzone) => set({ deadzone: clamp(deadzone, 0.05, 0.5) }),

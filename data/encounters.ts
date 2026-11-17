@@ -1,0 +1,13 @@
+export type EncounterSlot = { species: string; min: number; max: number; weight: number };
+export type EncounterTable = { rate: number; grass: EncounterSlot[]; background: string };
+
+export const ENCOUNTERS: Record<string, EncounterTable> = {
+  route1: {
+    rate: 0.1,
+    background: "grass",
+    grass: [
+      { species: "wurmple", min: 2, max: 4, weight: 50 },
+      { species: "starly", min: 2, max: 4, weight: 50 },
+    ],
+  },
+};

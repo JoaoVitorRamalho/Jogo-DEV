@@ -93,7 +93,7 @@ function buttonDown(pad: Gamepad, index: number | null): boolean {
   return Boolean(button && (button.pressed || button.value > 0.55));
 }
 
-export function sampleInput(): InputFrame {
+function pollDevices(): InputFrame {
   const { keyboard, pad, deadzone } = useSettings.getState();
   const gamepads = navigator.getGamepads?.() ?? [];
   let gamepad: Gamepad | null = null;
@@ -205,19 +205,52 @@ export function createRepeater() {
   };
 }
 
-export function useInputFrame(onFrame: (frame: InputFrame, dt: number) => void): void {
+type Listener = (frame: InputFrame, dt: number) => void;
+
+let current: InputFrame = {
+  held: emptyHeld(),
+  pressed: emptyHeld(),
+  axes: { x: 0, y: 0 },
+  padName: null,
+  padFamily: "generic",
+  capture: null,
+};
+const listeners = new Set<Listener>();
+let pumpId = 0;
+let pumpLast = 0;
+
+function pump(now: number): void {
+  const dt = Math.min(0.05, Math.max(0, (now - pumpLast) / 1000));
+  pumpLast = now;
+  current = pollDevices();
+  for (const listener of [...listeners]) listener(current, dt);
+  pumpId = requestAnimationFrame(pump);
+}
+
+function ensurePump(): void {
+  if (pumpId || typeof window === "undefined") return;
+  pumpLast = performance.now();
+  pumpId = requestAnimationFrame(pump);
+}
+
+export function sampleInput(): InputFrame {
+  ensurePump();
+  return current;
+}
+
+export function subscribeInput(listener: Listener): () => void {
+  ensurePump();
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+export function useInputFrame(onFrame: Listener, enabled = true): void {
   const callback = useRef(onFrame);
   callback.current = onFrame;
   useEffect(() => {
-    let frameId = 0;
-    let last = performance.now();
-    const loop = (now: number) => {
-      const dt = Math.min(0.05, (now - last) / 1000);
-      last = now;
-      callback.current(sampleInput(), dt);
-      frameId = requestAnimationFrame(loop);
-    };
-    frameId = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(frameId);
-  }, []);
+    if (!enabled) return undefined;
+    return subscribeInput((frame, dt) => callback.current(frame, dt));
+  }, [enabled]);
 }

@@ -1,16 +1,15 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
-import { Portrait } from "@/components/game/Portrait";
+import { useRef, useState } from "react";
+import { CharacterPreview } from "@/components/character-creator/CharacterPreview";
+import { CREDITS } from "@/data/credits";
+import { defaultAppearance } from "@/game/character/appearance";
+import { useGame } from "@/game/state/store";
 import { TRACKS, playSfx, unlockAudio } from "@/lib/audio/engine";
-import { defaultAppearance } from "@/lib/character/appearance";
-import { labelItem } from "@/lib/character/labels";
-import type { Catalog, Credit } from "@/lib/character/types";
 import { useSession } from "@/lib/game/session";
 import { beginCapture, createRepeater, useInputFrame } from "@/lib/input/engine";
 import { formatKey, formatPadButton } from "@/lib/input/labels";
 import { ACTION_LABEL, ACTIONS, type Action } from "@/lib/input/types";
-import { useSave } from "@/lib/save/store";
 import { useSettings } from "@/lib/settings/store";
 
 const TABS = ["Controles", "Áudio", "Imagem", "Créditos"];
@@ -26,21 +25,11 @@ function padLabel(index: number | null): string {
   return xbox === playstation ? xbox : `${xbox} / ${playstation}`;
 }
 
-function creditLines(catalog: Catalog): { name: string; credit: Credit }[] {
-  const records = [catalog.body, ...(catalog.shadow ? [catalog.shadow] : []), ...catalog.items];
-  const lines: { name: string; credit: Credit }[] = [];
-  for (const record of records) {
-    const name = record.name ?? "Corpo";
-    for (const credit of record.credits) lines.push({ name: labelItem(name), credit });
-  }
-  return lines;
-}
-
-export function OptionsMenu({ catalog }: { catalog: Catalog }) {
+export function OptionsMenu({ onClose }: { onClose?: () => void }) {
   const setScreen = useSession((state) => state.setScreen);
   const settings = useSettings();
-  const saved = useSave((state) => state.slot?.appearance ?? null);
-  const preview = saved ?? defaultAppearance(catalog);
+  const saved = useGame((state) => state.live?.appearance ?? state.slot?.appearance ?? null);
+  const preview = saved ?? defaultAppearance();
   const [tab, setTab] = useState(0);
   const [row, setRow] = useState(1);
   const [chip, setChip] = useState(0);
@@ -48,18 +37,13 @@ export function OptionsMenu({ catalog }: { catalog: Catalog }) {
   const [padLine, setPadLine] = useState("Nenhum manete conectado. Aperte um botão nele.");
   const repeat = useRef(createRepeater());
   const scroller = useRef<HTMLDivElement>(null);
-  const lines = useMemo(() => creditLines(catalog), [catalog]);
-  const authors = useMemo(() => {
-    const names = new Set<string>();
-    for (const line of lines) for (const author of line.credit.authors) names.add(author);
-    return [...names].sort((a, b) => a.localeCompare(b, "pt"));
-  }, [lines]);
 
   const rowCount = tab === 0 ? 11 : tab === 1 ? 5 : tab === 3 ? 2 : 2;
 
   function leave() {
     playSfx("cancel");
-    setScreen("title");
+    if (onClose) onClose();
+    else setScreen("title");
   }
 
   function nudge(delta: number) {
@@ -229,17 +213,13 @@ export function OptionsMenu({ catalog }: { catalog: Catalog }) {
         ) : null}
         {tab === 3 ? (
           <div className="credits" ref={scroller}>
-            <p>{catalog.notice}</p>
-            <p>Música: 15 Melodic RPG Chiptunes, Aureolus_Omicron, CC0.</p>
-            <p>Jornada é um jogo original e não usa nomes, criaturas nem trilhas de franquias.</p>
-            <p>{authors.join(", ")}</p>
-            <ul>
-              {lines.map((line, index) => (
-                <li key={`${line.name}-${index}`}>
-                  {line.name}: {line.credit.authors.join(", ")} ({line.credit.licenses.join(", ")})
-                </li>
-              ))}
-            </ul>
+            {CREDITS.map((entry) => (
+              <p key={entry.what}>
+                <strong>{entry.what}</strong>
+                <br />
+                {entry.who} — {entry.license}
+              </p>
+            ))}
           </div>
         ) : null}
         {listening ? (
@@ -247,11 +227,11 @@ export function OptionsMenu({ catalog }: { catalog: Catalog }) {
             {chip === 2 ? "Pressione o botão do manete." : "Pressione a nova tecla."} Esc cancela.
           </p>
         ) : (
-          <p className="hint-inline">X volta ao título</p>
+          <p className="hint-inline">{onClose ? "X volta ao jogo" : "X volta ao título"}</p>
         )}
       </section>
       <aside className="stage-card">
-        <Portrait catalog={catalog} appearance={preview} mode="idle" />
+        <CharacterPreview appearance={preview} scale={6} />
       </aside>
     </div>
   );

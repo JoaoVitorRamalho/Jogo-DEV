@@ -1,14 +1,17 @@
 import type { Metadata } from "next";
+import { Pixelify_Sans } from "next/font/google";
 import "./globals.css";
 
+const pixel = Pixelify_Sans({ subsets: ["latin", "latin-ext"], weight: ["400", "500", "700"], variable: "--font-pixel" });
+
 export const metadata: Metadata = {
-  title: "Jornada",
-  description: "RPG 2D no navegador",
+  title: "Jornada — Região de Asteria",
+  description: "RPG 2D de Pokémon para navegador, feito por fãs",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" className={pixel.variable}>
       <body>{children}</body>
     </html>
   );

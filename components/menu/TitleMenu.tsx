@@ -1,22 +1,31 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { Portrait } from "@/components/game/Portrait";
-import { playSfx } from "@/lib/audio/engine";
-import { defaultAppearance } from "@/lib/character/appearance";
-import type { Catalog } from "@/lib/character/types";
+import { useEffect, useRef, useState } from "react";
+import { CharacterPreview } from "@/components/character-creator/CharacterPreview";
+import { formatTime } from "@/components/menus/PauseMenu";
+import { CITIES } from "@/data/cities";
+import { defaultAppearance } from "@/game/character/appearance";
+import { useGame } from "@/game/state/store";
+import { playSfx, setContextTrack } from "@/lib/audio/engine";
 import { useSession } from "@/lib/game/session";
 import { createRepeater, useInputFrame } from "@/lib/input/engine";
-import { useSave } from "@/lib/save/store";
 
 const ROWS = ["Novo jogo", "Continuar", "Opções"];
 
-export function TitleMenu({ catalog }: { catalog: Catalog }) {
-  const slot = useSave((state) => state.slot);
+function placeName(map: string): string {
+  return CITIES.find((city) => city.maps.includes(map))?.name ?? (map === "route1" ? "Rota 1" : "Asteria");
+}
+
+export function TitleMenu() {
+  const slot = useGame((state) => state.slot);
   const setScreen = useSession((state) => state.setScreen);
-  const preview = slot?.appearance ?? defaultAppearance(catalog);
-  const [row, setRow] = useState(0);
+  const preview = slot?.appearance ?? defaultAppearance();
+  const [row, setRow] = useState(slot ? 1 : 0);
   const repeat = useRef(createRepeater());
+
+  useEffect(() => {
+    setContextTrack("title");
+  }, []);
 
   function activate(index: number) {
     if (index === 0) {
@@ -25,7 +34,7 @@ export function TitleMenu({ catalog }: { catalog: Catalog }) {
       return;
     }
     if (index === 1) {
-      if (!slot) {
+      if (!slot || !useGame.getState().continueGame()) {
         playSfx("cancel");
         return;
       }
@@ -45,12 +54,23 @@ export function TitleMenu({ catalog }: { catalog: Catalog }) {
   });
 
   return (
-    <div className="screen center">
+    <div className="screen center title-screen">
+      <div className="title-sky" />
       <section className="panel title-panel">
         <p className="eyebrow">Região de Asteria</p>
         <h1>Jornada</h1>
-        <Portrait catalog={catalog} appearance={preview} mode="idle" />
-        {slot ? <p className="who">{slot.appearance.name || "Viajante"}</p> : null}
+        <div className="title-hero">
+          <CharacterPreview appearance={preview} scale={5} walk={false} />
+        </div>
+        {slot ? (
+          <div className="save-info">
+            <strong>{slot.appearance.name || "Viajante"}</strong>
+            <span>{placeName(slot.map)}</span>
+            <span>
+              Insígnias {slot.badges.length} · Pokédex {slot.dex.caught.length} · {formatTime(slot.playTime)}
+            </span>
+          </div>
+        ) : null}
         <div className="rows">
           {ROWS.map((label, index) => (
             <button
