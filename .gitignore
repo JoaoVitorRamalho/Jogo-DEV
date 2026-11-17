@@ -1,0 +1,7 @@
+node_modules
+.next
+.tools
+.tmp-lpc
+.tmp-ninja
+*.log
+*.tsbuildinfo
