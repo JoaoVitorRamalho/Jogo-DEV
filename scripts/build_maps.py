@@ -546,6 +546,7 @@ def build_route1() -> Map:
     m.spawn("from_brisamar", 11, 43, "up")
     m.event("forest_edge", 10, 0, 4, 2)
     m.npc("youngster", 8, 30, "right")
+    m.npc("ren_route1", 10, 35, "up")
     m.npc("item_potion", 18, 11, "down")
     m.npc("hiker", 12, 6, "down")
     return m

@@ -204,8 +204,45 @@ async function liraTalk(): Promise<void> {
   await talk("Profª Lira", "Asteria fica entre Kanto, Hoenn e Sinnoh. Por isso você vai encontrar Pokémon das três regiões.", "Volte quando quiser. Esse laboratório também é seu.");
 }
 
+async function renRoute1Talk(): Promise<void> {
+  if (!flag("ren_left_lab")) {
+    await think("Não tem ninguém esperando aqui.");
+    return;
+  }
+  if (flag("met_ren_route1")) {
+    await talk("Ren", "A floresta vai abrir um dia.", "Quando abrir, eu quero ser o primeiro a entrar!");
+    return;
+  }
+  setFlag("met_ren_route1");
+  await talk("Ren", "Ah! Finalmente!", "Eu disse que te esperaria na Rota 1.", "Quer uma revanche? Só pra aquecer.");
+  const again = await yesNo(line(undefined, "Batalhar de novo com o Ren?"));
+  if (again && state().party.length > 0) {
+    const counter = rivalStarter();
+    if (counter) {
+      const foe = createMon(counter, 6, defaultRng);
+      const outcome = await runBattle({
+        kind: "trainer",
+        foeParty: [foe],
+        trainerName: "Ren",
+        allowLoss: true,
+        gentleFoe: true,
+        background: "grass",
+      });
+      if (outcome === "win") await talk("Ren", "Você melhorou de verdade. Isso me irrita e me anima ao mesmo tempo.");
+      else await talk("Ren", "Quase! Da próxima eu não vou pegar leve... quase.");
+    }
+  } else {
+    await talk("Ren", "Beleza. Guarda energia pra Floresta de Aster.");
+  }
+  autosave();
+}
+
 async function shop(): Promise<void> {
   await talk("Dona Marta", "Bem-vindo à banca da Marta! Tudo que um treinador precisa.");
+  if (flag("saw_thomas_ad") && !flag("marta_thomas_line")) {
+    setFlag("marta_thomas_line");
+    await talk("Dona Marta", "Thomas Group mandou uns flyers. Eu não entendo metade, mas pagam bem os anúncios.");
+  }
   const stock: ItemId[] = ["potion", "pokeball", "antidote"];
   for (;;) {
     const options = [...stock.map((id) => `${ITEMS[id].name} — ₽${ITEMS[id].price}`), "Sair"];
@@ -228,13 +265,18 @@ async function shop(): Promise<void> {
 }
 
 const SIGNS: Record<string, string[]> = {
-  sign_village: ["Vila Brisamar", "Onde o vento do mar começa."],
   sign_home: ["Casa de {nome}."],
   sign_lab: ["Laboratório Pokémon da Profª Lira", "Pesquisa sobre o comportamento dos Pokémon de Asteria."],
   sign_beach: ["Praia de Brisamar", "Cuidado com as ondas fora de época."],
   sign_route1: ["Rota 1", "Brisamar ↓   Floresta de Aster ↑"],
   sign_forest: ["Floresta de Aster", "Trilha fechada temporariamente pela guarda florestal."],
-  bedroom_pc: ["Uma página da Liga de Asteria continua aberta na tela.", "\"Grande prêmio do campeonato: ₽2.000.000.\"", "Você fechou e abriu essa página umas cem vezes."],
+  bedroom_pc: [
+    "Uma página da Liga de Asteria continua aberta na tela.",
+    "\"Grande prêmio do campeonato: ₽2.000.000.\"",
+    "Rodapé: patrocínio Thomas Group — eventos em Verdelume e Porto Coral.",
+    "Você fechou e abriu essa página umas cem vezes.",
+  ],
+  sign_village: ["Vila Brisamar", "Onde o vento do mar começa.", "Liga de Asteria · apoio Thomas Group"],
   bedroom_shelf: ["Livros de escola, um guia de Pokémon de Kanto e um caderno com contas que nunca fecham."],
   kitchen_meds: ["Frascos de remédio lado a lado.", "Os rótulos estão gastos de tanto abrir e fechar."],
   stove: ["Uma panela de sopa ainda morna. Sua mãe acordou antes de você."],
@@ -293,12 +335,14 @@ const NPC_TALK: Record<string, () => Promise<void>> = {
   ren_lab: async () => {
     await talk("Ren", "Bora, {nome}! Ainda tem muita coisa pra ver lá fora!");
   },
+  ren_route1: renRoute1Talk,
 };
 
 const NPC_VISIBLE: Record<string, () => boolean> = {
   ren_gate: () => !flag("got_starter"),
   ren_lab: () => flag("ren_in_lab") && !flag("ren_left_lab"),
   item_potion: () => !flag("route1_potion"),
+  ren_route1: () => flag("ren_left_lab") && !flag("met_ren_route1"),
   lab_ball_torchic: () => !(state().starter === "torchic" || (flag("ren_took_starter") && rivalStarter() === "torchic")),
   lab_ball_bulbasaur: () => !(state().starter === "bulbasaur" || (flag("ren_took_starter") && rivalStarter() === "bulbasaur")),
   lab_ball_froakie: () => !(state().starter === "froakie" || (flag("ren_took_starter") && rivalStarter() === "froakie")),
@@ -316,7 +360,14 @@ const hooks: StoryHooks = {
       return;
     }
     const text = SIGNS[id];
-    if (text) await talk(undefined, ...text);
+    if (text) {
+      await talk(undefined, ...text);
+      if (id === "bedroom_pc") setFlag("saw_thomas_ad");
+      if (id === "photo" && flag("got_pokedex") && !flag("photo_hint_red")) {
+        setFlag("photo_hint_red");
+        await think("Boné vermelho...", "Minha mãe nunca fala desse homem.", "Só vira o porta-retrato quando acha que ninguém vê.");
+      }
+    }
   },
   event: async (id) => {
     if (id === "north_gate") {

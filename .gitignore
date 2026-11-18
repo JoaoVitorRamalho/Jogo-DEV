@@ -5,3 +5,7 @@ node_modules
 .tmp-ninja
 *.log
 *.tsbuildinfo
+public/vendor/_dl/
+public/vendor/kenney-*/
+public/vendor/oga-*/
+public/vendor/lpc-*/

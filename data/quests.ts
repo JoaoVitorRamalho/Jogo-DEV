@@ -14,6 +14,7 @@ export const QUESTS: QuestDef[] = [
       { flag: "got_pokedex", text: "Ouça as orientações da Professora Lira." },
       { flag: "said_goodbye", text: "Volte para casa e conte para a mãe." },
       { flag: "reached_route1", text: "Siga para o norte, pela Rota 1." },
+      { flag: "met_ren_route1", text: "Ren prometeu esperar na Rota 1." },
       { flag: "reached_forest", text: "Atravesse a Rota 1 até a entrada da Floresta de Aster." },
     ],
   },

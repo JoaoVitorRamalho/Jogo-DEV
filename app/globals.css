@@ -399,6 +399,7 @@ input[type="range"] {
   bottom: calc(var(--u) * 3);
   height: calc(var(--u) * 44);
   padding: calc(var(--u) * 5) calc(var(--u) * 8);
+  background: linear-gradient(180deg, #f4f6fc 0%, var(--window) 55%, #dce4f4 100%);
 }
 
 .gba-dialog.dim {

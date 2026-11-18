@@ -22,6 +22,10 @@ export const NPCS: Record<string, NpcLook> = {
     name: "Ren",
     appearance: { ...male, hairStyle: "spiky", hairColor: "black", top: "jacket", topColor: "blue", bottom: "pants", bottomColor: "navy", headwear: "cap", headwearColor: "red", extra: "none", skin: "amber", shoesColor: "red" },
   },
+  ren_route1: {
+    name: "Ren",
+    appearance: { ...male, hairStyle: "spiky", hairColor: "black", top: "jacket", topColor: "blue", bottom: "pants", bottomColor: "navy", headwear: "cap", headwearColor: "red", extra: "none", skin: "amber", shoesColor: "red" },
+  },
   fisher: {
     name: "Pescador Davi",
     appearance: { ...male, hairStyle: "short", hairColor: "gray", top: "tank", topColor: "sky", bottom: "shorts", bottomColor: "tan", headwear: "hat", headwearColor: "tan", extra: "none", skin: "bronze" },

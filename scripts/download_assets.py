@@ -231,10 +231,34 @@ def download_music() -> None:
             print("saved", target)
 
 
-def repo_files() -> list[str]:
+def ensure_lpc_repo() -> Path:
     repo = ROOT / ".tmp-lpc"
-    if not (repo / ".git").exists():
-        raise SystemExit("O clone parcial do LPC não está em .tmp-lpc.")
+    if (repo / ".git").exists():
+        return repo
+    print("clonando LPC (sparse, ~1x)...")
+    subprocess.run(
+        [
+            "git",
+            "clone",
+            "--depth",
+            "1",
+            "--filter=blob:none",
+            "--sparse",
+            "https://github.com/LiberatedPixelCup/Universal-LPC-Spritesheet-Character-Generator.git",
+            str(repo),
+        ],
+        check=True,
+    )
+    subprocess.run(
+        ["git", "sparse-checkout", "set", "sheet_definitions", "palette_definitions"],
+        cwd=repo,
+        check=True,
+    )
+    return repo
+
+
+def repo_files() -> list[str]:
+    repo = ensure_lpc_repo()
     output = subprocess.check_output(
         ["git", "ls-tree", "-r", "--name-only", "HEAD"],
         cwd=repo,
