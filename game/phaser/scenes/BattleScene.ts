@@ -100,6 +100,37 @@ export class BattleScene extends Phaser.Scene {
     this.startIdle(image);
   }
 
+  burst(x: number, y: number, tint: number): void {
+    const ring = this.add.circle(x, y, 4).setStrokeStyle(2, tint, 1).setDepth(29);
+    this.tween({ targets: ring, radius: 30, alpha: 0, duration: 420, ease: "Cubic.easeOut" }).then(() => ring.destroy());
+    const core = this.add.circle(x, y, 10, 0xffffff, 0.9).setDepth(29);
+    this.tween({ targets: core, scale: 2.4, alpha: 0, duration: 300 }).then(() => core.destroy());
+    for (let i = 0; i < 12; i += 1) {
+      const angle = (i / 12) * Math.PI * 2 + Math.random() * 0.3;
+      const spark = this.add.rectangle(x, y, 2, 2, i % 2 ? tint : 0xffffff).setDepth(30);
+      const dist = 18 + Math.random() * 16;
+      this.tween({
+        targets: spark,
+        x: x + Math.cos(angle) * dist,
+        y: y + Math.sin(angle) * dist * 0.7,
+        alpha: 0,
+        duration: 380 + Math.random() * 160,
+        ease: "Cubic.easeOut",
+      }).then(() => spark.destroy());
+    }
+  }
+
+  dust(x: number, y: number): void {
+    for (const dir of [-1, 1]) {
+      for (let i = 0; i < 3; i += 1) {
+        const puff = this.add.circle(x + dir * 6, y, 2 + i, 0xf4ecd8, 0.8).setDepth(9);
+        this.tween({ targets: puff, x: x + dir * (16 + i * 6), y: y - 2 - i, alpha: 0, scale: 1.6, duration: 360 + i * 60 }).then(() =>
+          puff.destroy(),
+        );
+      }
+    }
+  }
+
   sprite(side: "player" | "foe"): Phaser.GameObjects.Image | null {
     return side === "player" ? this.mine : this.foe;
   }
@@ -212,24 +243,60 @@ export class BattleScene extends Phaser.Scene {
           this.tween({ targets: myPlat, x: "+=260", duration: 650, ease: "Sine.easeOut" }),
         ]);
         foe.clearTint();
+        const shine = this.add.image(foe.x, foe.y, foe.texture.key).setOrigin(foe.originX, foe.originY)
+          .setScale(foe.scaleX, foe.scaleY).setDepth(11).setTintFill(0xffffff);
+        this.tween({ targets: shine, alpha: 0, duration: 360 }).then(() => shine.destroy());
         this.startIdle(foe);
         if (playerSprite) await this.visuals().sendOut("player", playerSprite);
       },
       sendOut: async (side, key) => {
+        const at = side === "player" ? MINE : FOE;
+        const groundY = at.y - 4;
+        // 1. a esfera voa em arco, girando
+        const orb = this.add.image(side === "player" ? -8 : 248, groundY - 40, "item_ball").setDepth(30).setScale(0.75);
+        const startX = orb.x;
+        await this.tween({
+          targets: orb,
+          duration: 420,
+          ease: "Linear",
+          angle: side === "player" ? 540 : -540,
+          onUpdate: (tween: Phaser.Tweens.Tween) => {
+            const t = tween.progress;
+            orb.x = Phaser.Math.Linear(startX, at.x, t);
+            orb.y = Phaser.Math.Linear(groundY - 40, groundY - 18, t) - Math.sin(t * Math.PI) * 26;
+          },
+        } as Phaser.Types.Tweens.TweenBuilderConfig);
+        // 2. abre com estouro de luz
+        this.burst(orb.x, orb.y, 0xfff4c4);
+        this.tween({ targets: orb, scale: 1.4, alpha: 0, duration: 180 }).then(() => orb.destroy());
+        // 3. o Pokémon cresce de dentro do brilho e a cor volta aos poucos
         const image = this.place(side, key);
         const fit = image.getData("fit") as number;
-        image.setScale(0).setTintFill(0xffffff);
-        await this.tween({ targets: image, scale: fit, duration: 260, ease: "Back.easeOut" });
-        image.clearTint();
+        image.setScale(0, 0);
+        const glow = this.add.image(image.x, image.y, image.texture.key).setOrigin(image.originX, image.originY)
+          .setFlipX(image.flipX).setDepth(11).setTintFill(0xffffff).setScale(0);
+        await Promise.all([
+          this.tween({ targets: [image, glow], scaleX: fit, scaleY: fit, duration: 320, ease: "Back.easeOut" }),
+        ]);
+        await this.tween({ targets: glow, alpha: 0, duration: 280, ease: "Sine.easeIn" });
+        glow.destroy();
+        // 4. pousa com um quique e poeirinha
+        this.dust(image.x, at.y);
+        await this.tween({ targets: image, scaleY: fit * 0.9, scaleX: fit * 1.08, duration: 80, yoyo: true });
+        image.setScale(fit);
         this.startIdle(image);
       },
       withdraw: async (side) => {
         const image = this.sprite(side);
         if (!image) return;
         this.stopIdle(image);
-        image.setTintFill(0xffffff);
-        await this.tween({ targets: image, scale: 0, duration: 200 });
+        image.setTintFill(0xfff4c4);
+        const x = image.x;
+        const y = image.y - 10;
+        await this.tween({ targets: image, scaleX: 0, scaleY: 0.2, y: y, duration: 240, ease: "Cubic.easeIn" });
         image.destroy();
+        this.burst(x, y, 0xfff4c4);
+        await this.wait(160);
         if (side === "player") this.mine = null;
         else this.foe = null;
       },

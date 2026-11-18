@@ -20,7 +20,7 @@ export class BootScene extends Phaser.Scene {
     }
     this.load.image("item_ball", "/assets/ui/items/ball.png");
     this.load.image("item_greatball", "/assets/ui/items/greatball.png");
-    for (const name of ["grass", "town"]) {
+    for (const name of ["grass", "town", "forest", "gym"]) {
       this.load.image(`bg_${name}`, `/assets/battle/bg_${name}.png`);
       this.load.image(`plat_${name}_enemy`, `/assets/battle/platform_${name}_enemy.png`);
       this.load.image(`plat_${name}_player`, `/assets/battle/platform_${name}_player.png`);

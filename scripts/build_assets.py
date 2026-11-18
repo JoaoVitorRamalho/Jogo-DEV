@@ -8,6 +8,8 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
+from build_battle_art import main as build_battle_art, orb
+
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / ".tmp-art" / "gfx" / "gfx"
 OUT = ROOT / "public" / "assets"
@@ -19,8 +21,6 @@ RAW_SPRITES = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/
 RAW_ITEMS = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items"
 # nome do arquivo em ui/items/ -> slug no repositório PokeAPI/sprites
 ITEM_SPRITES: dict[str, str] = {
-    "ball": "poke-ball",
-    "greatball": "great-ball",
     "potion": "potion",
     "superpotion": "super-potion",
     "antidote": "antidote",
@@ -514,9 +514,14 @@ def build_extra(ow: Image.Image) -> None:
         machine(),
         computer(),
     ]
-    ball = paint(symmetric(ITEMS["ball"][1], 16), ITEMS["ball"][0], 16)
-    tiles.append(ball)
+    tiles.append(orb((40, 178, 160), (18, 104, 100), (236, 184, 64), None, 16))
     sheet = Image.new("RGBA", (T * 16, T * 2), (0, 0, 0, 0))
+    previous = OUT / "tilesets" / "extra.png"
+    if previous.exists():  # tiles pintados à mão depois da lista (ex.: a TV, índice 15) ficam
+        old = Image.open(previous).convert("RGBA")
+        for index in range(len(tiles), 32):
+            box = ((index % 16) * T, (index // 16) * T, (index % 16 + 1) * T, (index // 16 + 1) * T)
+            sheet.paste(old.crop(box), box[:2])
     for index, tile in enumerate(tiles):
         sheet.paste(tile, ((index % 16) * T, (index // 16) * T), tile)
     sheet.save(ensure(OUT / "tilesets" / "extra.png"))
@@ -544,42 +549,13 @@ def build_items() -> None:
         _resize_item_icon(img).save(ensure(OUT / "ui" / "items" / f"{filename}.png"))
 
 
-def build_battle_backdrops() -> None:
-    w, h = 240, 160
-    for name, sky, far, ground, ground2 in (
-        ("grass", ((168, 216, 248), (200, 232, 248)), (84, 160, 96), (120, 200, 104), (100, 180, 92)),
-        ("town", ((240, 214, 168), (248, 232, 196)), (176, 132, 96), (200, 180, 140), (184, 164, 124)),
-    ):
-        img = Image.new("RGBA", (w, h), (0, 0, 0, 255))
-        d = ImageDraw.Draw(img)
-        for y in range(0, 56):
-            band = y // 8
-            c = sky[0] if band % 2 == 0 and y < 32 else sky[1]
-            d.line((0, y, w, y), fill=c + (255,))
-        for x in range(0, w, 1):
-            top = 44 + int(4 * abs(((x // 6) % 6) - 3))
-            d.line((x, top, x, 60), fill=far + (255,))
-        d.rectangle((0, 56, w, h), fill=ground + (255,))
-        for y in range(56, h, 4):
-            for x in range((y // 4) % 2 * 4, w, 8):
-                d.rectangle((x, y, x + 3, y + 1), fill=ground2 + (255,))
-        img.save(ensure(OUT / "battle" / f"bg_{name}.png"))
-        for pname, pw in (("enemy", 112), ("player", 136)):
-            plat = Image.new("RGBA", (pw, 28), (0, 0, 0, 0))
-            pd = ImageDraw.Draw(plat)
-            pd.ellipse((0, 4, pw - 1, 27), fill=tuple(max(0, c - 40) for c in ground2) + (255,))
-            pd.ellipse((4, 0, pw - 5, 22), fill=tuple(min(255, c + 24) for c in ground) + (255,))
-            pd.ellipse((14, 4, pw - 15, 16), fill=tuple(min(255, c + 40) for c in ground) + (255,))
-            plat.save(ensure(OUT / "battle" / f"platform_{name}_{pname}.png"))
-
-
 def main() -> None:
     copy_sources()
     ow = Image.open(SRC / "Overworld.png").convert("RGBA")
     build_extra(ow)
     build_creatures()
     build_items()
-    build_battle_backdrops()
+    build_battle_art()
     print("assets ok")
 
 
