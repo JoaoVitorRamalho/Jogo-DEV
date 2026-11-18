@@ -110,9 +110,9 @@ function BattleRun({ request }: { request: BattleRequest }) {
     else setMine(apply);
   }
 
-  async function learnFlow(uid: string, moveId: string) {
+  async function learnFlow(uid: string, moveId: string, live = false) {
     const st = stateRef.current;
-    const mon = st?.player.party.find((entry) => entry.uid === uid);
+    const mon = live ? useGame.getState().live?.party.find((entry) => entry.uid === uid) : st?.player.party.find((entry) => entry.uid === uid);
     if (!mon) return;
     const name = displayName(mon);
     const moveName = move(moveId).name;
@@ -124,7 +124,12 @@ function BattleRun({ request }: { request: BattleRequest }) {
       const index = await ask(options, { text: "Qual golpe esquecer?" }, options.length - 1);
       if (index < mon.moves.length) {
         const old = move(mon.moves[index].id).name;
-        learnMove(mon, moveId, index);
+        if (live) {
+          useGame.getState().update((state) => {
+            const target = state.party.find((entry) => entry.uid === uid);
+            if (target) learnMove(target, moveId, index);
+          });
+        } else learnMove(mon, moveId, index);
         await show(`1, 2 e... Pronto! ${name} esqueceu ${old} e aprendeu ${moveName}!`);
         return;
       }
@@ -227,11 +232,17 @@ function BattleRun({ request }: { request: BattleRequest }) {
       const into = pendingEvolution(mon);
       if (!into) continue;
       await playEvolution(mon.species, into);
+      let taught = { learned: [] as string[], pending: [] as string[] };
       useGame.getState().update((state) => {
         const target = state.party.find((entry) => entry.uid === uid);
-        if (target) evolve(target, into);
+        if (target) taught = evolve(target, into);
         markCaught(state, into);
       });
+      const evolved = useGame.getState().live?.party.find((entry) => entry.uid === uid);
+      if (evolved) {
+        for (const id of taught.learned) await show(`${displayName(evolved)} aprendeu ${move(id).name}!`);
+        for (const id of taught.pending) await learnFlow(uid, id, true);
+      }
     }
     visualsRef.current?.end();
     const { closeBattle } = await import("@/game/phaser/createGame");

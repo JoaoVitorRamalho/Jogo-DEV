@@ -57,6 +57,23 @@ const list: MoveDef[] = [
   { id: "psybeam", name: "Psicorraio", type: "psychic", category: "special", power: 65, accuracy: 100, pp: 20, description: "Um raio de energia psíquica." },
   { id: "shadow_claw", name: "Garra Sombria", type: "ghost", category: "physical", power: 70, accuracy: 100, pp: 15, highCrit: true, description: "Garras de sombra. Crítico frequente." },
   { id: "flame_wheel", name: "Roda de Fogo", type: "fire", category: "physical", power: 60, accuracy: 100, pp: 25, effects: [{ kind: "status", status: "burn", chance: 0.1 }], description: "Rola envolto em chamas." },
+  { id: "take_down", name: "Desmantelar", type: "normal", category: "physical", power: 90, accuracy: 85, pp: 20, description: "Avança com o corpo todo." },
+  { id: "slash", name: "Talho", type: "normal", category: "physical", power: 70, accuracy: 100, pp: 20, highCrit: true, description: "Corte rápido. Crítico frequente." },
+  { id: "seed_bomb", name: "Bomba de Sementes", type: "grass", category: "physical", power: 80, accuracy: 100, pp: 15, description: "Dispara sementes duras." },
+  { id: "giga_drain", name: "Gigadreno", type: "grass", category: "special", power: 75, accuracy: 100, pp: 10, description: "Suga a energia do alvo." },
+  { id: "earthquake", name: "Terremoto", type: "ground", category: "physical", power: 100, accuracy: 100, pp: 10, description: "Sacode o chão com violência." },
+  { id: "flamethrower", name: "Lança-chamas", type: "fire", category: "special", power: 90, accuracy: 100, pp: 15, effects: [{ kind: "status", status: "burn", chance: 0.1 }], description: "Um jato de fogo. Pode queimar." },
+  { id: "blaze_kick", name: "Chute Labareda", type: "fire", category: "physical", power: 85, accuracy: 90, pp: 10, highCrit: true, effects: [{ kind: "status", status: "burn", chance: 0.1 }], description: "Chute em chamas. Crítico frequente." },
+  { id: "sky_uppercut", name: "Gancho Alto", type: "fighting", category: "physical", power: 85, accuracy: 90, pp: 15, description: "Um soco de baixo para cima." },
+  { id: "close_combat", name: "Combate Corpo a Corpo", type: "fighting", category: "physical", power: 120, accuracy: 100, pp: 5, effects: [{ kind: "stage", target: "self", stat: "def", stages: -1 }], description: "Ataque total. Baixa a própria Defesa." },
+  { id: "surf", name: "Surfe", type: "water", category: "special", power: 90, accuracy: 100, pp: 15, description: "Uma onda enorme." },
+  { id: "night_slash", name: "Talho Noturno", type: "dark", category: "physical", power: 70, accuracy: 100, pp: 15, highCrit: true, description: "Golpe nas sombras. Crítico frequente." },
+  { id: "dark_pulse", name: "Pulso Sombrio", type: "dark", category: "special", power: 80, accuracy: 100, pp: 15, effects: [{ kind: "flinch", chance: 0.2 }], description: "Onda de energia sombria." },
+  { id: "crunch", name: "Triturar", type: "dark", category: "physical", power: 80, accuracy: 100, pp: 15, effects: [{ kind: "stage", target: "foe", stat: "def", stages: -1, chance: 0.2 }], description: "Mordida forte. Pode baixar a Defesa." },
+  { id: "aerial_ace", name: "Ás dos Céus", type: "flying", category: "physical", power: 60, accuracy: null, pp: 20, description: "Ataque veloz que nunca erra." },
+  { id: "gust", name: "Lufada", type: "flying", category: "special", power: 40, accuracy: 100, pp: 35, description: "Levanta um vento forte." },
+  { id: "bug_buzz", name: "Zumbido", type: "bug", category: "special", power: 90, accuracy: 100, pp: 10, effects: [{ kind: "stage", target: "foe", stat: "spd", stages: -1, chance: 0.1 }], description: "Vibração que fere os ouvidos." },
+  { id: "dragon_claw", name: "Garra de Dragão", type: "dragon", category: "physical", power: 80, accuracy: 100, pp: 15, description: "Garras afiadas de dragão." },
 ];
 
 export const MOVES: Record<string, MoveDef> = Object.fromEntries(list.map((move) => [move.id, move]));

@@ -259,9 +259,9 @@ export class BattleScene extends Phaser.Scene {
           targets: orb,
           duration: 420,
           ease: "Linear",
-          angle: side === "player" ? 540 : -540,
           onUpdate: (tween: Phaser.Tweens.Tween) => {
             const t = tween.progress;
+            orb.angle = Math.sin(t * Math.PI * 3) * 14 * (1 - t); // balança de leve e chega de pé
             orb.x = Phaser.Math.Linear(startX, at.x, t);
             orb.y = Phaser.Math.Linear(groundY - 40, groundY - 18, t) - Math.sin(t * Math.PI) * 26;
           },
@@ -336,24 +336,35 @@ export class BattleScene extends Phaser.Scene {
         const foe = this.foe;
         if (foe) this.stopIdle(foe);
         const fit = (foe?.getData("fit") as number | undefined) ?? 1;
-        const ball = this.add.image(40, 120, "item_ball").setDepth(30);
+        const ball = this.add.image(40, 120, "item_ball").setDepth(30).setScale(0.8);
         await this.tween({
           targets: ball,
-          x: FOE.x,
-          y: FOE.y - 30,
-          angle: 540,
-          duration: 520,
-          ease: "Quad.easeOut",
-        });
+          duration: 560,
+          ease: "Linear",
+          onUpdate: (tween: Phaser.Tweens.Tween) => {
+            const t = tween.progress;
+            ball.x = Phaser.Math.Linear(40, FOE.x, t);
+            ball.y = Phaser.Math.Linear(120, FOE.y - 30, t) - Math.sin(t * Math.PI) * 34;
+            ball.angle = Math.sin(t * Math.PI * 3) * 14 * (1 - t);
+            ball.setScale(0.8 - t * 0.2);
+          },
+        } as Phaser.Types.Tweens.TweenBuilderConfig);
+        ball.angle = 0;
         if (foe) {
-          foe.setTintFill(0xffffff);
-          await this.tween({ targets: foe, scale: 0, duration: 200 });
+          this.burst(ball.x, ball.y, 0xfff4c4);
+          foe.setTintFill(0xfff4c4);
+          await this.tween({ targets: foe, scaleX: 0, scaleY: 0.2, x: ball.x, y: ball.y + 4, duration: 260, ease: "Cubic.easeIn" });
+          foe.setPosition(FOE.x, FOE.y);
         }
-        await this.tween({ targets: ball, y: FOE.y - 6, duration: 240, ease: "Bounce.easeOut" });
+        await this.tween({ targets: ball, y: FOE.y - 6, duration: 320, ease: "Bounce.easeOut" });
+        this.dust(ball.x, FOE.y - 2);
         for (let i = 0; i < shakes; i += 1) {
-          await this.tween({ targets: ball, angle: { from: -25, to: 25 }, duration: 160, yoyo: true });
-          await this.wait(220);
+          await this.wait(260);
+          await this.tween({ targets: ball, angle: -22, x: ball.x - 2, duration: 110, ease: "Sine.easeOut" });
+          await this.tween({ targets: ball, angle: 22, x: ball.x + 4, duration: 180, ease: "Sine.easeInOut" });
+          await this.tween({ targets: ball, angle: 0, x: ball.x - 2, duration: 110, ease: "Sine.easeIn" });
         }
+        await this.wait(200);
         if (caught) {
           ball.setTint(0x9a9a9a);
           for (let i = 0; i < 6; i += 1) {
@@ -364,6 +375,7 @@ export class BattleScene extends Phaser.Scene {
           await this.wait(450);
           return;
         }
+        this.burst(ball.x, ball.y, 0xfff4c4);
         ball.destroy();
         if (foe) {
           foe.clearTint();

@@ -151,10 +151,23 @@ export function pendingEvolution(mon: Mon): string | null {
   return evolution.into;
 }
 
-export function evolve(mon: Mon, into: string): void {
+/** Evolui e ensina os golpes da nova forma: os marcados com nível 0 (ao evoluir) e os do nível atual. */
+export function evolve(mon: Mon, into: string): { learned: string[]; pending: string[] } {
   const ratio = mon.hp / maxHp(mon);
   mon.species = into;
   mon.hp = Math.max(1, Math.round(maxHp(mon) * ratio));
+  const learned: string[] = [];
+  const pending: string[] = [];
+  for (const [at, id] of species(into).learnset) {
+    if ((at !== 0 && at !== mon.level) || mon.moves.some((slot) => slot.id === id)) continue;
+    if (mon.moves.length < 4) {
+      mon.moves.push({ id, pp: move(id).pp });
+      learned.push(id);
+    } else if (!pending.includes(id)) {
+      pending.push(id);
+    }
+  }
+  return { learned, pending };
 }
 
 export function expYield(foe: Mon, trainer: boolean): number {

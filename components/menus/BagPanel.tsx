@@ -97,11 +97,15 @@ export function BagPanel({ onClose }: { onClose: () => void }) {
           const evo = current ? species(current.species).evolution : undefined;
           if (current && evo && current.level >= evo.level) {
             await playEvolution(current.species, evo.into);
+            let taught = { learned: [] as string[], pending: [] as string[] };
             useGame.getState().update((state) => {
               const next = state.party.find((entry) => entry.uid === current.uid);
-              if (next) evolve(next, evo.into);
+              if (next) taught = evolve(next, evo.into);
               markCaught(state, evo.into);
             });
+            const evolved = useGame.getState().live?.party.find((entry) => entry.uid === current.uid);
+            if (evolved) for (const learned of taught.learned) await say(`${displayName(evolved)} aprendeu ${move(learned).name}!`);
+            for (const pending of taught.pending) await forgetMove(current.uid, pending);
           }
           return;
         }
