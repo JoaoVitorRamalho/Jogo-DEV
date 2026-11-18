@@ -50,13 +50,13 @@ export class BattleScene extends Phaser.Scene {
     const at = side === "player" ? MINE : FOE;
     const existing = this.sprite(side);
     existing?.destroy();
+    const back = side === "player";
     const image = this.add
-      .image(at.x, at.y, monTexture(key, (k) => this.textures.exists(k)))
+      .image(at.x, at.y, monTexture(key, (k) => this.textures.exists(k), back))
       .setOrigin(0.5, 1)
       .setScale(SCALE)
       .setDepth(10);
     if (side === "player") {
-      image.setFlipX(true);
       this.mine = image;
     } else {
       this.foe = image;

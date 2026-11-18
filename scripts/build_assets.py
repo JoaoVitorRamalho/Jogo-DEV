@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import shutil
+import urllib.request
 from pathlib import Path
 
 from PIL import Image, ImageDraw
@@ -14,6 +15,19 @@ T = 16
 
 OUTLINE = (28, 24, 36, 255)
 
+RAW_SPRITES = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon"
+# sprite key no jogo -> número nacional (species.dex do representante)
+SPRITE_DEX: dict[str, int] = {
+    "bulbasaur": 1,
+    "torchic": 255,
+    "froakie": 656,
+    "wurmple": 265,
+    "starly": 396,
+    "gible": 443,
+    "mew": 151,
+    "giratina": 487,
+}
+
 
 def ensure(path: Path) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -22,7 +36,7 @@ def ensure(path: Path) -> Path:
 
 def copy_sources() -> None:
     pairs = {
-        "https://pokeapi.co/api/v2/pokemon/{id}/sprites//overworld/front_default": "tilesets/overworld.png",
+        "Overworld.png": "tilesets/overworld.png",
         "Inner.png": "tilesets/inner.png",
         "objects.png": "sprites/objects.png",
         "NPC_test.png": "sprites/body_base.png",
@@ -495,10 +509,15 @@ def build_extra(ow: Image.Image) -> None:
     sheet.save(ensure(OUT / "tilesets" / "extra.png"))
 
 
+def _fetch_sprite(url: str) -> Image.Image:
+    with urllib.request.urlopen(url, timeout=60) as resp:
+        return Image.open(resp).convert("RGBA")
+
+
 def build_creatures() -> None:
-    for name, (colors, rows) in CREATURES.items():
-        img = paint(symmetric(rows, 32), colors, 32)
-        img.save(ensure(OUT / "sprites" / "pokemon" / f"{name}.png"))
+    for name, dex in SPRITE_DEX.items():
+        _fetch_sprite(f"{RAW_SPRITES}/{dex}.png").save(ensure(OUT / "sprites" / "pokemon" / f"{name}.png"))
+        _fetch_sprite(f"{RAW_SPRITES}/back/{dex}.png").save(ensure(OUT / "sprites" / "pokemon" / f"{name}_back.png"))
 
 
 def build_items() -> None:
@@ -538,7 +557,7 @@ def build_battle_backdrops() -> None:
 
 def main() -> None:
     copy_sources()
-    ow = Image.open(SRC / "https://pokeapi.co/api/v2/pokemon/{id}/sprites//overworld/front_default").convert("RGBA")
+    ow = Image.open(SRC / "Overworld.png").convert("RGBA")
     build_extra(ow)
     build_creatures()
     build_items()
