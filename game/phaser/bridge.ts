@@ -8,6 +8,7 @@ export type WorldApi = {
   movePlayer(steps: Direction[]): Promise<void>;
   facePlayer(dir: Direction): void;
   moveNpc(id: string, steps: Direction[]): Promise<void>;
+  npcTile(id: string): { x: number; y: number } | null;
   faceNpc(id: string, dir: Direction): void;
   faceNpcToPlayer(id: string): void;
   setNpcVisible(id: string, visible: boolean): void;

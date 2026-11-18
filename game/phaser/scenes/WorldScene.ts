@@ -5,6 +5,7 @@ import { type Sfx, playSfx, setContextTrack } from "@/lib/audio/engine";
 import { subscribeInput } from "@/lib/input/engine";
 import type { Action, InputFrame } from "@/lib/input/types";
 import type { Direction } from "@/game/character/appearance";
+import { DAY_LOOK, OUTDOOR_MAPS, type TimeOfDay, timeOfDay } from "@/game/core/daytime";
 import { useUi, worldBusy } from "@/game/core/ui";
 import { type WorldApi, bridge } from "@/game/phaser/bridge";
 import { TALL_GRASS_GID, TALL_GRASS_TOP_FRAME, TILE, TILE_SPRITE_FRAME, VIEW_H, VIEW_W } from "@/game/phaser/constants";
@@ -139,6 +140,7 @@ export class WorldScene extends Phaser.Scene {
     this.bubble = this.add.image(0, 0, "bubble_dots").setOrigin(0.5, 1).setDepth(200000).setVisible(false);
     this.buildNpcs();
     this.setupCamera();
+    this.setupLighting();
     this.unsubscribe = subscribeInput((frame) => this.collect(frame));
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.teardown());
     bridge.world = this.api();
@@ -297,7 +299,7 @@ export class WorldScene extends Phaser.Scene {
     if (!this.inBounds(x, y)) return true;
     if (this.blocked[y][x]) return true;
     const npc = this.npcAt(x, y);
-    if (npc && npc !== mover) return true;
+    if (npc && npc !== mover && !(mover === this.player && npc.id === this.followerId)) return true;
     if (mover !== this.player && this.player.tx === x && this.player.ty === y) return true;
     return false;
   }
@@ -321,6 +323,75 @@ export class WorldScene extends Phaser.Scene {
     for (const npc of this.npcs.values()) this.updateNpc(npc, dt);
     this.updatePlayer(time, dt);
     this.updateOverlays();
+    this.updateLighting();
+  }
+
+  light: { grade: Phaser.GameObjects.Rectangle; vignette: Phaser.GameObjects.Image; glows: Phaser.GameObjects.Image[]; lamp: Phaser.GameObjects.Image } | null = null;
+  lightTime: TimeOfDay | null = null;
+
+  /** Luz do dia em Phaser: cor multiplicada no mapa, vinheta, janelas e portas acesas e luz em volta do jogador à noite. */
+  setupLighting(): void {
+    this.light = null;
+    this.lightTime = null;
+    if (!OUTDOOR_MAPS.has(this.mapKey)) return;
+    if (!this.textures.exists("fx_glow")) {
+      const glow = this.textures.createCanvas("fx_glow", 64, 64);
+      const g = glow?.getContext();
+      if (glow && g) {
+        const grad = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+        grad.addColorStop(0, "rgba(255,255,255,1)");
+        grad.addColorStop(0.35, "rgba(255,255,255,0.55)");
+        grad.addColorStop(1, "rgba(255,255,255,0)");
+        g.fillStyle = grad;
+        g.fillRect(0, 0, 64, 64);
+        glow.refresh();
+      }
+      const vig = this.textures.createCanvas("fx_vignette", VIEW_W, VIEW_H);
+      const v = vig?.getContext();
+      if (vig && v) {
+        const grad = v.createRadialGradient(VIEW_W / 2, VIEW_H / 2, VIEW_H * 0.35, VIEW_W / 2, VIEW_H / 2, VIEW_W * 0.62);
+        grad.addColorStop(0, "rgba(6,8,24,0)");
+        grad.addColorStop(1, "rgba(6,8,24,1)");
+        v.fillStyle = grad;
+        v.fillRect(0, 0, VIEW_W, VIEW_H);
+        vig.refresh();
+      }
+    }
+    const grade = this.add.rectangle(0, 0, VIEW_W, VIEW_H, 0xffffff).setOrigin(0, 0).setScrollFactor(0).setDepth(150000).setBlendMode(Phaser.BlendModes.MULTIPLY);
+    const glows: Phaser.GameObjects.Image[] = [];
+    for (const warp of this.warps) {
+      if (!warp.props.door) continue;
+      const cx = (warp.x + warp.w / 2) * TILE;
+      const cy = warp.y * TILE + 10;
+      glows.push(this.add.image(cx, cy, "fx_glow").setScale(0.7));
+      glows.push(this.add.image(cx - 1.5 * TILE, cy - 9, "fx_glow").setScale(0.32));
+      glows.push(this.add.image(cx + 1.5 * TILE, cy - 9, "fx_glow").setScale(0.32));
+    }
+    for (const glow of glows) glow.setDepth(150001).setBlendMode(Phaser.BlendModes.ADD);
+    const lamp = this.add.image(0, 0, "fx_glow").setScale(1.3).setDepth(150001).setBlendMode(Phaser.BlendModes.ADD).setTint(0xffc880);
+    const vignette = this.add.image(0, 0, "fx_vignette").setOrigin(0, 0).setScrollFactor(0).setDepth(150002);
+    this.light = { grade, vignette, glows, lamp };
+    this.updateLighting();
+  }
+
+  updateLighting(): void {
+    const light = this.light;
+    if (!light) return;
+    const now = timeOfDay(useGame.getState().live?.flags);
+    if (now !== this.lightTime) {
+      this.lightTime = now;
+      const look = DAY_LOOK[now];
+      light.grade.setFillStyle(look.grade).setVisible(look.grade !== 0xffffff);
+      light.vignette.setAlpha(look.vignette).setVisible(look.vignette > 0);
+      for (const glow of light.glows) glow.setTint(look.glowTint).setAlpha(look.glow).setVisible(look.glow > 0);
+      light.lamp.setAlpha(look.lamp).setVisible(look.lamp > 0);
+    }
+    if (light.lamp.visible) light.lamp.setPosition(this.player.sprite.x, this.player.sprite.y - 10);
+    if (light.glows.length && light.glows[0].visible) {
+      const flicker = 0.92 + Math.sin(this.animClock / 260) * 0.05 + Math.sin(this.animClock / 97) * 0.03;
+      const base = DAY_LOOK[this.lightTime ?? "morning"].glow;
+      for (const glow of light.glows) glow.setAlpha(base * flicker);
+    }
   }
 
   updateNpc(npc: Npc, dt: number): void {
@@ -413,8 +484,21 @@ export class WorldScene extends Phaser.Scene {
       }
       return;
     }
+    const speed = this.held?.run ? RUN : WALK;
+    const follower = this.followerId ? this.npcs.get(this.followerId) : undefined;
+    if (follower?.sprite.visible && follower.tx === p.tx + dx && follower.ty === p.ty + dy) {
+      // Andou contra quem segue: trocam de lugar em vez de empilhar.
+      this.trail = [];
+      if (follower.moving) follower.place(follower.tx, follower.ty);
+      follower.resolve = () => follower.frame(0);
+      follower.begin(OPPOSITE[dir], speed);
+      p.begin(dir, speed);
+      return;
+    }
+    const at = this.trail.findIndex((t) => t.x === p.tx + dx && t.y === p.ty + dy);
+    if (at >= 0) this.trail = this.trail.slice(at + 1);
     this.trail.push({ x: p.tx, y: p.ty });
-    p.begin(dir, this.held?.run ? RUN : WALK);
+    p.begin(dir, speed);
   }
 
   followerId: string | null = null;
@@ -447,7 +531,7 @@ export class WorldScene extends Phaser.Scene {
       npc.scripted = this.followerId === npc.id;
       if (this.trail[0] && npc.tx === this.trail[0].x && npc.ty === this.trail[0].y) this.trail.shift();
     };
-    npc.begin(dir, WALK);
+    npc.begin(dir, this.player.duration);
   }
 
   afterStep(): void {
@@ -605,6 +689,10 @@ export class WorldScene extends Phaser.Scene {
         this.player.dir = dir;
         this.player.frame(0);
         this.persistPosition();
+      },
+      npcTile: (id) => {
+        const npc = this.npcs.get(id);
+        return npc ? { x: npc.tx, y: npc.ty } : null;
       },
       moveNpc: async (id, steps) => {
         const npc = this.npcs.get(id);

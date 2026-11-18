@@ -3,7 +3,7 @@ import { ITEMS, type ItemId } from "@/data/items";
 import { ask, useUi } from "@/game/core/ui";
 import { world } from "@/game/phaser/bridge";
 import { giveItem, useGame } from "@/game/state/store";
-import { autosave, flag, giveOnce, healAtHome, hero, line, setFlag, state, talk, think, trainerBattle } from "@/game/story/actions";
+import { autosave, flag, giveOnce, healAtHome, hero, line, setFlag, spottedBy, state, talk, think, trainerBattle } from "@/game/story/actions";
 import { playSfx } from "@/lib/audio/engine";
 
 const BADGE = "casulo";
@@ -260,6 +260,14 @@ export const CH2_TALK: Record<string, () => Promise<void>> = {
     await talk("Viajante", "Vim de longe só para ver o viveiro da Cora.", flag("ch2_met_cora") ? "Ouvi dizer que ela voltou! Vou assistir à sua batalha." : "Mas ela sumiu na floresta. Que azar o meu.");
   },
   ranger_r2: ranger,
+  r2_rui: async () => {
+    if (flag("beat_hiker_rui")) return void (await trainerBattle("hiker_rui", "r2_rui"));
+    await spottedBy("hiker_rui", "r2_rui");
+  },
+  r2_tais: async () => {
+    if (flag("beat_scout_tais")) return void (await trainerBattle("scout_tais", "r2_tais"));
+    await spottedBy("scout_tais", "r2_tais");
+  },
   r2_trainer_a: async () => {
     await trainerBattle("camper_luan", "r2_trainer_a");
   },

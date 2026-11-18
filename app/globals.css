@@ -507,25 +507,6 @@ input[type="range"] {
   background: #fff6d8;
 }
 
-.day-tint {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 2;
-}
-
-.day-afternoon {
-  background: rgba(255, 176, 64, 0.16);
-}
-
-.day-dusk {
-  background: rgba(176, 72, 32, 0.28);
-}
-
-.day-night {
-  background: rgba(8, 14, 40, 0.48);
-}
-
 .pause-menu {
   top: calc(var(--u) * 3);
   right: calc(var(--u) * 3);

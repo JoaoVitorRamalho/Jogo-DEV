@@ -5,6 +5,7 @@ import { TRAINERS } from "@/data/trainers";
 import type { BattleConfig, Outcome } from "@/game/battle/engine";
 import { defaultRng } from "@/game/core/rng";
 import { type Line, ask, battle, say, useUi } from "@/game/core/ui";
+import type { Direction } from "@/game/character/appearance";
 import { world } from "@/game/phaser/bridge";
 import { createMon } from "@/game/pokemon/mon";
 import { type GameState, giveItem, healParty, live, markSeen, useGame } from "@/game/state/store";
@@ -100,13 +101,13 @@ export async function blackout(): Promise<void> {
   await talk("Mãe", "Ei... olha pra mim. Está tudo bem.", "Descansem um pouco. Os dois.");
 }
 
-export async function trainerBattle(id: string, npc: string): Promise<boolean> {
+export async function trainerBattle(id: string, npc: string, seen = false): Promise<boolean> {
   const def = TRAINERS[id];
   if (flag(`beat_${id}`)) {
     await talk(def.name, ...def.after);
     return true;
   }
-  await world().emote(npc, "!");
+  if (!seen) await world().emote(npc, "!");
   await talk(def.name, ...def.intro);
   const foeParty = def.team.map((member) => createMon(member.species, member.level, defaultRng));
   const outcome = await runBattle({ kind: "trainer", foeParty, trainerName: def.name, reward: def.reward, background: def.background });
@@ -119,6 +120,30 @@ export async function trainerBattle(id: string, npc: string): Promise<boolean> {
   }
   if (outcome === "lose") await blackout();
   return false;
+}
+
+/** Treinador de rota: viu você, vem andando e a batalha é obrigatória. Depois cura o seu time. */
+export async function spottedBy(id: string, npc: string): Promise<void> {
+  if (flag(`beat_${id}`) || !hasHealthyMon()) return;
+  const w = world();
+  const from = w.npcTile(npc);
+  if (!from) return;
+  await w.emote(npc, "!");
+  const p = w.playerTile();
+  const target = from.y !== p.y ? { x: p.x, y: p.y + Math.sign(from.y - p.y) } : { x: p.x + Math.sign(from.x - p.x), y: p.y };
+  const steps: Direction[] = [];
+  for (let x = from.x; x !== target.x; x += Math.sign(target.x - x)) steps.push(target.x > x ? "right" : "left");
+  for (let y = from.y; y !== target.y; y += Math.sign(target.y - y)) steps.push(target.y > y ? "down" : "up");
+  await w.moveNpc(npc, steps);
+  const at = w.npcTile(npc) ?? target;
+  w.facePlayer(at.y < p.y ? "up" : at.y > p.y ? "down" : at.x < p.x ? "left" : "right");
+  w.faceNpcToPlayer(npc);
+  const won = await trainerBattle(id, npc, true);
+  if (won) {
+    useGame.getState().update((s) => healParty(s));
+    playSfx("heal");
+    await talk(TRAINERS[id].name, "Toma, deixa eu cuidar do seu parceiro. Assim você segue inteiro.");
+  }
 }
 
 export async function wildEncounter(mapKey: string): Promise<void> {

@@ -177,6 +177,22 @@ export const NPCS: Record<string, NpcLook> = {
     name: "Guarda Nuno",
     appearance: { ...male, hairStyle: "short", hairColor: "chestnut", top: "jacket", topColor: "forest", bottom: "pants", bottomColor: "brown", headwear: "hat", headwearColor: "forest", extra: "backpack", extraColor: "tan", skin: "olive", shoes: "boots", shoesColor: "brown" },
   },
+  picnic_mel: {
+    name: "Piqueniqueira Mel",
+    appearance: { ...female, hairStyle: "ponytail", hairColor: "redhead", top: "tshirt", topColor: "green", bottom: "shorts", bottomColor: "navy", headwear: "none", extra: "none", skin: "light" },
+  },
+  r2_rui: {
+    name: "Andarilho Rui",
+    appearance: { ...male, hairStyle: "short", hairColor: "dark_brown", top: "jacket", topColor: "forest", bottom: "pants", bottomColor: "brown", headwear: "cap", headwearColor: "forest", extra: "backpack", extraColor: "brown", skin: "taupe" },
+  },
+  r2_tais: {
+    name: "Escoteira Tais",
+    appearance: { ...female, hairStyle: "bob", hairColor: "black", top: "tshirt", topColor: "teal", bottom: "shorts", bottomColor: "tan", headwear: "cap", headwearColor: "teal", extra: "backpack", extraColor: "green", skin: "olive" },
+  },
+  gael_town: {
+    name: "Gael",
+    appearance: { ...male, hairStyle: "spiky", hairColor: "black", top: "jacket", topColor: "red", bottom: "pants", bottomColor: "navy", headwear: "cap", headwearColor: "white", extra: "none", skin: "amber", shoesColor: "white" },
+  },
   r2_trainer_a: {
     name: "Campista Luan",
     appearance: { ...male, hairStyle: "short", hairColor: "black", top: "tshirt", topColor: "orange", bottom: "shorts", bottomColor: "tan", headwear: "cap", headwearColor: "orange", extra: "backpack", extraColor: "brown", skin: "brown" },

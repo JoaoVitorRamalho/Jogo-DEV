@@ -20,8 +20,6 @@ export function GameShell() {
   const host = useRef<HTMLDivElement>(null);
   const [zoom, setZoomState] = useState(() => (typeof window === "undefined" ? 3 : zoomFor(window.innerWidth, window.innerHeight)));
   const panel = useUi((state) => state.panel);
-  const flags = useGame((state) => state.live?.flags);
-  const timeOfDay = !flags ? "morning" : flags.slept || flags.night_decision ? "morning" : flags.lake_done ? "night" : flags.home_after_clinic ? "dusk" : flags.clinic_done ? "afternoon" : "morning";
 
   useEffect(() => {
     installChapter1();
@@ -73,7 +71,6 @@ export function GameShell() {
     <div className="shell">
       <div className="frame" style={style}>
         <div ref={host} className="canvas-host" />
-        <div className={`day-tint day-${timeOfDay}`} />
         <div className="overlay">
           <BattleScreen />
           <BattleDemoHud />

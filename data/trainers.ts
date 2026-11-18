@@ -11,6 +11,33 @@ export type TrainerDef = {
 };
 
 export const TRAINERS: Record<string, TrainerDef> = {
+  picnic_mel: {
+    id: "picnic_mel",
+    name: "Piqueniqueira Mel",
+    team: [{ species: "wurmple", level: 3 }],
+    reward: 90,
+    intro: ["Opa! Ninguém passa pela trilha sem uma batalha comigo.", "Fica tranquilo, meu Wurmple ainda é filhote."],
+    defeat: ["Viu? Seu parceiro já está pegando o jeito."],
+    after: ["Cada batalha dá experiência. É assim que ele fica forte."],
+  },
+  hiker_rui: {
+    id: "hiker_rui",
+    name: "Andarilho Rui",
+    team: [{ species: "wurmple", level: 5 }],
+    reward: 150,
+    intro: ["Alto lá! Quem entra na Rota 2 enfrenta o Rui primeiro.", "É regra minha. Ninguém reclamou até hoje."],
+    defeat: ["Pode passar. Você mereceu."],
+    after: ["Lá na frente a rota se divide em dois caminhos. Os dois chegam em Ferrúria."],
+  },
+  scout_tais: {
+    id: "scout_tais",
+    name: "Escoteira Tais",
+    team: [{ species: "starly", level: 6 }],
+    reward: 160,
+    intro: ["Última parada antes de Ferrúria!", "Mostra o que aprendeu na rota."],
+    defeat: ["Você está pronto para a cidade."],
+    after: ["Ferrúria fica logo ali em cima. O Centro Pokémon é o prédio de telhado vermelho."],
+  },
   camper_luan: {
     id: "camper_luan",
     name: "Campista Luan",

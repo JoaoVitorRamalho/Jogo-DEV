@@ -4,10 +4,11 @@ import { species } from "@/data/pokemon/species";
 import { TYPE_NAME } from "@/data/pokemon/types";
 import { defaultRng } from "@/game/core/rng";
 import { ask, useUi } from "@/game/core/ui";
+import type { Direction } from "@/game/character/appearance";
 import { world } from "@/game/phaser/bridge";
 import { createMon } from "@/game/pokemon/mon";
 import { addMon, giveItem, useGame } from "@/game/state/store";
-import { autosave, flag, giveOnce, healAtHome, hero, line, setFlag, state, talk, think, trainerBattle, wildEncounter, yesNo } from "@/game/story/actions";
+import { autosave, flag, giveOnce, healAtHome, hero, line, setFlag, spottedBy, state, talk, think, trainerBattle, wildEncounter, yesNo } from "@/game/story/actions";
 import { CH2_SIGN_RUN, CH2_SIGNS, CH2_TALK, CH2_VISIBLE, ch2CanWarp, ch2Enter } from "@/game/story/chapter2";
 import { BattleDemo } from "@/game/story/demo";
 import { type StoryHooks, story } from "@/game/story/hooks";
@@ -32,6 +33,14 @@ function escorting(): "clinic" | "lake" | "home" | null {
   return null;
 }
 
+/** Faixas de visão: entrar nelas chama a batalha obrigatória do treinador da rota. */
+const SIGHT: Record<string, [string, string]> = {
+  sight_teo: ["youngster_caio", "youngster"],
+  sight_mel: ["picnic_mel", "picnic_mel"],
+  sight_rui: ["hiker_rui", "r2_rui"],
+  sight_tais: ["scout_tais", "r2_tais"],
+};
+
 function motherOn(map: string): string | null {
   if (map === "house_1f") return "mother";
   if (map === "brisamar") return "mother_town";
@@ -47,8 +56,10 @@ function bringMother(map: string): void {
     return;
   }
   const here = w.playerTile();
-  const spot = { x: here.x, y: here.y + 1 };
-  w.placeNpc(id, spot.x, spot.y, "up");
+  // Atrás do jogador (na porta de onde ele saiu), nunca na frente dele.
+  const back: Record<string, [number, number]> = { down: [0, -1], up: [0, 1], left: [1, 0], right: [-1, 0] };
+  const [bx, by] = back[here.dir];
+  w.placeNpc(id, here.x + bx, here.y + by, here.dir);
   w.setNpcVisible(id, true);
   w.follow(id);
 }
@@ -291,6 +302,16 @@ async function darioIntro(): Promise<void> {
   await talk("Gael", "Posso mostrar! Eu e Pikachu íamos treinar na Rota 1, logo ao norte da vila.");
   await talk("Prof. Dário", "Ótima ideia. {nome}, você pode observar. Não precisa entrar numa batalha antes de se sentir preparado.", "Sai pelo portão norte de Brisamar. O Gael te espera no começo da rota, ao lado do caminho. Ele não vai ficar no meio da trilha.");
   await talk(hero(), "Posso ir.");
+  await talk("Gael", "Então eu vou na frente! Te espero na entrada da Rota 1.");
+  const w = world();
+  const at = w.npcTile("gael_lab");
+  if (at) {
+    const steps: Direction[] = [];
+    for (let y = at.y; y < 10; y += 1) steps.push("down");
+    await w.moveNpc("gael_lab", steps);
+  }
+  playSfx("door");
+  w.setNpcVisible("gael_lab", false);
   setFlag("met_dario");
   setFlag("entered_lab");
   await goal("Saia de Brisamar pelo norte. O Gael está no começo da Rota 1, ao lado do caminho.");
@@ -595,6 +616,11 @@ const NPC_TALK: Record<string, () => Promise<void>> = {
     const won = await trainerBattle("youngster_caio", "youngster");
     if (won) await think("Você se saiu bem. Vamos continuar.");
   },
+  picnic_mel: async () => {
+    if (!flag("license")) return talk("Piqueniqueira Mel", "Quando tiver um parceiro, volta aqui. Ninguém passa sem batalhar comigo!");
+    if (flag("beat_picnic_mel")) return void (await trainerBattle("picnic_mel", "picnic_mel"));
+    await spottedBy("picnic_mel", "picnic_mel");
+  },
   hiker: async () => {
     await talk("Viajante", "Ferrúria tem o primeiro ginásio da região. O laboratório da professora fica perto da praça.");
     await talk(hero(), "É depois da floresta, certo?");
@@ -654,7 +680,8 @@ const NPC_VISIBLE: Record<string, () => boolean> = {
   ren_lab: () => false,
   ren_route1: () => false,
   gael: () => flag("night_decision"),
-  gael_lab: () => flag("talked_gael") && !flag("capture_demo"),
+  gael_lab: () => flag("talked_gael") && !flag("met_dario"),
+  gael_town: () => false,
   gael_clearing: () => false,
   gael_route: () => flag("met_dario") && !flag("license"),
   mother_town: () => Boolean(escorting()),
@@ -734,6 +761,11 @@ const hooks: StoryHooks = {
   },
   event: async (id) => {
     ensure();
+    if (id.startsWith("sight_")) {
+      const [trainer, npc] = SIGHT[id] ?? [];
+      if (trainer && flag("license") && !flag(`beat_${trainer}`)) await spottedBy(trainer, npc);
+      return false;
+    }
     if (id === "north_gate") {
       if (!flag("ch1_morning")) {
         await think("A mãe está lá embaixo.");
@@ -791,6 +823,21 @@ const hooks: StoryHooks = {
       );
     }
     if (flag("met_dario") && !flag("capture_demo") && key === "route1") await goal("O Gael está ao lado do caminho. Aperte Z para a aula.");
+    if (flag("met_dario") && !flag("capture_demo") && key === "brisamar" && !flag("gael_walked_town")) {
+      setFlag("gael_walked_town");
+      const w = world();
+      w.placeNpc("gael_town", 24, 21, "left");
+      w.setNpcVisible("gael_town", true);
+      await w.emote("gael_town", "!");
+      await talk("Gael", "Vem, {nome}! É por aqui, pelo norte!");
+      await w.moveNpc("gael_town", ["left", "left", "left", "up", "up", "up", "up", "up", "up", "up", "up", "left", "up", "up", "up", "up", "up"]);
+      w.setNpcVisible("gael_town", false);
+    }
+    if (flag("met_dario") && !flag("capture_demo") && key === "route1" && !flag("gael_waved")) {
+      setFlag("gael_waved");
+      await world().emote("gael_route", "!");
+      await talk("Gael", "Aqui, {nome}! Chega perto que eu te mostro.");
+    }
     if (flag("met_dario") && !flag("capture_demo") && key === "brisamar") await goal("Saia pelo norte. O Gael espera no começo da Rota 1, fora da trilha.");
     bringMother(key);
     if (key === "route1" && !flag("reached_route1") && flag("license")) {
