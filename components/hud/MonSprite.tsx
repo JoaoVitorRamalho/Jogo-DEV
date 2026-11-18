@@ -21,12 +21,12 @@ export function MonSprite({ id, size = 32, flip = false }: { id: string; size?: 
 
 export function HpBar({ hp, max }: { hp: number; max: number }) {
   const ratio = max > 0 ? Math.max(0, Math.min(1, hp / max)) : 0;
-  const color = ratio > 0.5 ? "#58d058" : ratio > 0.2 ? "#f0c030" : "#e03838";
+  const tier = ratio > 0.5 ? "hp-ok" : ratio > 0.2 ? "hp-warn" : "hp-low";
   return (
     <span className="hp-bar">
       <b>PS</b>
       <span>
-        <i style={{ width: `${ratio * 100}%`, background: color }} />
+        <i className={tier} style={{ width: `${ratio * 100}%` }} />
       </span>
     </span>
   );

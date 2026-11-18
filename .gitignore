@@ -6,6 +6,6 @@ node_modules
 *.log
 *.tsbuildinfo
 public/vendor/_dl/
-public/vendor/kenney-*/
+public/vendor/kenney-ui-pack/
 public/vendor/oga-*/
 public/vendor/lpc-*/

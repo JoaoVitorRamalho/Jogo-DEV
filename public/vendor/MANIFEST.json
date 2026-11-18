@@ -1,8 +1,9 @@
 {
   "packs": {
-    "kenney-tiny-dungeon": "download_failed",
-    "oga-ui-pixel-adventure": "download_failed",
-    "lpc-colonial": "download_failed"
+    "kenney-ui-pack": "ok (1229750 bytes)",
+    "oga-town-tiles": "ok -> public/assets/tilesets/refs/oga-town-tiles.png",
+    "oga-backgrounds": "ok -> public/assets/tilesets/refs/oga-backgrounds.png",
+    "hud_installed": "button_square_depth_border.png, button_rectangle_depth_border.png, button_round_depth_border.png, slide_horizontal_color_section.png, slide_horizontal_grey_section.png, slide_horizontal_grey_section_wide.png, slide_vertical_color_section.png, check_square_color_checkmark.png"
   },
-  "note": "Ver GERO.md se algum pack falhou."
+  "hud_dir": "public/assets/ui/kenney"
 }

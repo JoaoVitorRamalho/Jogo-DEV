@@ -1,3 +1,4 @@
+/** Roteiro Cap. 1 — quem for escrever história: leia docs/PARA-HISTORIA.md antes de editar. */
 import { ITEMS, type ItemId } from "@/data/items";
 import { species } from "@/data/pokemon/species";
 import { TYPE_NAME } from "@/data/pokemon/types";

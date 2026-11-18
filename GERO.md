@@ -1,5 +1,8 @@
 # GERO — Guia completo (Jornada / Região Asteria)
 
+> **Comece em:** [`LEIA-ANTES.md`](LEIA-ANTES.md)  
+> História → [`docs/PARA-HISTORIA.md`](docs/PARA-HISTORIA.md) · Visual → [`docs/PARA-VISUAL.md`](docs/PARA-VISUAL.md)
+
 Projeto **fã**, uso privado entre amigos — **não comercial**, **não publicar**.  
 Este arquivo consolida história, personagens, assets, comandos e o que falta refinar.
 
