@@ -16,6 +16,19 @@ T = 16
 OUTLINE = (28, 24, 36, 255)
 
 RAW_SPRITES = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon"
+RAW_ITEMS = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items"
+# nome do arquivo em ui/items/ -> slug no repositório PokeAPI/sprites
+ITEM_SPRITES: dict[str, str] = {
+    "ball": "poke-ball",
+    "greatball": "great-ball",
+    "potion": "potion",
+    "superpotion": "super-potion",
+    "antidote": "antidote",
+    "paralyze_heal": "paralyze-heal",
+    "awakening": "awakening",
+    "burn_heal": "burn-heal",
+    "pokedex": "data-card",
+}
 # sprite key no jogo -> número nacional (species.dex do representante)
 SPRITE_DEX: dict[str, int] = {
     "bulbasaur": 1,
@@ -520,10 +533,15 @@ def build_creatures() -> None:
         _fetch_sprite(f"{RAW_SPRITES}/back/{dex}.png").save(ensure(OUT / "sprites" / "pokemon" / f"{name}_back.png"))
 
 
+def _resize_item_icon(img: Image.Image, size: int = 24) -> Image.Image:
+    img.thumbnail((size, size), Image.Resampling.NEAREST)
+    return img
+
+
 def build_items() -> None:
-    for name, (colors, rows) in ITEMS.items():
-        img = paint(symmetric(rows, 16), colors, 16)
-        img.save(ensure(OUT / "ui" / "items" / f"{name}.png"))
+    for filename, slug in ITEM_SPRITES.items():
+        img = _fetch_sprite(f"{RAW_ITEMS}/{slug}.png")
+        _resize_item_icon(img).save(ensure(OUT / "ui" / "items" / f"{filename}.png"))
 
 
 def build_battle_backdrops() -> None:

@@ -13,6 +13,7 @@ Mapas, HUD, sprites de cidade e integração de packs baixados.
 | Item | Pasta |
 |------|--------|
 | Pokémon batalha | `public/assets/sprites/pokemon/` (PokeAPI via `npm run assets`) |
+| Itens / loot (bola, poção, Pokédex…) | `public/assets/ui/items/` (PokeAPI `sprites/items`) |
 | Mundo base | `public/assets/tilesets/overworld.png`, `inner.png`, `extra.png` |
 | HUD Kenney (recorte) | `public/assets/ui/kenney/` |
 | Referência cidade | `public/assets/tilesets/refs/oga-town-tiles.png` |
