@@ -256,11 +256,12 @@ export class BattleScene extends Phaser.Scene {
         const orb = this.add.image(side === "player" ? -8 : 248, groundY - 40, "item_ball").setDepth(30).setScale(0.75);
         const startX = orb.x;
         await this.tween({
-          targets: orb,
+          targets: { t: 0 },
+          t: 1,
           duration: 420,
           ease: "Linear",
-          onUpdate: (tween: Phaser.Tweens.Tween) => {
-            const t = tween.progress;
+          onUpdate: (_tween: Phaser.Tweens.Tween, target: { t: number }) => {
+            const t = target.t;
             orb.angle = Math.sin(t * Math.PI * 3) * 14 * (1 - t); // balança de leve e chega de pé
             orb.x = Phaser.Math.Linear(startX, at.x, t);
             orb.y = Phaser.Math.Linear(groundY - 40, groundY - 18, t) - Math.sin(t * Math.PI) * 26;
@@ -338,11 +339,12 @@ export class BattleScene extends Phaser.Scene {
         const fit = (foe?.getData("fit") as number | undefined) ?? 1;
         const ball = this.add.image(40, 120, "item_ball").setDepth(30).setScale(0.8);
         await this.tween({
-          targets: ball,
+          targets: { t: 0 },
+          t: 1,
           duration: 560,
           ease: "Linear",
-          onUpdate: (tween: Phaser.Tweens.Tween) => {
-            const t = tween.progress;
+          onUpdate: (_tween: Phaser.Tweens.Tween, target: { t: number }) => {
+            const t = target.t;
             ball.x = Phaser.Math.Linear(40, FOE.x, t);
             ball.y = Phaser.Math.Linear(120, FOE.y - 30, t) - Math.sin(t * Math.PI) * 34;
             ball.angle = Math.sin(t * Math.PI * 3) * 14 * (1 - t);

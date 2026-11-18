@@ -2048,3 +2048,23 @@ input[type="range"] {
     animation: none;
   }
 }
+
+/* Batalha encenada do Gael */
+.demo-tag {
+  position: absolute;
+  top: calc(var(--u) * 1);
+  left: 50%;
+  translate: -50% 0;
+  padding: calc(var(--u) * 1) calc(var(--u) * 5);
+  font-size: calc(var(--u) * 5);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #fff8d8;
+  background: rgba(24, 40, 56, 0.82);
+  border: calc(var(--u) * 1) solid #f4c74a;
+  border-radius: calc(var(--u) * 3);
+  animation: demo-tag-in 0.4s ease-out both;
+}
+@keyframes demo-tag-in {
+  from { opacity: 0; transform: translateY(calc(var(--u) * -6)); }
+}

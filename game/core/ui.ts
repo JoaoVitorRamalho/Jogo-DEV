@@ -9,6 +9,8 @@ export type DialogRequest = { lines: Line[]; index: number; resolve: () => void 
 export type ChoiceRequest = { prompt?: Line; options: string[]; index: number; cancel: number | null; preview?: string; resolve: (index: number) => void };
 export type BattleRequest = { config: BattleConfig; resolve: (outcome: Outcome) => void };
 export type EvolutionRequest = { from: string; to: string; resolve: () => void };
+export type DemoMon = { name: string; level: number; hp: number; max: number; status?: string };
+export type DemoHud = { title: string; foe: DemoMon | null; mine: DemoMon | null };
 export type Panel = null | "pause" | "party" | "bag" | "dex" | "quests" | "save" | "card" | "options";
 
 type Ui = {
@@ -17,6 +19,7 @@ type Ui = {
   choice: ChoiceRequest | null;
   battle: BattleRequest | null;
   evolution: EvolutionRequest | null;
+  demo: DemoHud | null;
   panel: Panel;
   toast: string | null;
   hint: string | null;
@@ -33,6 +36,7 @@ export const useUi = create<Ui>((set) => ({
   choice: null,
   battle: null,
   evolution: null,
+  demo: null,
   panel: null,
   toast: null,
   hint: null,
@@ -50,7 +54,7 @@ export const useUi = create<Ui>((set) => ({
 
 export function worldBusy(): boolean {
   const ui = useUi.getState();
-  return Boolean(ui.dialog || ui.choice || ui.battle || ui.evolution || ui.panel || ui.locked > 0);
+  return Boolean(ui.dialog || ui.choice || ui.battle || ui.evolution || ui.demo || ui.panel || ui.locked > 0);
 }
 
 export function say(lines: Line[] | string, speaker?: string): Promise<void> {
