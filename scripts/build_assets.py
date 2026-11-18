@@ -22,7 +22,7 @@ def ensure(path: Path) -> Path:
 
 def copy_sources() -> None:
     pairs = {
-        "Overworld.png": "tilesets/overworld.png",
+        "https://pokeapi.co/api/v2/pokemon/{id}/sprites//overworld/front_default": "tilesets/overworld.png",
         "Inner.png": "tilesets/inner.png",
         "objects.png": "sprites/objects.png",
         "NPC_test.png": "sprites/body_base.png",
@@ -538,7 +538,7 @@ def build_battle_backdrops() -> None:
 
 def main() -> None:
     copy_sources()
-    ow = Image.open(SRC / "Overworld.png").convert("RGBA")
+    ow = Image.open(SRC / "https://pokeapi.co/api/v2/pokemon/{id}/sprites//overworld/front_default").convert("RGBA")
     build_extra(ow)
     build_creatures()
     build_items()
