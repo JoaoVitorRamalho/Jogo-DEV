@@ -2,7 +2,7 @@
 
 import { species } from "@/data/pokemon/species";
 
-const DRAWN = new Set(["torchic", "bulbasaur", "froakie", "wurmple", "starly"]);
+const DRAWN = new Set(["torchic", "bulbasaur", "froakie", "wurmple", "starly", "gible", "mew", "giratina"]);
 
 export function MonSprite({ id, size = 32, flip = false }: { id: string; size?: number; flip?: boolean }) {
   const sprite = species(id).sprite;

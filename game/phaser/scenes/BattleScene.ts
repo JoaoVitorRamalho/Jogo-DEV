@@ -2,15 +2,17 @@ import * as Phaser from "phaser";
 import { type BattleVisuals, bridge } from "@/game/phaser/bridge";
 import { monTexture } from "@/game/phaser/constants";
 
-const FOE = { x: 184, y: 66, platX: 128, platY: 50 };
-const MINE = { x: 58, y: 106, platX: -10, platY: 86 };
-const SCALE = 2;
+const FOE = { x: 184, y: 64, platX: 128, platY: 50, height: 56 };
+const MINE = { x: 58, y: 102, platX: -10, platY: 86, height: 60 };
+
+type Trim = { originX: number; originY: number; height: number };
 
 export class BattleScene extends Phaser.Scene {
   foe: Phaser.GameObjects.Image | null = null;
   mine: Phaser.GameObjects.Image | null = null;
   bg: Phaser.GameObjects.Image | null = null;
   platforms: Phaser.GameObjects.Image[] = [];
+  trims = new Map<string, Trim>();
   static ready: ((visuals: BattleVisuals) => void) | null = null;
 
   constructor() {
@@ -46,21 +48,93 @@ export class BattleScene extends Phaser.Scene {
     return side === "player" ? this.mine : this.foe;
   }
 
+  trim(key: string): Trim {
+    const cached = this.trims.get(key);
+    if (cached) return cached;
+    const source = this.textures.get(key).getSourceImage() as CanvasImageSource & { width: number; height: number };
+    const width = source.width || 1;
+    const height = source.height || 1;
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    let left = 0;
+    let right = width - 1;
+    let bottom = height - 1;
+    let top = 0;
+    if (context) {
+      context.drawImage(source, 0, 0);
+      const data = context.getImageData(0, 0, width, height).data;
+      left = width;
+      right = 0;
+      top = height;
+      bottom = 0;
+      for (let y = 0; y < height; y += 1) {
+        for (let x = 0; x < width; x += 1) {
+          if (data[(y * width + x) * 4 + 3] < 20) continue;
+          if (x < left) left = x;
+          if (x > right) right = x;
+          if (y < top) top = y;
+          if (y > bottom) bottom = y;
+        }
+      }
+      if (right < left) {
+        left = 0;
+        right = width - 1;
+        top = 0;
+        bottom = height - 1;
+      }
+    }
+    const trim = { originX: (left + right) / 2 / width, originY: (bottom + 1) / height, height: bottom - top + 1 };
+    this.trims.set(key, trim);
+    return trim;
+  }
+
+  fit(image: Phaser.GameObjects.Image, side: "player" | "foe"): number {
+    const slot = side === "player" ? MINE : FOE;
+    const trim = this.trim(image.texture.key);
+    const scale = Math.min(1.5, slot.height / trim.height);
+    image.setOrigin(trim.originX, trim.originY).setScale(scale);
+    image.setData("fit", scale);
+    image.setData("homeY", slot.y);
+    return scale;
+  }
+
+  stopIdle(image: Phaser.GameObjects.Image): void {
+    const tween = image.getData("idle") as Phaser.Tweens.Tween | undefined;
+    tween?.stop();
+    image.setData("idle", null);
+    const home = image.getData("homeY") as number | undefined;
+    if (home !== undefined) image.y = home;
+  }
+
+  startIdle(image: Phaser.GameObjects.Image): void {
+    this.stopIdle(image);
+    const home = image.y;
+    image.setData("homeY", home);
+    const tween = this.tweens.add({
+      targets: image,
+      y: home - 2,
+      duration: 680,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+    });
+    image.setData("idle", tween);
+  }
+
   place(side: "player" | "foe", key: string): Phaser.GameObjects.Image {
     const at = side === "player" ? MINE : FOE;
     const existing = this.sprite(side);
-    existing?.destroy();
-    const back = side === "player";
-    const image = this.add
-      .image(at.x, at.y, monTexture(key, (k) => this.textures.exists(k), back))
-      .setOrigin(0.5, 1)
-      .setScale(SCALE)
-      .setDepth(10);
-    if (side === "player") {
-      this.mine = image;
-    } else {
-      this.foe = image;
+    if (existing) {
+      this.stopIdle(existing);
+      existing.destroy();
     }
+    const back = side === "player";
+    const image = this.add.image(at.x, at.y, monTexture(key, (k) => this.textures.exists(k), back)).setDepth(10);
+    this.fit(image, side);
+    if (side === "player") this.mine = image;
+    else this.foe = image;
     return image;
   }
 
@@ -82,17 +156,21 @@ export class BattleScene extends Phaser.Scene {
           this.tween({ targets: myPlat, x: "+=260", duration: 650, ease: "Sine.easeOut" }),
         ]);
         foe.clearTint();
+        this.startIdle(foe);
         if (playerSprite) await this.visuals().sendOut("player", playerSprite);
       },
       sendOut: async (side, key) => {
         const image = this.place(side, key);
+        const fit = image.getData("fit") as number;
         image.setScale(0).setTintFill(0xffffff);
-        await this.tween({ targets: image, scale: SCALE, duration: 260, ease: "Back.easeOut" });
+        await this.tween({ targets: image, scale: fit, duration: 260, ease: "Back.easeOut" });
         image.clearTint();
+        this.startIdle(image);
       },
       withdraw: async (side) => {
         const image = this.sprite(side);
         if (!image) return;
+        this.stopIdle(image);
         image.setTintFill(0xffffff);
         await this.tween({ targets: image, scale: 0, duration: 200 });
         image.destroy();
@@ -102,14 +180,16 @@ export class BattleScene extends Phaser.Scene {
       attack: async (side, tint) => {
         const image = this.sprite(side);
         if (!image) return;
-        const dx = side === "player" ? 14 : -14;
-        await this.tween({ targets: image, x: image.x + dx, y: image.y - 4, duration: 90, yoyo: true });
+        this.stopIdle(image);
+        const dx = side === "player" ? 12 : -12;
+        await this.tween({ targets: image, x: image.x + dx, y: image.y - 3, duration: 90, yoyo: true });
         const target = this.sprite(side === "player" ? "foe" : "player");
         if (target) {
           const burst = this.add.circle(target.x, target.y - 28, 4, tint, 0.9).setDepth(20);
           await this.tween({ targets: burst, radius: 18, alpha: 0, duration: 220 });
           burst.destroy();
         }
+        this.startIdle(image);
       },
       hit: async (side, strong) => {
         const image = this.sprite(side);
@@ -125,7 +205,8 @@ export class BattleScene extends Phaser.Scene {
       faint: async (side) => {
         const image = this.sprite(side);
         if (!image) return;
-        await this.tween({ targets: image, y: image.y + 40, alpha: 0, duration: 380, ease: "Sine.easeIn" });
+        this.stopIdle(image);
+        await this.tween({ targets: image, y: image.y + 28, alpha: 0, duration: 380, ease: "Sine.easeIn" });
         image.destroy();
         if (side === "player") this.mine = null;
         else this.foe = null;
@@ -139,6 +220,8 @@ export class BattleScene extends Phaser.Scene {
       },
       throwBall: async (shakes, caught) => {
         const foe = this.foe;
+        if (foe) this.stopIdle(foe);
+        const fit = (foe?.getData("fit") as number | undefined) ?? 1;
         const ball = this.add.image(40, 120, "item_ball").setDepth(30);
         await this.tween({
           targets: ball,
@@ -171,8 +254,9 @@ export class BattleScene extends Phaser.Scene {
         if (foe) {
           foe.clearTint();
           foe.setTintFill(0xffffff);
-          await this.tween({ targets: foe, scale: SCALE, duration: 220 });
+          await this.tween({ targets: foe, scale: fit, duration: 220 });
           foe.clearTint();
+          this.startIdle(foe);
         }
       },
       end: () => {

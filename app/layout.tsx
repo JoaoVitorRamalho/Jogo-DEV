@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { Pixelify_Sans } from "next/font/google";
+import { Silkscreen } from "next/font/google";
 import "./globals.css";
 
-const pixel = Pixelify_Sans({ subsets: ["latin", "latin-ext"], weight: ["400", "500", "700"], variable: "--font-pixel" });
+const pixel = Silkscreen({ subsets: ["latin", "latin-ext"], weight: ["400", "700"], variable: "--font-pixel" });
 
 export const metadata: Metadata = {
   title: "Jornada — Região de Asteria",

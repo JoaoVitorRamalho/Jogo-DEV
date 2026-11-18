@@ -17,6 +17,9 @@ body {
   font-family: var(--font-pixel), "Segoe UI", sans-serif;
   font-variant-ligatures: none;
   font-feature-settings: "liga" 0, "clig" 0;
+  font-synthesis: none;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: unset;
 }
 
 button,
