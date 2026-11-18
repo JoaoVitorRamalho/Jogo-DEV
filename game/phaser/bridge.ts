@@ -1,4 +1,5 @@
 import type { Direction } from "@/game/character/appearance";
+import type { MoveCategory } from "@/data/pokemon/moves";
 
 export type WorldApi = {
   mapKey(): string;
@@ -21,7 +22,7 @@ export type BattleVisuals = {
   begin(background: string, foeSprite: string, playerSprite: string | null): Promise<void>;
   sendOut(side: "player" | "foe", sprite: string): Promise<void>;
   withdraw(side: "player" | "foe"): Promise<void>;
-  attack(side: "player" | "foe", tint: number): Promise<void>;
+  attack(side: "player" | "foe", tint: number, category: MoveCategory): Promise<void>;
   hit(side: "player" | "foe", strong: boolean): Promise<void>;
   faint(side: "player" | "foe"): Promise<void>;
   status(side: "player" | "foe", tint: number): Promise<void>;

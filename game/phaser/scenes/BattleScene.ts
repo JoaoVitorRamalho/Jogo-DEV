@@ -1,4 +1,5 @@
 import * as Phaser from "phaser";
+import type { MoveCategory } from "@/data/pokemon/moves";
 import { type BattleVisuals, bridge } from "@/game/phaser/bridge";
 import { monTexture } from "@/game/phaser/constants";
 
@@ -42,6 +43,61 @@ export class BattleScene extends Phaser.Scene {
 
   wait(ms: number): Promise<void> {
     return new Promise((resolve) => this.time.delayedCall(ms, () => resolve()));
+  }
+
+  targetPoint(side: "player" | "foe"): { x: number; y: number } | null {
+    const target = this.sprite(side);
+    if (!target) return null;
+    return { x: target.x, y: target.y - 28 };
+  }
+
+  async impactBurst(x: number, y: number, tint: number, radius = 20): Promise<void> {
+    const burst = this.add.circle(x, y, 4, tint, 0.92).setDepth(20);
+    const flash = this.add.circle(x, y, 8, 0xffffff, 0.55).setDepth(19);
+    await Promise.all([
+      this.tween({ targets: burst, radius, alpha: 0, duration: 240, ease: "Quad.easeOut" }),
+      this.tween({ targets: flash, radius: radius * 0.65, alpha: 0, duration: 180 }),
+    ]);
+    burst.destroy();
+    flash.destroy();
+  }
+
+  async moveEffect(side: "player" | "foe", tint: number, category: MoveCategory): Promise<void> {
+    const image = this.sprite(side);
+    const foeSide = side === "player" ? "foe" : "player";
+    const point = this.targetPoint(foeSide);
+    if (!image || !point) return;
+    this.stopIdle(image);
+
+    if (category === "physical") {
+      const dx = side === "player" ? 22 : -22;
+      await this.tween({ targets: image, x: image.x + dx, y: image.y - 5, duration: 85, yoyo: true, ease: "Quad.easeOut" });
+      await this.impactBurst(point.x, point.y, tint, 22);
+    } else if (category === "special") {
+      const fromY = image.y - image.displayHeight * 0.45;
+      const proj = this.add.circle(image.x, fromY, 7, tint, 1).setDepth(25);
+      const trail = this.add.circle(image.x, fromY, 10, tint, 0.35).setDepth(24);
+      await Promise.all([
+        this.tween({ targets: proj, x: point.x, y: point.y, duration: 220, ease: "Sine.easeIn" }),
+        this.tween({ targets: trail, x: point.x, y: point.y, alpha: 0, scale: 0.4, duration: 220 }),
+      ]);
+      proj.destroy();
+      trail.destroy();
+      await this.impactBurst(point.x, point.y, tint, 26);
+    } else {
+      const parts: Phaser.GameObjects.Arc[] = [];
+      for (let i = 0; i < 10; i += 1) {
+        const a = (i / 10) * Math.PI * 2;
+        const p = this.add.circle(point.x + Math.cos(a) * 24, point.y + Math.sin(a) * 14, 4, tint, 0.9).setDepth(20);
+        parts.push(p);
+      }
+      image.setTint(tint);
+      await Promise.all(parts.map((p) => this.tween({ targets: p, x: point.x, y: point.y, alpha: 0, duration: 300, ease: "Sine.easeIn" })));
+      image.clearTint();
+      for (const p of parts) p.destroy();
+      await this.impactBurst(point.x, point.y, tint, 14);
+    }
+    this.startIdle(image);
   }
 
   sprite(side: "player" | "foe"): Phaser.GameObjects.Image | null {
@@ -177,29 +233,20 @@ export class BattleScene extends Phaser.Scene {
         if (side === "player") this.mine = null;
         else this.foe = null;
       },
-      attack: async (side, tint) => {
-        const image = this.sprite(side);
-        if (!image) return;
-        this.stopIdle(image);
-        const dx = side === "player" ? 12 : -12;
-        await this.tween({ targets: image, x: image.x + dx, y: image.y - 3, duration: 90, yoyo: true });
-        const target = this.sprite(side === "player" ? "foe" : "player");
-        if (target) {
-          const burst = this.add.circle(target.x, target.y - 28, 4, tint, 0.9).setDepth(20);
-          await this.tween({ targets: burst, radius: 18, alpha: 0, duration: 220 });
-          burst.destroy();
-        }
-        this.startIdle(image);
-      },
+      attack: async (side, tint, category) => this.moveEffect(side, tint, category),
       hit: async (side, strong) => {
         const image = this.sprite(side);
         if (!image) return;
-        if (strong) this.cameras.main.shake(160, 0.012);
+        if (strong) this.cameras.main.shake(180, 0.014);
+        const point = this.targetPoint(side);
+        if (strong && point) await this.impactBurst(point.x, point.y, 0xff6040, 16);
         for (let i = 0; i < 3; i += 1) {
-          image.setAlpha(0);
-          await this.wait(70);
+          image.setTint(strong ? 0xff8888 : 0xffffff);
+          image.setAlpha(0.25);
+          await this.wait(55);
+          image.clearTint();
           image.setAlpha(1);
-          await this.wait(70);
+          await this.wait(55);
         }
       },
       faint: async (side) => {

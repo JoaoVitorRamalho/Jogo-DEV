@@ -151,9 +151,11 @@ function BattleRun({ request }: { request: BattleRequest }) {
           await v?.withdraw(event.side);
           setHud(event.side, null);
           break;
-        case "move":
-          await v?.attack(event.side, hexToInt(TYPE_COLOR[move(event.moveId).type]));
+        case "move": {
+          const def = move(event.moveId);
+          await v?.attack(event.side, hexToInt(TYPE_COLOR[def.type]), def.category);
           break;
+        }
         case "damage":
           playSfx(event.effectiveness > 1 ? "super" : event.effectiveness < 1 ? "weak" : "hit");
           patchHud(event.side, { hp: event.hp, max: event.max });
