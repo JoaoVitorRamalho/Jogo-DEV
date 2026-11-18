@@ -118,30 +118,37 @@ def sand(ow: Image.Image) -> Image.Image:
 
 
 def tall_grass(full: bool) -> Image.Image:
+    """Mato alto: 4 touceiras em folha (contorno escuro, brilho em cima), base na cor da grama."""
     img = tile_canvas()
-    dark = (30, 96, 46, 255)
-    mid = (52, 148, 62, 255)
-    light = (112, 200, 84, 255)
-    outline = (18, 64, 34, 255)
+    base = (58, 190, 65, 255)
+    shade = (40, 140, 58, 255)
+    outline = (22, 78, 44, 255)
+    mid = (44, 166, 64, 255)
+    light = (122, 222, 92, 255)
+    tip = (176, 240, 128, 255)
     if full:
         d = ImageDraw.Draw(img)
-        d.rectangle((0, 0, 15, 15), fill=(66, 170, 70, 255))
-    blades = [(1, 2), (5, 0), (9, 1), (13, 2), (3, 8), (7, 7), (11, 8), (15, 9)]
-    for bx, by in blades:
-        for h in range(7):
-            y = by + h
-            if y > 15:
-                break
-            width = 1 if h < 2 else 2
-            for dx in range(width):
-                x = (bx - dx) % 16
-                color = light if h < 2 else (mid if h < 5 else dark)
-                img.putpixel((x, y), color)
-            left = (bx - width) % 16
-            right = (bx + 1) % 16
-            if h >= 1:
-                img.putpixel((left, y), outline)
-                img.putpixel((right, y), outline)
+        d.rectangle((0, 0, 15, 15), fill=base)
+    # folha em V: (dx, dy) do contorno de uma touceira 8x8, desenhada de baixo para cima
+    tuft = [
+        "..#....#",
+        ".#L#..#L",
+        ".#M#.#LM",
+        "#LM##LMM",
+        "#MMM#MMS",
+        "#MMMMMMS",
+        ".#SSSSS#",
+        "..######",
+    ]
+    colors = {"#": outline, "L": light, "M": mid, "S": shade}
+    for ox, oy in ((0, 0), (8, 0), (4, 8), (12, 8)):
+        for y, row in enumerate(tuft):
+            for x, ch in enumerate(row):
+                if ch == ".":
+                    continue
+                img.putpixel(((ox + x) % 16, oy + y), colors[ch])
+        for x, y in ((2, 0), (7, 0)):
+            img.putpixel(((ox + x) % 16, oy + y), tip)
     if not full:
         for y in range(0, 8):
             for x in range(16):
@@ -515,11 +522,12 @@ def build_extra(ow: Image.Image) -> None:
         computer(),
     ]
     tiles.append(orb((40, 178, 160), (18, 104, 100), (236, 184, 64), None, 16))
-    sheet = Image.new("RGBA", (T * 16, T * 2), (0, 0, 0, 0))
     previous = OUT / "tilesets" / "extra.png"
-    if previous.exists():  # tiles pintados à mão depois da lista (ex.: a TV, índice 15) ficam
-        old = Image.open(previous).convert("RGBA")
-        for index in range(len(tiles), 32):
+    old = Image.open(previous).convert("RGBA") if previous.exists() else None
+    rows = max(2, old.height // T) if old else 2
+    sheet = Image.new("RGBA", (T * 16, T * rows), (0, 0, 0, 0))
+    if old:  # tiles depois da lista ficam: a TV (15, à mão) e a arte do capítulo 2 (16+, build_ch2_art.py)
+        for index in range(len(tiles), rows * 16):
             box = ((index % 16) * T, (index // 16) * T, (index % 16 + 1) * T, (index // 16 + 1) * T)
             sheet.paste(old.crop(box), box[:2])
     for index, tile in enumerate(tiles):

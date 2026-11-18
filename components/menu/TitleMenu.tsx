@@ -15,7 +15,7 @@ type Entry = { id: "continue" | "new" | "options"; label: string; sub: string };
 type Stage = "press" | "menu" | "overwrite";
 
 function placeName(map: string): string {
-  return CITIES.find((city) => city.maps.includes(map))?.name ?? (map === "route1" ? "Rota 1" : "Asteria");
+  return CITIES.find((city) => city.maps.includes(map))?.name ?? ({ route1: "Rota 1", route2: "Rota 2", forest: "Floresta de Aster" } as Record<string, string>)[map] ?? "Asteria";
 }
 
 export function TitleMenu() {

@@ -16,7 +16,7 @@ T = 16
 TILESETS = [
     {"name": "overworld", "image": "../tilesets/overworld.png", "w": 640, "h": 576, "first": 1},
     {"name": "inner", "image": "../tilesets/inner.png", "w": 640, "h": 400, "first": 1441},
-    {"name": "extra", "image": "../tilesets/extra.png", "w": 256, "h": 32, "first": 2441},
+    {"name": "extra", "image": "../tilesets/extra.png", "w": 256, "h": 112, "first": 2441},
 ]
 
 
@@ -30,6 +30,14 @@ def IN(c: int, r: int) -> int:
 
 def EX(i: int) -> int:
     return 2441 + i
+
+
+def EXB(c: int, r: int) -> int:
+    """Bloco no extra.png (16 colunas), para carimbar os prédios do capítulo 2."""
+    return 2441 + r * 16 + c
+
+
+WEB, LEVER_OFF, LEVER_ON, HEDGE, MOSS, MOSS2, HEALER, STATUE, HEALMAT = (EX(i) for i in range(16, 25))
 
 
 WOOD, WOOD2, LABFLOOR, SAND, TALL, TALL_TOP, MAT, WALL_T, WALL_B, LWALL_T, LWALL_B, VOID, MACHINE, PC, BALL = (
@@ -349,12 +357,12 @@ def build_brisamar() -> Map:
         m.solid(5 + dx, 19, False)
         m.solid(5 + dx, 20, False)
 
-    m.stamp(31, 13, 13, 6, 2, 2, above_rows=1)
+    m.stamp(33, 12, 13, 5, 2, 3, above_rows=1)  # casinha do cachorro inteira (telhado na linha 5), longe da casa
     m.stamp(13, 18, 28, 4, 3, 2)
     fence_h(m, 5, 14, 4)
     fence_h(m, 12, 14, 0)
     flowers(m, [(6, 13), (7, 13), (13, 9), (14, 10), (13, 11), (22, 10), (23, 9), (33, 18), (34, 19), (15, 20), (23, 22), (30, 22), (32, 21), (5, 15), (6, 16)])
-    for c, r in ((14, 8), (31, 9), (30, 20), (34, 15)):
+    for c, r in ((14, 8), (30, 20), (34, 16)):
         m.set("buildings", c, r, OW(2, 14))
         m.solid(c, r)
     m.stamp(33, 22, 33, 0, 1, 2, above_rows=1)
@@ -653,44 +661,265 @@ def build_forest() -> Map:
     grass_patch(13, 4, 4, 3)
     flowers(m, [(8, 16), (9, 17), (14, 10), (7, 6)])
     m.warp(10, 21, "route1", 11, 2, "down", w=2)
-    m.warp(10, 0, "ferruria", 12, 16, "up", w=2)
+    m.warp(10, 0, "route2", 17, 62, "up", w=2)
     m.spawn("from_route", 10, 19, "up")
     m.spawn("from_city", 10, 2, "down")
     m.npc("bia_forest", 6, 12, "down")
     m.npc("ravi", 13, 6, "left")
     m.npc("lost_kid", 8, 5, "down")
+    m.npc("cora_forest", 9, 8, "left")  # capítulo 2: a líder investiga a floresta
+    m.npc("thomas_researcher", 12, 5, "down")
     m.sign("sign_forest_in", 8, 18)
     m.set("buildings", 8, 18, OW(35, 2))
     return m
 
 
-def build_ferruria() -> Map:
-    m = Map("Cidade Ferrúria", 24, 18, music="town")
+def woods(m: Map, open_cells: set[tuple[int, int]]) -> None:
+    """Planta árvores 2x2 em todo bloco par que não encosta em nenhuma célula aberta."""
+    for r in range(0, m.rows, 2):
+        for c in range(0, m.cols, 2):
+            block = {(c, r), (c + 1, r), (c, r + 1), (c + 1, r + 1)}
+            if not block & open_cells:
+                tree(m, c, r)
+
+
+def rect(c0: int, r0: int, w: int, h: int) -> set[tuple[int, int]]:
+    return {(c, r) for c in range(c0, c0 + w) for r in range(r0, r0 + h)}
+
+
+def tall(m: Map, cells: set[tuple[int, int]], skip: set[tuple[int, int]]) -> None:
+    for c, r in cells - skip:
+        if m.inside(c, r):
+            m.set("detail", c, r, TALL)
+
+
+def post(m: Map, sign_id: str, c: int, r: int) -> None:
+    m.sign(sign_id, c, r)
+    m.set("buildings", c, r, OW(35, 2))
+
+
+def build_route2() -> Map:
+    """Rota 2: dois caminhos (oeste com mato, leste com treinadores), lago no meio e bosque trancado."""
+    m = Map("Rota 2", 36, 64, music="streets")
     grass_fill(m)
-    tree_band(m, 0, 0, 24, 3)
-    tree_band(m, 0, 3, 3, 15)
-    tree_band(m, 21, 3, 3, 15)
-    for c in (11, 12, 13):
-        for r in range(15, 18):
-            for layer in ("buildings", "above"):
-                m.set(layer, c, r, 0)
-            m.solid(c, r, False)
-    lab_door = house(m, 15, 6, lab=True)
-    gym = house(m, 4, 6)
-    main = line_cells([(12, 17), (12, 10), (lab_door[0], 10), (lab_door[0], lab_door[1] + 1)])
-    main |= line_cells([(12, 12), (gym[0], 12), (gym[0], gym[1] + 1)])
-    path(m, main)
-    flowers(m, [(8, 8), (9, 9), (18, 12), (19, 13), (6, 14)])
-    m.warp(12, 17, "forest", 10, 1, "down", w=2)
+    route = line_cells([(17, 63), (17, 53), (8, 53), (8, 32), (12, 32), (12, 13), (17, 13)])
+    route |= line_cells([(17, 53), (26, 53), (26, 40), (28, 40), (28, 20), (24, 20), (24, 13), (17, 13)])
+    route |= line_cells([(17, 13), (17, 0)])
+    spur_pond = line_cells([(8, 36), (14, 36)])
+    spur_grove = line_cells([(24, 13), (24, 6), (28, 6)])
+    open_cells = route | spur_pond | spur_grove
+    for area in (
+        rect(16, 48, 4, 16), rect(6, 52, 24, 4), rect(4, 30, 8, 24), rect(8, 12, 8, 20),
+        rect(14, 30, 8, 12), rect(12, 36, 2, 2), rect(24, 38, 8, 16), rect(26, 20, 6, 20),
+        rect(22, 12, 10, 10), rect(8, 12, 24, 4), rect(16, 0, 4, 12), rect(22, 2, 10, 8), rect(24, 10, 2, 2),
+    ):
+        open_cells |= area
+    woods(m, open_cells)
+    path(m, route | spur_pond | spur_grove)
+    water(m, 16, 32, 5, 6)
+    walk = route | spur_pond | spur_grove
+    tall(m, rect(4, 34, 4, 16) | rect(10, 40, 2, 8), walk)
+    tall(m, rect(8, 16, 4, 12) | rect(14, 18, 2, 8), walk)
+    tall(m, rect(30, 22, 2, 14) | rect(24, 42, 2, 8), walk)
+    tall(m, rect(26, 2, 6, 4), walk)
+    flowers(m, [(5, 31), (10, 50), (15, 41), (21, 31), (20, 14), (9, 14), (29, 16), (23, 3), (31, 8), (14, 57), (25, 44), (31, 52)])
+    post(m, "sign_route2", 19, 60)
+    post(m, "sign_r2_split", 15, 55)
+    post(m, "sign_r2_grove", 25, 10)
+    post(m, "sign_r2_north", 19, 3)
+    m.warp(17, 63, "forest", 10, 1, "down", w=2)
+    m.warp(17, 0, "ferruria", 21, 34, "up", w=2)
+    m.spawn("from_forest", 17, 61, "up")
+    m.spawn("from_city", 17, 2, "down")
+    m.npc("ranger_r2", 24, 10, "down")
+    m.npc("r2_trainer_a", 29, 46, "left")
+    m.npc("r2_trainer_b", 30, 30, "left")
+    m.npc("r2_fisher", 15, 34, "right")
+    m.npc("r2_hiker", 14, 54, "right", wander=1)
+    m.npc("r2_grove_kid", 28, 8, "left")
+    m.npc("item_r2_super", 4, 31)
+    m.npc("item_r2_ball", 20, 40)
+    m.npc("item_r2_candy", 30, 3)
+    return m
+
+
+def build_ferruria() -> Map:
+    m = Map("Cidade Ferrúria", 44, 36, music="town")
+    grass_fill(m)
+    tree_band(m, 0, 0, 44, 3)
+    tree_band(m, 0, 3, 3, 31)
+    tree_band(m, 41, 3, 3, 31)
+    tree_band(m, 0, 34, 44, 2)
+    street = line_cells([(21, 35), (21, 0)])
+    plaza = rect(15, 15, 14, 8)
+    for c, r in street | plaza:
+        for layer in ("buildings", "above"):
+            m.set(layer, c, r, 0)
+        m.solid(c, r, False)
+    for c, r in plaza:
+        m.set("ground", c, r, FLAGSTONE[r % 2][c % 2])
+
+    m.stamp(5, 5, 5, 2, 5, 5, tileset=EXB, above_rows=1, open_cells=((2, 4),))  # ginásio
+    m.stamp(13, 5, 0, 2, 5, 5, tileset=EXB, above_rows=1, open_cells=((2, 4),))  # centro de cura
+    m.stamp(25, 5, 10, 2, 5, 5, tileset=EXB, above_rows=1, open_cells=((2, 4),))  # loja
+    lab_door = house(m, 33, 5, lab=True)
+    gym_door, center_door, mart_door = (7, 9), (15, 9), (27, 9)
+    m.stamp(24, 16, 22, 9, 3, 3, above_rows=0)  # chafariz da praça
+    homes = {"ferruria_house": (5, 14), "house_locked": (10, 14), "house_locked_2": (31, 14), "house_locked_3": (36, 14), "house_locked_4": (5, 27), "house_locked_5": (11, 27)}
+    doors: dict[str, tuple[int, int]] = {}
+    for key, (c, r) in homes.items():
+        doors[key] = house(m, c, r)
+    water(m, 30, 28, 8, 4)
+    fence_h(m, 29, 27, 10)
+
+    main = street | line_cells([(5, 11), (38, 11)]) | line_cells([(5, 24), (38, 24)])
+    for door in (gym_door, center_door, mart_door, lab_door):
+        main |= line_cells([(door[0], door[1] + 1), (door[0], 11)], width=1)
+    for key, (c, r) in doors.items():
+        if r < 24:
+            main |= line_cells([(c, r + 1), (c, 24)], width=1)
+        else:
+            main |= line_cells([(c, r + 1), (c, 33)], width=1)
+    main |= line_cells([(7, 33), (21, 33)], width=1) | line_cells([(13, 24), (13, 26)], width=1) | line_cells([(7, 24), (7, 26)], width=1)
+    path(m, main - plaza)
+    flowers(m, [(4, 12), (11, 12), (19, 12), (24, 12), (31, 12), (39, 12), (16, 21), (28, 21), (15, 15), (28, 15),
+                (24, 27), (25, 28), (26, 27), (24, 30), (26, 31), (39, 26), (3, 31), (18, 29), (19, 30), (40, 20)])
+    for c, r in ((11, 10), (31, 10), (3, 20), (18, 14), (26, 14), (39, 31), (17, 28)):
+        m.set("buildings", c, r, OW(2, 14))
+        m.solid(c, r)
+
+    m.warp(21, 35, "route2", 17, 1, "down", w=2)
+    m.warp(gym_door[0], gym_door[1], "ferruria_gym", 7, 16, "up", door=True)
+    m.warp(center_door[0], center_door[1], "ferruria_center", 5, 7, "up", door=True)
+    m.warp(mart_door[0], mart_door[1], "ferruria_mart", 4, 6, "up", door=True)
     m.warp(lab_door[0], lab_door[1], "ferruria_lab", 7, 9, "up", door=True)
-    m.spawn("from_forest", 12, 15, "up")
+    hx, hy = doors["ferruria_house"]
+    m.warp(hx, hy, "ferruria_house", 4, 6, "up", door=True)
+    m.spawn("from_route", 21, 33, "up")
     m.spawn("from_lab", lab_door[0], lab_door[1] + 1, "down")
-    m.sign("sign_ferruria", 10, 14)
-    m.sign("sign_gym", gym[0] - 1, gym[1] + 1)
-    m.set("buildings", 10, 14, OW(35, 2))
-    m.set("buildings", gym[0] - 1, gym[1] + 1, OW(35, 2))
-    m.npc("ferruria_local", 8, 11, "right")
-    m.npc("ferruria_trainer", 18, 11, "left")
+    m.spawn("from_center", center_door[0], center_door[1] + 1, "down")
+    m.spawn("from_gym", gym_door[0], gym_door[1] + 1, "down")
+    m.spawn("from_mart", mart_door[0], mart_door[1] + 1, "down")
+
+    post(m, "sign_ferruria", 19, 31)
+    post(m, "sign_gym", gym_door[0] - 1, gym_door[1] + 1)
+    post(m, "sign_center", center_door[0] - 1, center_door[1] + 1)
+    post(m, "sign_mart", mart_door[0] - 1, mart_door[1] + 1)
+    post(m, "sign_works", 23, 3)
+    post(m, "sign_lake", 28, 30)
+    for key, (dx, dy) in doors.items():
+        if key != "ferruria_house":
+            m.sign(key, dx, dy)
+    m.npc("ferruria_local", 10, 12, "right", wander=2)
+    m.npc("ferruria_trainer", 34, 12, "left")
+    m.npc("ferruria_kid", 18, 19, "down", wander=2)
+    m.npc("ferruria_elder", 16, 17, "right")
+    m.npc("ferruria_gossip_a", 29, 19, "right")
+    m.npc("ferruria_gossip_b", 30, 19, "left")
+    m.npc("ferruria_fisher", 33, 32, "up")
+    m.npc("ferruria_gardener", 23, 28, "left", wander=1)
+    m.npc("ferruria_bug", 9, 25, "right")
+    m.npc("ferruria_jogger", 38, 20, "down", wander=3)
+    m.npc("gael_ferruria", 22, 30, "down")
+    m.npc("worker_a", 21, 2, "down")
+    m.npc("worker_b", 22, 2, "down")
+    m.npc("gym_guard", 8, 10, "left")
+    return m
+
+
+def build_ferruria_mart() -> Map:
+    m = Map("Loja de Ferrúria", 10, 8, music="town")
+    interior_box(m, lab=True, floor=LABFLOOR)
+    m.stamp(1, 3, 0, 12, 3, 2, tileset=IN)  # balcão
+    m.stamp(5, 2, 3, 12, 3, 2, tileset=IN)  # prateleiras
+    m.stamp(5, 5, 3, 12, 3, 2, tileset=IN)
+    m.stamp(9, 1, 8, 12, 1, 2, tileset=IN, above_rows=1)
+    m.set("detail", 4, 7, MAT)
+    m.set("detail", 5, 7, MAT)
+    m.warp(4, 7, "ferruria", 27, 10, "down", w=2, door=True)
+    m.spawn("from_outside", 4, 6, "up")
+    m.npc("ferruria_shop", 2, 2, "down")
+    for c in (1, 2, 3):
+        m.obj("signs", "mart_desk", c, 4)
+    m.npc("mart_customer", 8, 4, "left", wander=1)
+    return m
+
+
+def build_ferruria_house() -> Map:
+    m = Map("Casa da Família Prado", 10, 8, music="town")
+    interior_box(m)
+    m.stamp(1, 2, 3, 12, 3, 2, tileset=IN)
+    m.stamp(5, 3, 13, 1, 3, 3, tileset=IN)
+    m.stamp(8, 1, 8, 12, 1, 2, tileset=IN, above_rows=1)
+    m.set("detail", 4, 7, MAT)
+    m.set("detail", 5, 7, MAT)
+    m.warp(4, 7, "ferruria", 7, 19, "down", w=2, door=True)
+    m.spawn("from_outside", 4, 6, "up")
+    m.npc("prado_mom", 3, 5, "right")
+    m.npc("prado_kid", 8, 5, "left", wander=1)
+    return m
+
+
+def build_ferruria_center() -> Map:
+    m = Map("Centro de Cura de Ferrúria", 12, 9, music="town")
+    interior_box(m, lab=True, floor=LABFLOOR)
+    m.stamp(3, 3, 0, 12, 3, 2, tileset=IN)  # balcão
+    m.set("buildings", 6, 2, HEALER)
+    m.solid(6, 2)
+    m.set("buildings", 10, 2, PC)
+    m.solid(10, 2)
+    m.stamp(1, 2, 8, 12, 1, 2, tileset=IN, above_rows=1)
+    m.stamp(10, 6, 8, 12, 1, 2, tileset=IN, above_rows=1)
+    m.set("detail", 4, 5, HEALMAT)
+    m.set("detail", 5, 8, MAT)
+    m.set("detail", 6, 8, MAT)
+    m.warp(5, 8, "ferruria", 15, 10, "down", w=2, door=True)
+    m.spawn("from_outside", 5, 7, "up")
+    m.npc("nurse", 4, 2, "down")
+    for c in (3, 4, 5):
+        m.obj("signs", "center_desk", c, 4)
+    m.obj("signs", "center_pc", 10, 2)
+    m.npc("center_visitor", 8, 5, "left", wander=1)
+    return m
+
+
+def build_ferruria_gym() -> Map:
+    """Viveiro-labirinto: teias A e B se alternam quando um casulo é tocado."""
+    m = Map("Ginásio de Ferrúria", 15, 18, music="streets")
+    interior_box(m, lab=True, floor=MOSS)
+    for r in range(2, 18):
+        for c in range(15):
+            m.set("ground", c, r, MOSS2 if (c * 3 + r) % 5 == 0 else MOSS)
+    for r in range(2, 18):
+        for c in (0, 14):
+            m.set("buildings", c, r, HEDGE)
+            m.solid(c, r)
+    gaps = {6: (11,), 10: (7,), 13: (3, 11)}
+    for r, open_cols in gaps.items():
+        for c in range(1, 14):
+            if c in open_cols:
+                continue
+            m.set("buildings", c, r, HEDGE)
+            m.solid(c, r)
+    for c in (4, 10):
+        m.set("buildings", c, 3, STATUE)
+        m.solid(c, 3)
+    m.set("detail", 7, 17, MAT)
+    m.set("detail", 8, 17, MAT)
+    m.warp(7, 17, "ferruria", 7, 10, "down", w=2, door=True)
+    m.spawn("from_outside", 7, 16, "up")
+    m.npc("cora", 7, 3, "down")
+    m.npc("gym_guide", 5, 16, "right")
+    m.npc("gym_trainer_1", 9, 11, "left")
+    m.npc("gym_trainer_2", 4, 8, "right")
+    # teias: A fecha quando o casulo está apagado, B quando está aceso
+    m.npc("web_a_1", 3, 13)
+    m.npc("web_a_2", 7, 10)
+    m.npc("web_b_1", 11, 13)
+    m.npc("web_b_3", 11, 6)
+    for id_, (c, r) in {"lever_1": (12, 11), "lever_2": (2, 8), "lever_3": (12, 15)}.items():
+        m.npc(f"{id_}_off", c, r)
+        m.npc(f"{id_}_on", c, r)
     return m
 
 
@@ -703,7 +932,7 @@ def build_ferruria_lab() -> Map:
     m.stamp(11, 1, 10, 7, 3, 3, tileset=IN)
     m.set("detail", 6, 10, MAT)
     m.set("detail", 7, 10, MAT)
-    m.warp(6, 10, "ferruria", 17, 11, "down", w=2, door=True)
+    m.warp(6, 10, "ferruria", 35, 10, "down", w=2, door=True)
     m.spawn("from_outside", 7, 9, "up")
     m.npc("celina", 9, 3, "down")
     m.obj("signs", "celina_terminal", 8, 2)
@@ -750,8 +979,13 @@ def main() -> None:
         "route1": build_route1(),
         "clearing": build_clearing(),
         "forest": build_forest(),
+        "route2": build_route2(),
         "ferruria": build_ferruria(),
         "ferruria_lab": build_ferruria_lab(),
+        "ferruria_center": build_ferruria_center(),
+        "ferruria_gym": build_ferruria_gym(),
+        "ferruria_mart": build_ferruria_mart(),
+        "ferruria_house": build_ferruria_house(),
     }
     for key, m in built.items():
         m.key = key

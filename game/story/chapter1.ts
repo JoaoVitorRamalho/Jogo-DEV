@@ -8,6 +8,7 @@ import { world } from "@/game/phaser/bridge";
 import { createMon } from "@/game/pokemon/mon";
 import { addMon, giveItem, useGame } from "@/game/state/store";
 import { autosave, flag, giveOnce, healAtHome, hero, line, setFlag, state, talk, think, trainerBattle, wildEncounter, yesNo } from "@/game/story/actions";
+import { CH2_SIGN_RUN, CH2_SIGNS, CH2_TALK, CH2_VISIBLE, ch2CanWarp, ch2Enter } from "@/game/story/chapter2";
 import { BattleDemo } from "@/game/story/demo";
 import { type StoryHooks, story } from "@/game/story/hooks";
 import { playSfx } from "@/lib/audio/engine";
@@ -628,7 +629,7 @@ const NPC_TALK: Record<string, () => Promise<void>> = {
   ferruria_local: async () => {
     await talk("Morador", "Primeira vez em Ferrúria? O ginásio é bem famoso!");
     await talk(hero(), "Estou procurando o laboratório da professora Celina.");
-    await talk("Morador", "É a casa grande perto da praça, a da direita.");
+    await talk("Morador", "É o prédio grande da rua de cima, o último à direita.");
     if (!flag("ch1_arrived_ferruria")) {
       setFlag("ch1_arrived_ferruria");
       await goal("Encontre o laboratório da professora Celina.");
@@ -711,11 +712,11 @@ async function television(): Promise<void> {
 const hooks: StoryHooks = {
   npcVisible: (id) => {
     ensure();
-    return NPC_VISIBLE[id]?.() ?? true;
+    return CH2_VISIBLE[id]?.() ?? NPC_VISIBLE[id]?.() ?? true;
   },
   talk: async (id) => {
     ensure();
-    const run = NPC_TALK[id];
+    const run = (flag("chapter1_complete") || !NPC_TALK[id] ? CH2_TALK[id] : undefined) ?? NPC_TALK[id];
     if (run) await run();
   },
   sign: async (id) => {
@@ -727,7 +728,8 @@ const hooks: StoryHooks = {
     if (id === "exam_folder") return examFolder();
     if (id === "bedroom_pc") return television();
     if (id === "bedroom_bed") return sleepInBed();
-    const text = SIGNS[id];
+    if (CH2_SIGN_RUN[id]) return CH2_SIGN_RUN[id]();
+    const text = (flag("chapter1_complete") ? CH2_SIGNS[id] : undefined) ?? SIGNS[id] ?? CH2_SIGNS[id];
     if (text) await talk(undefined, ...text.map((lineText) => lineText.replaceAll("{nome}", hero())));
   },
   event: async (id) => {
@@ -805,9 +807,12 @@ const hooks: StoryHooks = {
       setFlag("ch1_back_home_hint");
       await goal("Entre em casa e converse com a sua mãe.");
     }
+    await ch2Enter(key);
   },
   canWarp: async (from, to) => {
     ensure();
+    const ch2 = await ch2CanWarp(from, to);
+    if (ch2 !== null) return ch2;
     if (from === "house_1f" && to === "brisamar" && !flag("ch1_morning")) {
       await talk("Mãe", "{nome}? Vem cá um minutinho antes de sair.");
       return false;
@@ -833,7 +838,7 @@ const hooks: StoryHooks = {
       setFlag("met_ren_route1");
       await think("Ainda não sei como vou chegar até o fim.", "Só sei por que preciso começar.");
       await talk(undefined, "Capítulo 1 concluído — O Preço de uma Esperança.");
-      await       useUi.getState().setHint(null);
+      useUi.getState().setHint(null);
       autosave();
     }
     return true;

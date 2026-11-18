@@ -89,6 +89,12 @@ export async function blackout(): Promise<void> {
     healParty(s);
     s.money = Math.floor(s.money / 2);
   });
+  if (flag("ch2_center")) {
+    await world().warp("ferruria_center", 4, 5, "up");
+    await talk(undefined, `${hero()} correu até o Centro de Cura...`);
+    await talk("Enfermeira Íris", "Chegaram bem a tempo. Já estão recuperados.", "Descansar também faz parte do treino.");
+    return;
+  }
   await world().warp("house_1f", 8, 5, "up");
   await talk(undefined, `${hero()} correu de volta para casa...`);
   await talk("Mãe", "Ei... olha pra mim. Está tudo bem.", "Descansem um pouco. Os dois.");
@@ -103,7 +109,7 @@ export async function trainerBattle(id: string, npc: string): Promise<boolean> {
   await world().emote(npc, "!");
   await talk(def.name, ...def.intro);
   const foeParty = def.team.map((member) => createMon(member.species, member.level, defaultRng));
-  const outcome = await runBattle({ kind: "trainer", foeParty, trainerName: def.name, reward: def.reward });
+  const outcome = await runBattle({ kind: "trainer", foeParty, trainerName: def.name, reward: def.reward, background: def.background });
   if (outcome === "win") {
     useGame.getState().grantOnce(`beat_${id}`, (s) => {
       s.money += def.reward;

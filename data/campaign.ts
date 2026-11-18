@@ -43,7 +43,7 @@ export const CHAPTERS: ChapterDef[] = [
     ],
     status: "jogável",
   },
-  { id: "c2_aster", act: 2, title: "Floresta de Aster e Ferrúria", unlock: { flags: ["reached_forest"] }, beats: ["Floresta de Aster", "Primeiro ginásio (Inseto)"], status: "planejado" },
+  { id: "c2_aster", act: 2, title: "Floresta de Aster e Ferrúria", unlock: { flags: ["reached_forest"] }, beats: ["Floresta de Aster", "Rota 2 (dois caminhos e o bosque)", "Primeiro ginásio (Inseto)"], status: "jogável" },
   { id: "c3_verdelume", act: 2, title: "Verdelume", unlock: { badges: 1 }, beats: ["Patrocínio de Thomas", "Segundo ginásio (Lutador)"], status: "planejado" },
   { id: "c4_porto", act: 2, title: "Porto Coral", unlock: { badges: 2 }, beats: ["Navio de pesquisa", "Terceiro ginásio (Voador)"], status: "planejado" },
   { id: "c5_oraculo", act: 2, title: "Oráculo", unlock: { badges: 3 }, beats: ["Sonhos compartilhados", "Quarto ginásio (Psíquico)"], status: "planejado" },

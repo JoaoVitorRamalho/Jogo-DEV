@@ -27,8 +27,8 @@ export function GameShell() {
     installChapter1();
     if (process.env.NODE_ENV !== "production") {
       Object.assign(window, { __game: useGame, __ui: useUi });
-      void Promise.all([import("@/game/story/actions"), import("@/game/pokemon/mon"), import("@/game/core/rng"), import("@/game/story/hooks")]).then(([actions, mon, rng, hooks]) =>
-        Object.assign(window, { __story: hooks.story, __mon: (species: string, level: number) => mon.createMon(species, level, rng.defaultRng), __battle: (species: string, level: number, background = "grass") =>
+      void Promise.all([import("@/game/story/actions"), import("@/game/pokemon/mon"), import("@/game/core/rng"), import("@/game/story/hooks"), import("@/game/phaser/bridge")]).then(([actions, mon, rng, hooks, bridge]) =>
+        Object.assign(window, { __world: () => bridge.world(), __story: hooks.story, __mon: (species: string, level: number) => mon.createMon(species, level, rng.defaultRng), __battle: (species: string, level: number, background = "grass") =>
           actions.runBattle({ kind: "wild", foeParty: [mon.createMon(species, level, rng.defaultRng)], background }) }),
       );
     }

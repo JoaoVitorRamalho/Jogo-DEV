@@ -7,7 +7,7 @@ import type { Action, InputFrame } from "@/lib/input/types";
 import type { Direction } from "@/game/character/appearance";
 import { useUi, worldBusy } from "@/game/core/ui";
 import { type WorldApi, bridge } from "@/game/phaser/bridge";
-import { BALL_FRAME, TALL_GRASS_GID, TALL_GRASS_TOP_FRAME, TILE, VIEW_H, VIEW_W } from "@/game/phaser/constants";
+import { TALL_GRASS_GID, TALL_GRASS_TOP_FRAME, TILE, TILE_SPRITE_FRAME, VIEW_H, VIEW_W } from "@/game/phaser/constants";
 import { buildPlayerTexture } from "@/game/phaser/textures";
 import { useGame } from "@/game/state/store";
 import { story } from "@/game/story/hooks";
@@ -221,12 +221,13 @@ export class WorldScene extends Phaser.Scene {
   buildNpcs(): void {
     for (const object of this.npcObjects) {
       const look = NPCS[object.name];
-      const ball = look?.sprite === "ball";
-      const key = ball ? "extra_sheet" : `npc_${object.name}`;
-      if (!ball && !this.textures.exists(key)) continue;
-      const sprite = this.add.sprite(0, 0, key, ball ? BALL_FRAME : 0).setOrigin(ball ? 0.5 : 0.5, ball ? 0.65 : 1);
+      const tileSprite = look?.sprite;
+      const ball = tileSprite === "ball";
+      const key = tileSprite ? "extra_sheet" : `npc_${object.name}`;
+      if (!tileSprite && !this.textures.exists(key)) continue;
+      const sprite = this.add.sprite(0, 0, key, tileSprite ? TILE_SPRITE_FRAME[tileSprite] : 0).setOrigin(0.5, ball ? 0.65 : 1);
       if (ball) sprite.setScale(0.58);
-      const actor = new Actor(sprite, object.x, object.y, (object.props.dir as Direction) ?? "down", !ball) as Npc;
+      const actor = new Actor(sprite, object.x, object.y, (object.props.dir as Direction) ?? "down", !tileSprite) as Npc;
       actor.id = object.name;
       actor.home = { x: object.x, y: object.y };
       actor.wander = Number(object.props.wander ?? 0);
