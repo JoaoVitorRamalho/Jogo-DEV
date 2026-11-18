@@ -14,6 +14,8 @@ export type WorldApi = {
   placeNpc(id: string, x: number, y: number, dir: Direction): void;
   emote(id: string, kind: "!" | "?" | "..."): Promise<void>;
   flash(color?: number): Promise<void>;
+  follow(id: string | null): void;
+  fadeOutIn(): Promise<void>;
   refreshNpcs(): void;
   refreshPlayer(): Promise<void>;
 };

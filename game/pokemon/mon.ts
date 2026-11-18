@@ -103,6 +103,12 @@ export function healFully(mon: Mon): void {
 
 export type LevelResult = { level: number; learned: string[]; pending: string[] };
 
+export function grantLevel(mon: Mon): LevelResult | null {
+  if (mon.level >= MAX_LEVEL) return null;
+  const need = expForLevel(species(mon.species).growth, mon.level + 1) - mon.exp;
+  return addExp(mon, Math.max(1, need))[0] ?? null;
+}
+
 export function addExp(mon: Mon, amount: number): LevelResult[] {
   const def = species(mon.species);
   const results: LevelResult[] = [];

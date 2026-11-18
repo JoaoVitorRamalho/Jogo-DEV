@@ -3,7 +3,7 @@ import { type MoveDef, type StageStat, type StatusId, STAT_NAME, move } from "@/
 import { species } from "@/data/pokemon/species";
 import { TYPE_NAME, effectiveness } from "@/data/pokemon/types";
 import { type Rng, randInt } from "@/game/core/rng";
-import { type Mon, addExp, displayName, expYield, maxHp, statsOf } from "@/game/pokemon/mon";
+import { type Mon, addExp, displayName, expYield, grantLevel, maxHp, statsOf } from "@/game/pokemon/mon";
 
 export type Side = "player" | "foe";
 export type BattleKind = "wild" | "trainer";
@@ -474,16 +474,40 @@ function switchIn(state: BattleState, index: number, events: BattleEvent[]): boo
   return true;
 }
 
+function consumeItem(state: BattleState, item: ItemId, count: number): void {
+  if (ITEMS[item].infinite) return;
+  state.bag[item] = count - 1;
+}
+
 function useItem(state: BattleState, item: ItemId, target: number, rng: Rng, events: BattleEvent[]): "used" | "invalid" | "caught" {
   const def = ITEMS[item];
   const count = state.bag[item] ?? 0;
   if (count <= 0) return "invalid";
+  if (def.candy) {
+    const mon = state.player.party[target];
+    if (!mon) return "invalid";
+    const result = grantLevel(mon);
+    if (!result) {
+      events.push({ type: "message", text: `${displayName(mon)} já está no nível máximo.` });
+      return "invalid";
+    }
+    consumeItem(state, item, count);
+    events.push({ type: "levelUp", uid: mon.uid, level: result.level });
+    events.push({ type: "message", text: `${displayName(mon)} subiu para o nível ${result.level}!` });
+    if (target === state.player.active) events.push({ type: "heal", side: "player", hp: mon.hp, max: maxHp(mon) });
+    for (const learned of result.learned) events.push({ type: "message", text: `${displayName(mon)} aprendeu ${move(learned).name}!` });
+    for (const pending of result.pending) {
+      state.pendingLearn.push({ uid: mon.uid, moveId: pending });
+      events.push({ type: "learnPrompt", uid: mon.uid, moveId: pending });
+    }
+    return "used";
+  }
   if (def.ball) {
     if (state.kind !== "wild") {
       events.push({ type: "message", text: "Não dá para capturar o Pokémon de outro treinador!" });
       return "invalid";
     }
-    state.bag[item] = count - 1;
+    consumeItem(state, item, count);
     const foe = activeOf(state, "foe");
     const result = captureOdds(foe, def.ball, rng);
     events.push({ type: "message", text: `Você lançou uma ${def.name}!` });
@@ -508,7 +532,7 @@ function useItem(state: BattleState, item: ItemId, target: number, rng: Rng, eve
       events.push({ type: "message", text: "Não terá efeito." });
       return "invalid";
     }
-    state.bag[item] = count - 1;
+    consumeItem(state, item, count);
     const before = mon.hp;
     mon.hp = Math.min(max, mon.hp + def.heal);
     events.push({ type: "message", text: `Você usou ${def.name} em ${displayName(mon)}.` });
@@ -521,7 +545,7 @@ function useItem(state: BattleState, item: ItemId, target: number, rng: Rng, eve
       events.push({ type: "message", text: "Não terá efeito." });
       return "invalid";
     }
-    state.bag[item] = count - 1;
+    consumeItem(state, item, count);
     mon.status = null;
     mon.sleepTurns = 0;
     if (target === state.player.active) events.push({ type: "status", side: "player", status: null });

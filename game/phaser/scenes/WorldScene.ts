@@ -224,7 +224,8 @@ export class WorldScene extends Phaser.Scene {
       const ball = look?.sprite === "ball";
       const key = ball ? "extra_sheet" : `npc_${object.name}`;
       if (!ball && !this.textures.exists(key)) continue;
-      const sprite = this.add.sprite(0, 0, key, ball ? BALL_FRAME : 0).setOrigin(0.5, 1);
+      const sprite = this.add.sprite(0, 0, key, ball ? BALL_FRAME : 0).setOrigin(ball ? 0.5 : 0.5, ball ? 0.65 : 1);
+      if (ball) sprite.setScale(0.58);
       const actor = new Actor(sprite, object.x, object.y, (object.props.dir as Direction) ?? "down", !ball) as Npc;
       actor.id = object.name;
       actor.home = { x: object.x, y: object.y };
@@ -411,11 +412,46 @@ export class WorldScene extends Phaser.Scene {
       }
       return;
     }
+    this.trail.push({ x: p.tx, y: p.ty });
     p.begin(dir, this.held?.run ? RUN : WALK);
+  }
+
+  followerId: string | null = null;
+  trail: { x: number; y: number }[] = [];
+
+  stepFollower(): void {
+    const npc = this.followerId ? this.npcs.get(this.followerId) : undefined;
+    if (!npc?.sprite.visible || npc.moving) return;
+    const next = this.trail[0];
+    if (!next) return;
+    if (npc.tx === next.x && npc.ty === next.y) {
+      this.trail.shift();
+      return;
+    }
+    const dx = Math.sign(next.x - npc.tx);
+    const dy = Math.sign(next.y - npc.ty);
+    const options: Direction[] = [];
+    if (dx > 0) options.push("right");
+    if (dx < 0) options.push("left");
+    if (dy > 0) options.push("down");
+    if (dy < 0) options.push("up");
+    const dir = options.find((step) => {
+      const [sx, sy] = DELTA[step];
+      return !this.isBlocked(npc.tx + sx, npc.ty + sy, npc);
+    });
+    if (!dir) return;
+    npc.scripted = true;
+    npc.resolve = () => {
+      npc.frame(0);
+      npc.scripted = this.followerId === npc.id;
+      if (this.trail[0] && npc.tx === this.trail[0].x && npc.ty === this.trail[0].y) this.trail.shift();
+    };
+    npc.begin(dir, WALK);
   }
 
   afterStep(): void {
     const p = this.player;
+    this.stepFollower();
     this.persistPosition();
     const warp = this.objectAt(this.warps, p.tx, p.ty);
     if (warp) {
@@ -611,6 +647,27 @@ export class WorldScene extends Phaser.Scene {
           this.time.delayedCall(750, () => {
             icon.destroy();
             resolve();
+          });
+        }),
+      follow: (id) => {
+        if (this.followerId && this.followerId !== id) {
+          const previous = this.npcs.get(this.followerId);
+          if (previous) previous.scripted = false;
+        }
+        this.followerId = id;
+        this.trail = [];
+        const npc = id ? this.npcs.get(id) : undefined;
+        if (npc) npc.scripted = true;
+        else this.followerId = null;
+      },
+      fadeOutIn: () =>
+        new Promise((resolve) => {
+          this.cameras.main.fadeOut(500, 0, 0, 0);
+          this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
+            this.time.delayedCall(700, () => {
+              this.cameras.main.fadeIn(500, 0, 0, 0);
+              this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_IN_COMPLETE, () => resolve());
+            });
           });
         }),
       flash: (color = 0xffffff) =>

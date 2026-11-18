@@ -64,7 +64,7 @@ Detalhes em `data/story/characters.ts`.
 | Personagens | LPC Universal Generator | `scripts/download_assets.py` → `public/lpc/` |
 | Música menu/town | CC0 (RPG chip) | `scripts/download_assets.py` → `public/music/` |
 | Mapas | Tiled JSON | `public/assets/maps/`, `scripts/build_maps.py` |
-| HUD | CSS `.gba-*` + fonte Silkscreen | `app/globals.css`, `components/hud/` |
+| HUD | CSS `.gba-*` + fonte VT323 | `app/globals.css`, `components/hud/` |
 
 ### Packs opcionais em `public/vendor/`
 

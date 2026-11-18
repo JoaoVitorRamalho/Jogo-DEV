@@ -421,7 +421,7 @@ function BattleRun({ request }: { request: BattleRequest }) {
                 <span className="gba-cursor">{index === bagMenu.index ? "▶" : ""}</span>
                 <ItemIcon id={id} />
                 {ITEMS[id].name}
-                <b>×{count}</b>
+                <b>{ITEMS[id].infinite ? "∞" : `×${count}`}</b>
               </li>
             ))}
           </ul>

@@ -4,9 +4,11 @@ import { useState } from "react";
 import { PartyList } from "@/components/menus/PartyPanel";
 import { useMenu } from "@/components/menus/useMenu";
 import { ITEMS, type ItemDef, type ItemId } from "@/data/items";
-import { say } from "@/game/core/ui";
-import { displayName, maxHp } from "@/game/pokemon/mon";
-import { takeItem, useGame } from "@/game/state/store";
+import { move } from "@/data/pokemon/moves";
+import { species } from "@/data/pokemon/species";
+import { ask, say } from "@/game/core/ui";
+import { displayName, evolve, grantLevel, learnMove, maxHp } from "@/game/pokemon/mon";
+import { markCaught, takeItem, useGame } from "@/game/state/store";
 import { playSfx } from "@/lib/audio/engine";
 
 const POCKETS: { id: ItemDef["pocket"]; label: string }[] = [
@@ -40,22 +42,87 @@ export function BagPanel({ onClose }: { onClose: () => void }) {
     setTarget(id);
   }
 
+  async function forgetMove(uid: string, moveId: string): Promise<void> {
+    const mon = useGame.getState().live?.party.find((entry) => entry.uid === uid);
+    if (!mon) return;
+    const name = displayName(mon);
+    const moveName = move(moveId).name;
+    await say(`${name} quer aprender ${moveName}.`);
+    await say(`Mas ${name} já sabe quatro golpes.`);
+    const forget = (await ask(["Sim", "Não"], { text: `Esquecer um golpe para aprender ${moveName}?` }, 1)) === 0;
+    if (!forget) {
+      await say(`${name} não aprendeu ${moveName}.`);
+      return;
+    }
+    const options = [...mon.moves.map((slot) => move(slot.id).name), "Desistir"];
+    const choice = await ask(options, { text: "Qual golpe esquecer?" }, options.length - 1);
+    if (choice >= mon.moves.length) {
+      await say(`${name} não aprendeu ${moveName}.`);
+      return;
+    }
+    useGame.getState().update((state) => {
+      const targetMon = state.party.find((entry) => entry.uid === uid);
+      if (targetMon) learnMove(targetMon, moveId, choice);
+    });
+    await say(`${name} esqueceu ${options[choice]} e aprendeu ${moveName}!`);
+  }
+
   async function applyTo(index: number) {
     if (!target || !live) return;
     const def = ITEMS[target];
     const mon = live.party[index];
     let message = "Não terá efeito.";
-    if (def.heal && mon.hp > 0 && mon.hp < maxHp(mon)) {
+    if (def.candy) {
+      if (mon.level >= 100) message = `${displayName(mon)} já está no nível máximo.`;
+      else {
+        const name = displayName(mon);
+        const gained: { learned: string[]; pending: string[] } = { learned: [], pending: [] };
+        useGame.getState().update((state) => {
+          const targetMon = state.party[index];
+          if (!targetMon || !takeItem(state, target)) return;
+          const level = grantLevel(targetMon);
+          if (!level) return;
+          gained.learned = level.learned;
+          gained.pending = level.pending;
+        });
+        const updated = useGame.getState().live?.party[index];
+        if (!updated || updated.level === mon.level) message = "Não terá efeito.";
+        else {
+          playSfx("levelup");
+          setTarget(null);
+          await say(`${name} subiu para o nível ${updated.level}!`);
+          for (const learned of gained.learned) await say(`${displayName(updated)} aprendeu ${move(learned).name}!`);
+          for (const pending of gained.pending) await forgetMove(updated.uid, pending);
+          const current = useGame.getState().live?.party.find((entry) => entry.uid === updated.uid);
+          const evo = current ? species(current.species).evolution : undefined;
+          if (current && evo && current.level >= evo.level) {
+            const before = displayName(current);
+            await say(`O quê? ${before} está evoluindo!`);
+            playSfx("levelup");
+            useGame.getState().update((state) => {
+              const next = state.party.find((entry) => entry.uid === current.uid);
+              if (next) evolve(next, evo.into);
+              markCaught(state, evo.into);
+            });
+            playSfx("catch");
+            await say(`Parabéns! ${before} evoluiu para ${species(evo.into).name}!`);
+          }
+          return;
+        }
+      }
+    } else if (def.heal && mon.hp > 0 && mon.hp < maxHp(mon)) {
       const gained = Math.min(def.heal, maxHp(mon) - mon.hp);
       useGame.getState().update((state) => {
-        if (!takeItem(state, target)) return;
-        state.party[index].hp += gained;
+        const targetMon = state.party[index];
+        if (!targetMon) return;
+        if (!def.infinite && !takeItem(state, target)) return;
+        targetMon.hp = Math.min(maxHp(targetMon), targetMon.hp + (def.heal ?? 0));
       });
       playSfx("heal");
       message = `${displayName(mon)} recuperou ${gained} PS.`;
     } else if (def.cures && mon.status && def.cures.includes(mon.status)) {
       useGame.getState().update((state) => {
-        if (!takeItem(state, target)) return;
+        if (!def.infinite && !takeItem(state, target)) return;
         state.party[index].status = null;
         state.party[index].sleepTurns = 0;
       });
@@ -96,7 +163,7 @@ export function BagPanel({ onClose }: { onClose: () => void }) {
                 <span className="gba-cursor">{index === list.index ? "▶" : ""}</span>
                 <ItemIcon id={item.id} />
                 {ITEMS[item.id].name}
-                <b>×{item.count}</b>
+                <b>{ITEMS[item.id].infinite ? "∞" : `×${item.count}`}</b>
               </li>
             ))}
           </ul>

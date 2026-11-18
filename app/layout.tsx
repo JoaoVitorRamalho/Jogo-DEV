@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { Silkscreen } from "next/font/google";
+import { VT323 } from "next/font/google";
 import "./globals.css";
 
-const pixel = Silkscreen({ subsets: ["latin", "latin-ext"], weight: ["400", "700"], variable: "--font-pixel" });
+const pixel = VT323({ subsets: ["latin", "latin-ext"], weight: "400", variable: "--font-pixel" });
 
 export const metadata: Metadata = {
   title: "Jornada — Região de Asteria",

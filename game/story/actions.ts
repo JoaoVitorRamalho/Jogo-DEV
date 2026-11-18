@@ -48,8 +48,8 @@ export async function think(...texts: string[]): Promise<void> {
   await say(texts.map((text) => line(undefined, `(${text})`)));
 }
 
-export async function yesNo(prompt?: Line): Promise<boolean> {
-  return (await ask(["Sim", "Não"], prompt, 1)) === 0;
+export async function yesNo(prompt?: Line, preview?: string): Promise<boolean> {
+  return (await ask(["Sim", "Não"], prompt, 1, preview)) === 0;
 }
 
 export function autosave(): void {

@@ -2,7 +2,7 @@ export const VIEW_W = 240;
 export const VIEW_H = 160;
 export const TILE = 16;
 
-export const MAP_KEYS = ["brisamar", "house_1f", "house_2f", "neighbor", "lab", "route1"] as const;
+export const MAP_KEYS = ["brisamar", "house_1f", "house_2f", "neighbor", "lab", "clinic", "route1", "clearing", "forest", "ferruria", "ferruria_lab"] as const;
 export const MON_SPRITES = ["torchic", "bulbasaur", "froakie", "wurmple", "starly", "gible", "mew", "giratina"] as const;
 
 export const EXTRA_FIRST_GID = 2441;

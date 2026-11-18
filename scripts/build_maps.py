@@ -360,10 +360,19 @@ def build_brisamar() -> Map:
     m.stamp(33, 22, 33, 0, 1, 2, above_rows=1)
     m.stamp(34, 22, 34, 0, 1, 2, above_rows=1)
 
+    clinic_door = house(m, 14, 4)
+    clinic_path = line_cells([(clinic_door[0], clinic_door[1] + 1), (clinic_door[0], 13)], width=1)
+    path(m, clinic_path)
+    m.sign("sign_clinic", clinic_door[0] - 1, clinic_door[1] + 1)
+    m.set("buildings", clinic_door[0] - 1, clinic_door[1] + 1, OW(35, 2))
+    m.warp(clinic_door[0], clinic_door[1], "clinic", 5, 6, "up", door=True)
+
     m.sign("sign_village", 21, 4)
     m.sign("sign_home", 7, 12)
     m.sign("sign_lab", 23, 19)
     m.sign("sign_beach", 15, 23)
+    m.npc("mother_town", 10, 14, "down")
+    m.npc("mother_lake", 18, 26, "left")
     for c, r in ((21, 4), (7, 12), (23, 19), (15, 23)):
         m.set("buildings", c, r, OW(35, 2))
 
@@ -412,13 +421,20 @@ def build_house_2f() -> Map:
     m.stamp(1, 5, 3, 12, 3, 2, tileset=IN)
     m.stamp(8, 4, 8, 12, 1, 2, tileset=IN, above_rows=1)
     m.stamp(4, 6, 0, 10, 2, 2, tileset=IN, layer="detail", solid=False)
-    m.set("buildings", 5, 2, PC)
-    m.solid(5, 2)
+    for dx in range(2):
+        for dy in range(2):
+            m.solid(4 + dx, 6 + dy, False)
+    m.set("buildings", 6, 4, EX(15))
+    m.solid(6, 4)
     m.warp(7, 1, "house_1f", 9, 3, "down", w=2)
     m.spawn("bed", 3, 3, "down")
     m.spawn("from_1f", 7, 3, "down")
-    m.obj("signs", "bedroom_pc", 5, 2)
+    m.obj("signs", "bedroom_pc", 6, 4)
+    m.obj("signs", "bedroom_bed", 2, 3)
     m.obj("signs", "bedroom_shelf", 2, 5)
+    m.obj("signs", "exam_folder", 1, 5)
+    m.obj("signs", "bedroom_bag", 8, 5)
+    m.obj("signs", "bedroom_window", 7, 2)
     return m
 
 
@@ -430,15 +446,15 @@ def build_house_1f() -> Map:
             m.set("ground", c, r, CHECKER)
     m.stamp(0, 1, 13, 10, 2, 3, tileset=IN)
     m.stamp(2, 1, 10, 7, 3, 3, tileset=IN)
-    m.stamp(6, 3, 10, 1, 2, 3, tileset=IN)
-    m.stamp(5, 3, 12, 4, 1, 2, tileset=IN, above_rows=1)
-    m.stamp(8, 3, 18, 4, 1, 2, tileset=IN, above_rows=1)
     m.stamp(4, 0, 12, 0, 2, 1, tileset=IN, layer="detail", solid=False)
     m.stamp(7, 0, 9, 4, 2, 2, tileset=IN, layer="detail", solid=False)
     m.stamp(9, 1, 2, 15, 2, 2, tileset=IN, layer="detail", solid=False)
     m.stamp(0, 7, 8, 12, 1, 2, tileset=IN, above_rows=1)
     m.stamp(11, 6, 11, 10, 1, 2, tileset=IN, layer="detail", solid=True)
     m.stamp(1, 6, 0, 7, 3, 3, tileset=IN, layer="detail", solid=False)
+    for dx in range(3):
+        for dy in range(3):
+            m.solid(1 + dx, 6 + dy, False)
     m.set("detail", 5, 8, MAT)
     m.set("detail", 6, 8, MAT)
     m.solid(9, 1, False)
@@ -468,11 +484,12 @@ def build_neighbor() -> Map:
     m.warp(4, 7, "brisamar", 29, 13, "down", w=2, door=True)
     m.spawn("from_outside", 5, 6, "up")
     m.npc("neighbor", 3, 5, "right")
+    m.npc("gael", 6, 6, "left")
     return m
 
 
 def build_lab() -> Map:
-    m = Map("Laboratório da Profª Lira", 14, 11, music="town")
+    m = Map("Laboratório do Prof. Dário", 14, 11, music="town")
     interior_box(m, lab=True, floor=LABFLOOR)
     m.stamp(1, 2, 3, 12, 3, 2, tileset=IN)
     m.stamp(4, 2, 3, 12, 3, 2, tileset=IN)
@@ -488,8 +505,11 @@ def build_lab() -> Map:
     m.set("detail", 6, 10, MAT)
     m.set("detail", 7, 10, MAT)
     m.warp(6, 10, "brisamar", 26, 20, "down", w=2, door=True)
+    m.warp(1, 9, "clearing", 8, 9, "up")
+    m.obj("signs", "lab_clearing", 1, 8)
     m.spawn("from_outside", 7, 9, "up")
-    m.npc("lira", 9, 3, "down")
+    m.npc("lira", 11, 6, "down")
+    m.npc("gael_lab", 6, 8, "up")
     m.npc("ren_lab", 7, 9, "up")
     m.npc("lab_ball_torchic", 8, 5, "down")
     m.npc("lab_ball_bulbasaur", 9, 5, "down")
@@ -543,12 +563,139 @@ def build_route1() -> Map:
     m.sign("sign_forest", 13, 4)
     m.set("buildings", 13, 4, OW(35, 2))
     m.warp(11, 45, "brisamar", 19, 1, "down", w=2)
+    m.warp(11, 0, "forest", 10, 20, "up", w=2)
     m.spawn("from_brisamar", 11, 43, "up")
-    m.event("forest_edge", 10, 0, 4, 2)
-    m.npc("youngster", 8, 30, "right")
+    m.spawn("from_forest", 11, 2, "down")
+    m.event("forest_edge", 10, 1, 4, 1)
+    m.npc("gael_route", 13, 40, "left")
+    m.npc("youngster", 7, 32, "down")
     m.npc("ren_route1", 10, 35, "up")
     m.npc("item_potion", 18, 11, "down")
     m.npc("hiker", 12, 6, "down")
+    return m
+
+
+def build_clinic() -> Map:
+    m = Map("Clínica de Brisamar", 10, 8, music="town")
+    interior_box(m, lab=True)
+    m.stamp(1, 2, 3, 12, 3, 2, tileset=IN)
+    m.stamp(6, 2, 10, 7, 3, 3, tileset=IN)
+    m.set("detail", 4, 7, MAT)
+    m.set("detail", 5, 7, MAT)
+    m.warp(4, 7, "brisamar", 16, 9, "down", w=2, door=True)
+    m.spawn("from_outside", 5, 6, "up")
+    m.npc("doctor", 2, 5, "right")
+    m.npc("mother_clinic", 4, 5, "right")
+    m.obj("signs", "clinic_desk", 6, 3)
+    return m
+
+
+def build_clearing() -> Map:
+    m = Map("Clareira de Treinamento", 16, 12, music="streets")
+    grass_fill(m)
+    tree_band(m, 0, 0, 16, 2)
+    tree_band(m, 0, 2, 2, 10)
+    tree_band(m, 14, 2, 2, 10)
+    tree_band(m, 2, 10, 12, 2)
+    clearing = line_cells([(8, 11), (8, 3)], width=2)
+    path(m, clearing)
+    for c, r in list(clearing):
+        for layer in ("buildings", "above"):
+            m.set(layer, c, r, 0)
+        m.solid(c, r, False)
+    for r in range(4, 8):
+        for c in range(4, 7):
+            m.set("detail", c, r, TALL)
+    m.warp(7, 11, "lab", 7, 9, "up", w=2)
+    m.spawn("from_lab", 8, 9, "up")
+    m.npc("gael_clearing", 10, 5, "left")
+    m.sign("sign_clearing", 5, 3)
+    m.set("buildings", 5, 3, OW(35, 2))
+    return m
+
+
+def build_forest() -> Map:
+    m = Map("Floresta de Aster", 20, 22, music="dungeon")
+    grass_fill(m)
+    tree_band(m, 0, 0, 20, 22)
+    trail = line_cells([(10, 21), (10, 14), (6, 14), (6, 8), (12, 8), (12, 2), (10, 2), (10, 0)])
+    path(m, trail)
+    for c, r in list(trail):
+        for layer in ("buildings", "above"):
+            m.set(layer, c, r, 0)
+        m.solid(c, r, False)
+
+    def grass_patch(c0: int, r0: int, w: int, h: int) -> None:
+        for r in range(r0, r0 + h):
+            for c in range(c0, c0 + w):
+                if (c, r) in trail:
+                    continue
+                if not m.inside(c, r):
+                    continue
+                m.set("detail", c, r, TALL)
+                m.set("buildings", c, r, 0)
+                m.set("above", c, r, 0)
+                m.solid(c, r, False)
+
+    grass_patch(12, 15, 4, 4)
+    grass_patch(3, 9, 3, 4)
+    grass_patch(13, 4, 4, 3)
+    flowers(m, [(8, 16), (9, 17), (14, 10), (7, 6)])
+    m.warp(10, 21, "route1", 11, 2, "down", w=2)
+    m.warp(10, 0, "ferruria", 12, 16, "up", w=2)
+    m.spawn("from_route", 10, 19, "up")
+    m.spawn("from_city", 10, 2, "down")
+    m.npc("bia_forest", 6, 12, "down")
+    m.npc("ravi", 13, 6, "left")
+    m.npc("lost_kid", 8, 5, "down")
+    m.sign("sign_forest_in", 8, 18)
+    m.set("buildings", 8, 18, OW(35, 2))
+    return m
+
+
+def build_ferruria() -> Map:
+    m = Map("Cidade Ferrúria", 24, 18, music="town")
+    grass_fill(m)
+    tree_band(m, 0, 0, 24, 3)
+    tree_band(m, 0, 3, 3, 15)
+    tree_band(m, 21, 3, 3, 15)
+    for c in (11, 12, 13):
+        for r in range(15, 18):
+            for layer in ("buildings", "above"):
+                m.set(layer, c, r, 0)
+            m.solid(c, r, False)
+    lab_door = house(m, 15, 6, lab=True)
+    gym = house(m, 4, 6)
+    main = line_cells([(12, 17), (12, 10), (lab_door[0], 10), (lab_door[0], lab_door[1] + 1)])
+    main |= line_cells([(12, 12), (gym[0], 12), (gym[0], gym[1] + 1)])
+    path(m, main)
+    flowers(m, [(8, 8), (9, 9), (18, 12), (19, 13), (6, 14)])
+    m.warp(12, 17, "forest", 10, 1, "down", w=2)
+    m.warp(lab_door[0], lab_door[1], "ferruria_lab", 7, 9, "up", door=True)
+    m.spawn("from_forest", 12, 15, "up")
+    m.spawn("from_lab", lab_door[0], lab_door[1] + 1, "down")
+    m.sign("sign_ferruria", 10, 14)
+    m.sign("sign_gym", gym[0] - 1, gym[1] + 1)
+    m.set("buildings", 10, 14, OW(35, 2))
+    m.set("buildings", gym[0] - 1, gym[1] + 1, OW(35, 2))
+    m.npc("ferruria_local", 8, 11, "right")
+    m.npc("ferruria_trainer", 18, 11, "left")
+    return m
+
+
+def build_ferruria_lab() -> Map:
+    m = Map("Laboratório da Profª Celina", 14, 11, music="town")
+    interior_box(m, lab=True, floor=LABFLOOR)
+    m.stamp(1, 2, 0, 15, 2, 2, tileset=IN)
+    m.stamp(4, 2, 2, 15, 2, 2, tileset=IN)
+    m.stamp(8, 1, 13, 10, 2, 3, tileset=IN)
+    m.stamp(11, 1, 10, 7, 3, 3, tileset=IN)
+    m.set("detail", 6, 10, MAT)
+    m.set("detail", 7, 10, MAT)
+    m.warp(6, 10, "ferruria", 17, 11, "down", w=2, door=True)
+    m.spawn("from_outside", 7, 9, "up")
+    m.npc("celina", 9, 3, "down")
+    m.obj("signs", "celina_terminal", 8, 2)
     return m
 
 
@@ -588,12 +735,20 @@ def main() -> None:
         "house_2f": build_house_2f(),
         "neighbor": build_neighbor(),
         "lab": build_lab(),
+        "clinic": build_clinic(),
         "route1": build_route1(),
+        "clearing": build_clearing(),
+        "forest": build_forest(),
+        "ferruria": build_ferruria(),
+        "ferruria_lab": build_ferruria_lab(),
     }
     for key, m in built.items():
         m.key = key
         (MAPS / f"{key}.json").write_text(json.dumps(m.to_tiled()), encoding="utf-8")
-        render_preview(m)
+        try:
+            render_preview(m)
+        except OSError as error:
+            print(key, "preview skipped", error)
         print(key, m.cols, m.rows)
 
 

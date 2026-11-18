@@ -88,6 +88,11 @@ export function ChoiceBox() {
           <p>{choice.prompt.text}</p>
         </div>
       ) : null}
+      {choice.preview ? (
+        <div className="starter-preview">
+          <img className="pixel" src={`/assets/sprites/pokemon/${choice.preview}.png`} alt="" />
+        </div>
+      ) : null}
       <div className={choice.prompt ? "gba-choice raised" : "gba-choice"}>
         {choice.options.map((option, index) => (
           <button
@@ -111,10 +116,11 @@ export function ChoiceBox() {
 export function ToastAndHint() {
   const toast = useUi((state) => state.toast);
   const hint = useUi((state) => state.hint);
+  const dialog = useUi((state) => state.dialog);
   return (
     <>
       {toast ? <div className="gba-toast">{toast}</div> : null}
-      {hint ? <div className="gba-hint">{hint}</div> : null}
+      {hint && !dialog ? <div className="gba-hint">{hint}</div> : null}
     </>
   );
 }

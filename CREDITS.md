@@ -34,7 +34,7 @@
 
 ## Fontes UI
 
-- **Silkscreen** — Google Fonts (layout Next.js)
+- **VT323** — Google Fonts (layout Next.js). A Silkscreen deixava o W ilegível.
 
 ---
 

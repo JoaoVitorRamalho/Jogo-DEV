@@ -6,7 +6,7 @@ import type { BattleConfig, Outcome } from "@/game/battle/engine";
 export type Line = { speaker?: string; text: string };
 
 export type DialogRequest = { lines: Line[]; index: number; resolve: () => void };
-export type ChoiceRequest = { prompt?: Line; options: string[]; index: number; cancel: number | null; resolve: (index: number) => void };
+export type ChoiceRequest = { prompt?: Line; options: string[]; index: number; cancel: number | null; preview?: string; resolve: (index: number) => void };
 export type BattleRequest = { config: BattleConfig; resolve: (outcome: Outcome) => void };
 export type Panel = null | "pause" | "party" | "bag" | "dex" | "quests" | "save" | "card" | "options";
 
@@ -58,10 +58,10 @@ export function say(lines: Line[] | string, speaker?: string): Promise<void> {
   });
 }
 
-export function ask(options: string[], prompt?: Line, cancel: number | null = null): Promise<number> {
+export function ask(options: string[], prompt?: Line, cancel: number | null = null, preview?: string): Promise<number> {
   const context = prompt ?? useUi.getState().lastLine ?? undefined;
   return new Promise((resolve) => {
-    useUi.setState({ choice: { options, index: 0, prompt: context, cancel, resolve } });
+    useUi.setState({ choice: { options, index: 0, prompt: context, cancel, preview, resolve } });
   }).then((index) => {
     useUi.setState({ lastLine: null });
     return index as number;
