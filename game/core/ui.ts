@@ -8,6 +8,7 @@ export type Line = { speaker?: string; text: string };
 export type DialogRequest = { lines: Line[]; index: number; resolve: () => void };
 export type ChoiceRequest = { prompt?: Line; options: string[]; index: number; cancel: number | null; preview?: string; resolve: (index: number) => void };
 export type BattleRequest = { config: BattleConfig; resolve: (outcome: Outcome) => void };
+export type EvolutionRequest = { from: string; to: string; resolve: () => void };
 export type Panel = null | "pause" | "party" | "bag" | "dex" | "quests" | "save" | "card" | "options";
 
 type Ui = {
@@ -15,6 +16,7 @@ type Ui = {
   dialog: DialogRequest | null;
   choice: ChoiceRequest | null;
   battle: BattleRequest | null;
+  evolution: EvolutionRequest | null;
   panel: Panel;
   toast: string | null;
   hint: string | null;
@@ -30,6 +32,7 @@ export const useUi = create<Ui>((set) => ({
   dialog: null,
   choice: null,
   battle: null,
+  evolution: null,
   panel: null,
   toast: null,
   hint: null,
@@ -47,7 +50,7 @@ export const useUi = create<Ui>((set) => ({
 
 export function worldBusy(): boolean {
   const ui = useUi.getState();
-  return Boolean(ui.dialog || ui.choice || ui.battle || ui.panel || ui.locked > 0);
+  return Boolean(ui.dialog || ui.choice || ui.battle || ui.evolution || ui.panel || ui.locked > 0);
 }
 
 export function say(lines: Line[] | string, speaker?: string): Promise<void> {
@@ -85,4 +88,11 @@ export async function lock<T>(run: () => Promise<T>): Promise<T> {
 
 export function wait(ms: number): Promise<void> {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+/** Toca a cena de evolução (espécie de origem → destino) e resolve quando ela termina. */
+export function playEvolution(from: string, to: string): Promise<void> {
+  return new Promise((resolve) => {
+    useUi.setState({ evolution: { from, to, resolve } });
+  });
 }

@@ -5,6 +5,7 @@ import { BattleScreen } from "@/components/battle/BattleScreen";
 import { ChoiceBox, DialogBox, ToastAndHint } from "@/components/hud/DialogBox";
 import { OptionsMenu } from "@/components/menu/OptionsMenu";
 import { PauseMenu } from "@/components/menus/PauseMenu";
+import { EvolutionScene } from "@/components/hud/EvolutionScene";
 import { useUi } from "@/game/core/ui";
 import { VIEW_H, VIEW_W } from "@/game/phaser/constants";
 import { useGame } from "@/game/state/store";
@@ -74,6 +75,7 @@ export function GameShell() {
           <DialogBox />
           <ChoiceBox />
           <ToastAndHint />
+          <EvolutionScene />
         </div>
       </div>
       {panel === "options" ? (

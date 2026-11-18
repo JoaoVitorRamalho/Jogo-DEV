@@ -30,6 +30,8 @@ const SKIN_OPTIONS: Option[] = Object.entries(SKIN).map(([id, v]) => ({ id, labe
 const EYE_OPTIONS: Option[] = Object.entries(EYES).map(([id, v]) => ({ id, label: v.label, swatch: v.color }));
 const HAIR_COLOR_OPTIONS: Option[] = Object.entries(HAIR_COLORS).map(([id, v]) => ({ id, label: v.label, swatch: v.main }));
 const CLOTH_OPTIONS: Option[] = Object.entries(CLOTH).map(([id, v]) => ({ id, label: v.label, swatch: v.main }));
+const TURN = [0, 3, 2, 1];
+const SECTIONS: Partial<Record<Field, string>> = { sex: "Corpo", hairStyle: "Cabelo", top: "Roupa", headwear: "Acessórios" };
 const SEX_OPTIONS: Option[] = [
   { id: "male", label: "Masculino" },
   { id: "female", label: "Feminino" },
@@ -41,6 +43,7 @@ export function CharacterCreator() {
   const [row, setRow] = useState(0);
   const nameRef = useRef<HTMLInputElement>(null);
   const repeat = useRef(createRepeater());
+  const [turn, setTurn] = useState<number | null>(null);
 
   const rows = useMemo(() => {
     const list: Row[] = [
@@ -71,7 +74,7 @@ export function CharacterCreator() {
 
   useEffect(() => {
     setRow((value) => Math.min(value, rows.length - 1));
-    document.querySelector<HTMLElement>(".creator-layout .row.active")?.scrollIntoView({ block: "nearest" });
+    document.querySelector<HTMLElement>(".cr-rows .cr-row.active, .cr-start.active")?.scrollIntoView({ block: "nearest" });
   }, [row, rows.length]);
 
   function shift(delta: number, index = row) {
@@ -82,6 +85,37 @@ export function CharacterCreator() {
     const next = options[(Math.max(0, now) + delta + options.length) % options.length];
     playSfx("cursor");
     setAppearance((value) => ({ ...value, [current.field]: next.id }));
+  }
+
+  function rotate(delta: number) {
+    playSfx("cursor");
+    setTurn((value) => ((value ?? 0) + delta + TURN.length) % TURN.length);
+  }
+
+  function randomize() {
+    playSfx("confirm");
+    setAppearance((value) => {
+      const next = { ...value } as Appearance;
+      const pick = <T,>(list: T[]) => list[Math.floor(Math.random() * list.length)];
+      const pool: [Field, Option[]][] = [
+        ["skin", SKIN_OPTIONS],
+        ["eyes", EYE_OPTIONS],
+        ["hairStyle", labels(HAIR_STYLES)],
+        ["hairColor", HAIR_COLOR_OPTIONS],
+        ["top", labels(TOPS)],
+        ["topColor", CLOTH_OPTIONS],
+        ["bottom", labels(BOTTOMS)],
+        ["bottomColor", CLOTH_OPTIONS],
+        ["shoes", labels(SHOES)],
+        ["shoesColor", CLOTH_OPTIONS],
+        ["headwear", labels(HEADWEAR)],
+        ["headwearColor", CLOTH_OPTIONS],
+        ["extra", labels(EXTRAS)],
+        ["extraColor", CLOTH_OPTIONS],
+      ];
+      for (const [field, options] of pool) (next as Record<string, unknown>)[field] = pick(options).id;
+      return next;
+    });
   }
 
   function confirm() {
@@ -98,6 +132,7 @@ export function CharacterCreator() {
     if (step("down", frame.held.down, dt)) setRow((value) => Math.min(rows.length - 1, value + 1));
     if (step("left", frame.held.left, dt)) shift(-1);
     if (step("right", frame.held.right, dt)) shift(1);
+    if (frame.pressed.menu) randomize();
     if (frame.pressed.cancel) {
       playSfx("cancel");
       setScreen("title");
@@ -111,16 +146,39 @@ export function CharacterCreator() {
   });
 
   return (
-    <div className="screen creator-layout">
-      <section className="panel creator-panel">
-        <h1>Novo jogo</h1>
-        <div className="rows">
+    <div className="creator-scene">
+      <div className="ts-sky cr-sky" />
+      <div className="ts-hills cr-hills" />
+      <div className="ts-ground" />
+      <aside className="cr-stage">
+        <p className="cr-kicker">Novo jogo</p>
+        <h1 className="cr-title">Quem é você?</h1>
+        <div className="cr-podium">
+          <span className="cr-glow" />
+          <CharacterPreview appearance={appearance} scale={9} facing={turn === null ? undefined : TURN[turn]} />
+          <span className="cr-shadow" />
+        </div>
+        <div className="cr-name">{appearance.name.trim() || "Sem nome"}</div>
+        <div className="cr-tools">
+          <button type="button" className="cr-tool" onClick={() => rotate(-1)} aria-label="Girar para a esquerda">
+            ⟲
+          </button>
+          <button type="button" className="cr-tool wide" onClick={randomize}>
+            Aleatório
+          </button>
+          <button type="button" className="cr-tool" onClick={() => rotate(1)} aria-label="Girar para a direita">
+            ⟳
+          </button>
+        </div>
+      </aside>
+      <section className="cr-panel">
+        <div className="cr-rows">
           {rows.map((entry, index) => {
             const active = index === row;
             if (entry.kind === "name") {
               return (
-                <label key="name" className={active ? "row active field" : "row field"}>
-                  <span>Nome</span>
+                <label key="name" className={active ? "cr-row active cr-field" : "cr-row cr-field"}>
+                  <span className="cr-label">Nome</span>
                   <input
                     ref={nameRef}
                     value={appearance.name}
@@ -146,40 +204,58 @@ export function CharacterCreator() {
             }
             if (entry.kind === "confirm") {
               return (
-                <button key="confirm" type="button" className={active ? "row active confirm" : "row confirm"} onMouseEnter={() => setRow(index)} onClick={confirm}>
-                  Começar a jornada
+                <button key="confirm" type="button" className={active ? "cr-start active" : "cr-start"} onMouseEnter={() => setRow(index)} onClick={confirm}>
+                  Começar a jornada ▶
                 </button>
               );
             }
-            const option = entry.options.find((item) => item.id === appearance[entry.field]) ?? entry.options[0];
+            const now = Math.max(0, entry.options.findIndex((item) => item.id === appearance[entry.field]));
+            const option = entry.options[now];
+            const section = SECTIONS[entry.field];
+            const swatches = entry.options.every((item) => item.swatch);
             return (
-              <button
-                key={entry.field}
-                type="button"
-                className={active ? "row active" : "row"}
-                onMouseEnter={() => setRow(index)}
-                onClick={() => {
-                  setRow(index);
-                  shift(1, index);
-                }}
-              >
-                <span>{entry.label}</span>
-                <strong>
-                  {active ? "◀ " : ""}
-                  {option.swatch ? <i className="swatch" style={{ background: option.swatch }} /> : null}
-                  {option.label}
-                  {active ? " ▶" : ""}
-                </strong>
-              </button>
+              <div key={entry.field} className="cr-group">
+                {section ? <p className="cr-section">{section}</p> : null}
+                <div className={active ? "cr-row active" : "cr-row"} onMouseEnter={() => setRow(index)}>
+                  <span className="cr-label">{entry.label}</span>
+                  {swatches ? (
+                    <span className="cr-swatches">
+                      {entry.options.map((item, at) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          title={item.label}
+                          aria-label={item.label}
+                          className={at === now ? "cr-swatch on" : "cr-swatch"}
+                          style={{ background: item.swatch }}
+                          onClick={() => {
+                            setRow(index);
+                            shift(at - now, index);
+                          }}
+                        />
+                      ))}
+                    </span>
+                  ) : (
+                    <span className="cr-picker">
+                      <button type="button" className="cr-arrow" aria-label="Anterior" onClick={() => { setRow(index); shift(-1, index); }}>
+                        ◀
+                      </button>
+                      <strong>{option.label}</strong>
+                      <em>
+                        {now + 1}/{entry.options.length}
+                      </em>
+                      <button type="button" className="cr-arrow" aria-label="Próximo" onClick={() => { setRow(index); shift(1, index); }}>
+                        ▶
+                      </button>
+                    </span>
+                  )}
+                </div>
+              </div>
             );
           })}
         </div>
-        <p className="hint-inline">◀ ▶ trocam · Z confirma · X volta</p>
+        <p className="cr-hint">◀ ▶ trocam · Z confirma · X volta · Enter sorteia</p>
       </section>
-      <aside className="stage-card">
-        <CharacterPreview appearance={appearance} scale={7} />
-        <p className="who">{appearance.name.trim() || "Sem nome"}</p>
-      </aside>
     </div>
   );
 }

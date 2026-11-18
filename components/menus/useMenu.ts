@@ -30,7 +30,7 @@ export function useMenu({ count, enabled, columns = 1, onSelect, onCancel, onLef
   useInputFrame(
     (frame, dt) => {
       const ui = useUi.getState();
-      if (ui.dialog || ui.choice) return;
+      if (ui.dialog || ui.choice || ui.evolution) return;
       const h = handlers.current;
       const step = repeat.current;
       const total = Math.max(1, h.count);

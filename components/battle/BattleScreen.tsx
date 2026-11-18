@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { spriteOf } from "@/game/phaser/constants";
 import { HpBar } from "@/components/hud/MonSprite";
 import { useTypewriter } from "@/components/hud/useTypewriter";
 import { ItemIcon } from "@/components/menus/BagPanel";
@@ -12,7 +13,7 @@ import { species } from "@/data/pokemon/species";
 import { TYPE_COLOR, TYPE_NAME } from "@/data/pokemon/types";
 import { type Action, type BattleEvent, type BattleState, type Outcome, type Side, activeOf, runTurn, startBattle } from "@/game/battle/engine";
 import { defaultRng } from "@/game/core/rng";
-import { type BattleRequest, ask, useUi } from "@/game/core/ui";
+import { type BattleRequest, ask, useUi, playEvolution } from "@/game/core/ui";
 import type { BattleVisuals } from "@/game/phaser/bridge";
 import { type Mon, displayName, evolve, expProgress, learnMove, maxHp, pendingEvolution } from "@/game/pokemon/mon";
 import { addMon, markCaught, useGame } from "@/game/state/store";
@@ -64,7 +65,7 @@ function BattleRun({ request }: { request: BattleRequest }) {
 
   useInputFrame((frame) => {
     const ui = useUi.getState();
-    if (ui.dialog || ui.choice) return;
+    if (ui.dialog || ui.choice || ui.evolution) return;
     typer.setFast(frame.held.cancel);
     if (mode === "busy" && (frame.pressed.confirm || frame.pressed.cancel)) advanceRef.current?.();
   });
@@ -144,7 +145,7 @@ function BattleRun({ request }: { request: BattleRequest }) {
           const source = (prevRef.current ?? st)[event.side].party[event.index] ?? st[event.side].party[event.index];
           const mon = st[event.side].party[event.index];
           setHud(event.side, { ...hudOf(mon), hp: source.hp, status: source.status });
-          await v?.sendOut(event.side, species(mon.species).sprite);
+          await v?.sendOut(event.side, spriteOf(mon.species));
           break;
         }
         case "withdraw":
@@ -225,17 +226,12 @@ function BattleRun({ request }: { request: BattleRequest }) {
       if (!mon) continue;
       const into = pendingEvolution(mon);
       if (!into) continue;
-      const before = displayName(mon);
-      await show(`O quê? ${before} está evoluindo!`);
-      playSfx("levelup");
-      await sleep(900);
+      await playEvolution(mon.species, into);
       useGame.getState().update((state) => {
         const target = state.party.find((entry) => entry.uid === uid);
         if (target) evolve(target, into);
         markCaught(state, into);
       });
-      playSfx("catch");
-      await show(`Parabéns! ${before} evoluiu para ${species(into).name}!`);
     }
     visualsRef.current?.end();
     const { closeBattle } = await import("@/game/phaser/createGame");
@@ -287,7 +283,7 @@ function BattleRun({ request }: { request: BattleRequest }) {
       const { state, events } = startBattle(request.config);
       stateRef.current = state;
       prevRef.current = state;
-      await visuals.begin(state.background, species(activeOf(state, "foe").species).sprite, null);
+      await visuals.begin(state.background, spriteOf(activeOf(state, "foe").species), null);
       await play(events);
       await next();
     })();

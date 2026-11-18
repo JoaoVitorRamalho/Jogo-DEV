@@ -1,12 +1,17 @@
 "use client";
 
 import { species } from "@/data/pokemon/species";
+import { MON_SPRITES, spriteOf } from "@/game/phaser/constants";
 
-const DRAWN = new Set(["torchic", "bulbasaur", "froakie", "wurmple", "starly", "gible", "mew", "giratina"]);
+const DRAWN = new Set<string>(MON_SPRITES);
+
+export function monSpriteSrc(id: string): string | null {
+  const sprite = spriteOf(id);
+  return DRAWN.has(sprite) ? `/assets/sprites/pokemon/${sprite}.png` : null;
+}
 
 export function MonSprite({ id, size = 32, flip = false }: { id: string; size?: number; flip?: boolean }) {
-  const sprite = species(id).sprite;
-  const src = DRAWN.has(sprite) ? `/assets/sprites/pokemon/${sprite}.png` : null;
+  const src = monSpriteSrc(id);
   if (!src) return <span className="mon-unknown" style={{ width: `calc(var(--u) * ${size})`, height: `calc(var(--u) * ${size})` }}>?</span>;
   return (
     // eslint-disable-next-line @next/next/no-img-element

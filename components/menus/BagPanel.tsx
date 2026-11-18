@@ -6,7 +6,7 @@ import { useMenu } from "@/components/menus/useMenu";
 import { ITEMS, type ItemDef, type ItemId } from "@/data/items";
 import { move } from "@/data/pokemon/moves";
 import { species } from "@/data/pokemon/species";
-import { ask, say } from "@/game/core/ui";
+import { ask, say, playEvolution } from "@/game/core/ui";
 import { displayName, evolve, grantLevel, learnMove, maxHp } from "@/game/pokemon/mon";
 import { markCaught, takeItem, useGame } from "@/game/state/store";
 import { playSfx } from "@/lib/audio/engine";
@@ -96,16 +96,12 @@ export function BagPanel({ onClose }: { onClose: () => void }) {
           const current = useGame.getState().live?.party.find((entry) => entry.uid === updated.uid);
           const evo = current ? species(current.species).evolution : undefined;
           if (current && evo && current.level >= evo.level) {
-            const before = displayName(current);
-            await say(`O quê? ${before} está evoluindo!`);
-            playSfx("levelup");
+            await playEvolution(current.species, evo.into);
             useGame.getState().update((state) => {
               const next = state.party.find((entry) => entry.uid === current.uid);
               if (next) evolve(next, evo.into);
               markCaught(state, evo.into);
             });
-            playSfx("catch");
-            await say(`Parabéns! ${before} evoluiu para ${species(evo.into).name}!`);
           }
           return;
         }

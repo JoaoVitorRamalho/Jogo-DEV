@@ -412,29 +412,36 @@ def interior_box(m: Map, lab: bool = False, floor: int = WOOD) -> None:
 def build_house_2f() -> Map:
     m = Map("Casa — Quarto", 10, 8, music="town")
     interior_box(m)
-    m.stamp(1, 1, 16, 1, 1, 3, tileset=IN, above_rows=0)
-    m.stamp(2, 1, 18, 1, 1, 3, tileset=IN, above_rows=0)
+    # cama inteira (peças 17+18) no canto esquerdo
+    m.stamp(1, 1, 17, 1, 2, 3, tileset=IN, above_rows=0)
+    # janela no centro da parede; TV logo abaixo dela, com um vaso ao lado
     m.stamp(4, 0, 9, 4, 2, 2, tileset=IN, layer="detail", solid=True)
+    m.set("buildings", 4, 2, EX(15))
+    m.solid(4, 2)
+    m.stamp(5, 2, 11, 11, 1, 1, tileset=IN)
+    # escada no canto direito e planta grande ao lado dela
     m.stamp(7, 1, 0, 15, 2, 2, tileset=IN, layer="detail", solid=False)
     m.solid(7, 1, False)
     m.solid(8, 1, False)
-    m.stamp(1, 5, 3, 12, 3, 2, tileset=IN)
-    m.stamp(8, 4, 8, 12, 1, 2, tileset=IN, above_rows=1)
-    m.stamp(4, 6, 0, 10, 2, 2, tileset=IN, layer="detail", solid=False)
-    for dx in range(2):
-        for dy in range(2):
-            m.solid(4 + dx, 6 + dy, False)
-    m.set("buildings", 6, 4, EX(15))
-    m.solid(6, 4)
+    m.stamp(9, 1, 8, 12, 1, 2, tileset=IN, above_rows=1)
+    # tapete 4x3 centralizado no quarto (bordas 0 e 2, miolo 1 repetido)
+    for dx, src in enumerate((0, 1, 1, 2)):
+        m.stamp(3 + dx, 4, src, 7, 1, 3, tileset=IN, layer="detail", solid=False)
+        for dy in range(3):
+            m.solid(3 + dx, 4 + dy, False)
+    # estante embaixo da cama, encostada na parede de baixo
+    m.stamp(0, 6, 3, 12, 3, 2, tileset=IN)
+    # mochila/vaso no canto oposto, fechando o quarto
+    m.stamp(9, 7, 11, 11, 1, 1, tileset=IN)
     m.warp(7, 1, "house_1f", 9, 3, "down", w=2)
     m.spawn("bed", 3, 3, "down")
     m.spawn("from_1f", 7, 3, "down")
-    m.obj("signs", "bedroom_pc", 6, 4)
+    m.obj("signs", "bedroom_pc", 4, 2)
+    m.obj("signs", "bedroom_window", 5, 2)
     m.obj("signs", "bedroom_bed", 2, 3)
-    m.obj("signs", "bedroom_shelf", 2, 5)
-    m.obj("signs", "exam_folder", 1, 5)
-    m.obj("signs", "bedroom_bag", 8, 5)
-    m.obj("signs", "bedroom_window", 7, 2)
+    m.obj("signs", "bedroom_shelf", 1, 6)
+    m.obj("signs", "exam_folder", 0, 6)
+    m.obj("signs", "bedroom_bag", 9, 7)
     return m
 
 
@@ -448,9 +455,10 @@ def build_house_1f() -> Map:
     m.stamp(2, 1, 10, 7, 3, 3, tileset=IN)
     m.stamp(4, 0, 12, 0, 2, 1, tileset=IN, layer="detail", solid=False)
     m.stamp(7, 0, 9, 4, 2, 2, tileset=IN, layer="detail", solid=False)
-    m.stamp(9, 1, 2, 15, 2, 2, tileset=IN, layer="detail", solid=False)
+    # escada inteira (3 degraus de altura); antes só aparecia o topo escuro
+    m.stamp(9, 1, 2, 15, 2, 3, tileset=IN, layer="detail", solid=False)
     m.stamp(0, 7, 8, 12, 1, 2, tileset=IN, above_rows=1)
-    m.stamp(11, 6, 11, 10, 1, 2, tileset=IN, layer="detail", solid=True)
+    m.stamp(11, 7, 11, 11, 1, 1, tileset=IN)
     m.stamp(1, 6, 0, 7, 3, 3, tileset=IN, layer="detail", solid=False)
     for dx in range(3):
         for dy in range(3):
@@ -464,11 +472,14 @@ def build_house_1f() -> Map:
     m.spawn("from_2f", 9, 3, "down")
     m.spawn("from_outside", 6, 7, "up")
     m.npc("mother", 9, 4, "left")
-    m.obj("signs", "kitchen_meds", 6, 3)
-    m.obj("signs", "kitchen_meds", 7, 3)
-    m.obj("signs", "stove", 0, 3)
-    m.obj("signs", "stove", 1, 3)
-    m.obj("signs", "photo", 4, 1)
+    # mesa de jantar com toalha (remédios da mãe em cima) e uma cadeira de cada lado
+    m.stamp(5, 3, 13, 1, 3, 3, tileset=IN)
+    m.stamp(4, 3, 16, 4, 1, 3, tileset=IN, above_rows=1)
+    m.stamp(8, 3, 18, 4, 1, 3, tileset=IN, above_rows=1)
+    m.set("above", 6, 4, IN(10, 6))
+    for c in range(5, 8):
+        m.obj("signs", "kitchen_meds", c, 3)
+        m.obj("signs", "kitchen_meds", c, 5)
     return m
 
 
