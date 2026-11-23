@@ -8,6 +8,8 @@ import type { Direction } from "@/game/character/appearance";
 import { DAY_LOOK, OUTDOOR_MAPS, type TimeOfDay, timeOfDay } from "@/game/core/daytime";
 import { useUi, worldBusy } from "@/game/core/ui";
 import { type WorldApi, bridge } from "@/game/phaser/bridge";
+import { Pet } from "@/game/phaser/pet";
+import { say } from "@/game/core/ui";
 import { TALL_GRASS_GID, TALL_GRASS_TOP_FRAME, TILE, TILE_SPRITE_FRAME, VIEW_H, VIEW_W } from "@/game/phaser/constants";
 import { buildPlayerTexture } from "@/game/phaser/textures";
 import { useGame } from "@/game/state/store";
@@ -139,6 +141,9 @@ export class WorldScene extends Phaser.Scene {
     this.grassTop = this.add.image(0, 0, "extra_sheet", TALL_GRASS_TOP_FRAME).setOrigin(0, 0).setVisible(false);
     this.bubble = this.add.image(0, 0, "bubble_dots").setOrigin(0.5, 1).setDepth(200000).setVisible(false);
     this.buildNpcs();
+    this.pet = new Pet(this);
+    this.pet.sync(useGame.getState().live?.party);
+    this.pet.place(data.x, data.y, data.dir);
     this.setupCamera();
     this.setupLighting();
     this.unsubscribe = subscribeInput((frame) => this.collect(frame));
@@ -322,6 +327,7 @@ export class WorldScene extends Phaser.Scene {
     }
     for (const npc of this.npcs.values()) this.updateNpc(npc, dt);
     this.updatePlayer(time, dt);
+    this.updatePet(dt);
     this.updateOverlays();
     this.updateLighting();
   }
@@ -392,6 +398,30 @@ export class WorldScene extends Phaser.Scene {
       const base = DAY_LOOK[this.lightTime ?? "morning"].glow;
       for (const glow of light.glows) glow.setAlpha(base * flicker);
     }
+  }
+
+  pet: Pet | null = null;
+
+  /** O primeiro da equipe anda atrás do herói (ou atrás de quem está seguindo o herói). */
+  updatePet(dt: number): void {
+    const pet = this.pet;
+    if (!pet) return;
+    pet.sync(useGame.getState().live?.party);
+    const follower = this.followerId ? this.npcs.get(this.followerId) : undefined;
+    const leader = follower?.sprite.visible ? follower : this.player;
+    pet.update(dt, leader, (y) => y + 0.4);
+  }
+
+  petLines(): string[] {
+    const name = this.pet?.name() ?? "";
+    const options = [
+      `${name} pulou de alegria!`,
+      `${name} está feliz em andar com você.`,
+      `${name} olhou em volta, curioso.`,
+      `${name} encostou a cabeça na sua mão.`,
+    ];
+    if (OUTDOOR_MAPS.has(this.mapKey) && timeOfDay(useGame.getState().live?.flags) === "night") options.push(`${name} bocejou. Já está tarde.`);
+    return [options[Math.floor(Math.random() * options.length)]];
   }
 
   updateNpc(npc: Npc, dt: number): void {
@@ -642,7 +672,20 @@ export class WorldScene extends Phaser.Scene {
       });
       return;
     }
-    if (sign && story.hooks) this.runScript(() => story.hooks?.sign(sign.name));
+    if (sign && story.hooks) {
+      this.runScript(() => story.hooks?.sign(sign.name));
+      return;
+    }
+    const pet = this.pet;
+    const at = this.facing();
+    if (pet?.sprite.visible && !pet.moving && pet.tx === at.x && pet.ty === at.y) {
+      this.runScript(async () => {
+        pet.face(OPPOSITE[this.player.dir]);
+        pet.cheer();
+        playSfx("confirm");
+        await say(this.petLines().map((text) => ({ text })));
+      });
+    }
   }
 
   faceToward(actor: Actor, target: Actor): void {
