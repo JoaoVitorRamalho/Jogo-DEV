@@ -174,8 +174,11 @@ export class Pet {
     if (!last) this.lastLeader = { x: leader.tx, y: leader.ty };
     else if (last.x !== leader.tx || last.y !== leader.ty) {
       const jump = Math.abs(last.x - leader.tx) + Math.abs(last.y - leader.ty) > 1;
-      if (jump || Math.abs(this.tx - last.x) + Math.abs(this.ty - last.y) > 1) {
-        // Teleporte do líder (cena, troca de lugar): reaparece atrás dele.
+      if (jump) {
+        // Teleporte do líder: fica escondido no tile dele e sai de trás no primeiro passo.
+        this.place(leader.tx, leader.ty, leader.dir);
+      } else if (Math.abs(this.tx - last.x) + Math.abs(this.ty - last.y) > 1) {
+        // Ficou longe (cena que moveu o líder): reaparece no tile que ele acabou de deixar.
         this.place(last.x, last.y, leader.dir);
       } else if (this.tx !== last.x || this.ty !== last.y) {
         this.begin(last.x, last.y, leader.moving ? leader.duration : 0.24);
@@ -183,6 +186,13 @@ export class Pet {
       this.lastLeader = { x: leader.tx, y: leader.ty };
     }
     const base = this.advance(dt);
+    // No mesmo tile do líder (entrou pela porta, sem espaço atrás) ele fica escondido: desenhado
+    // embaixo do herói, parecia uma mancha nos pés dele.
+    if (!this.moving && this.tx === leader.tx && this.ty === leader.ty) {
+      this.sprite.setVisible(false);
+      this.shadow.setVisible(false);
+      return;
+    }
     let lift = 0;
     let squash = 1;
     if (this.moving) {

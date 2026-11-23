@@ -520,6 +520,41 @@ ITEMS: dict[str, tuple[dict[str, tuple[int, int, int]], list[str]]] = {
 }
 
 
+# Pokébola 11 × 11 desenhada à mão, na base do quadro 16 × 16 (mesa do laboratório e item no
+# chão). Desenhada em pixel inteiro para aparecer em escala 1: reduzida, ela embaralhava.
+POKEBALL = [
+    "...KKKKK...",
+    ".KKRRRRRKK.",
+    ".KRLHRRRrK.",
+    "KRHRRRRRRrK",
+    "KRRRKKKRrrK",
+    "KKKKKWKKKKK",
+    "KWWWKKKWWwK",
+    "KWWWWWWWwwK",
+    ".KwWWWWwwK.",
+    ".KKwwwwwKK.",
+    "...KKKKK...",
+]
+POKEBALL_COLORS = {
+    "K": (34, 26, 44),
+    "R": (232, 64, 64),
+    "r": (170, 34, 56),
+    "H": (255, 168, 150),
+    "L": (255, 250, 244),
+    "W": (240, 234, 230),
+    "w": (184, 172, 196),
+}
+
+
+def pokeball_tile() -> Image.Image:
+    im = Image.new("RGBA", (T, T), (0, 0, 0, 0))
+    for y, row in enumerate(POKEBALL):
+        for x, ch in enumerate(row):
+            if ch != ".":
+                im.putpixel((x + 2, y + 5), (*POKEBALL_COLORS[ch], 255))
+    return im
+
+
 def build_extra(ow: Image.Image) -> None:
     tiles = [
         wood_floor(0),
@@ -537,7 +572,7 @@ def build_extra(ow: Image.Image) -> None:
         machine(),
         computer(),
     ]
-    tiles.append(orb((40, 178, 160), (18, 104, 100), (236, 184, 64), None, 16))
+    tiles.append(pokeball_tile())
     previous = OUT / "tilesets" / "extra.png"
     old = Image.open(previous).convert("RGBA") if previous.exists() else None
     rows = max(2, old.height // T) if old else 2

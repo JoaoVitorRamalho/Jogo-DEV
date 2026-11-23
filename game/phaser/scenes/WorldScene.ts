@@ -147,7 +147,7 @@ export class WorldScene extends Phaser.Scene {
     this.buildNpcs();
     this.pet = new Pet(this);
     this.pet.sync(useGame.getState().live?.party);
-    this.pet.place(data.x, data.y, data.dir);
+    this.pet.spawnBehind(this.player, (x, y) => !this.isBlocked(x, y, this.player) && !this.npcAt(x, y));
     this.setupCamera();
     this.setupLighting();
     fitCamera(this, (zoom) => this.onZoom(zoom));
@@ -237,8 +237,7 @@ export class WorldScene extends Phaser.Scene {
       const ball = tileSprite === "ball";
       const key = tileSprite ? "extra_sheet" : `npc_${object.name}`;
       if (!tileSprite && !this.textures.exists(key)) continue;
-      const sprite = this.add.sprite(0, 0, key, tileSprite ? TILE_SPRITE_FRAME[tileSprite] : 0).setOrigin(0.5, ball ? 0.65 : 1);
-      if (ball) sprite.setScale(0.58);
+      const sprite = this.add.sprite(0, 0, key, tileSprite ? TILE_SPRITE_FRAME[tileSprite] : 0).setOrigin(0.5, ball ? 0.6875 : 1);
       const actor = new Actor(sprite, object.x, object.y, (object.props.dir as Direction) ?? "down", !tileSprite) as Npc;
       actor.id = object.name;
       actor.home = { x: object.x, y: object.y };
