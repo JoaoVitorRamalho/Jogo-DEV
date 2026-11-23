@@ -57,6 +57,8 @@ type Store = {
   slot: GameState | null;
   live: GameState | null;
   newGame: (appearance: Appearance) => void;
+  /** Troca o jogo salvo inteiro (save de teste). */
+  loadState: (state: GameState) => void;
   continueGame: () => boolean;
   save: () => void;
   update: (fn: (state: GameState) => void) => void;
@@ -74,6 +76,7 @@ export const useGame = create<Store>()(
         state.savedAt = Date.now();
         set({ live: state, slot: clone(state) });
       },
+      loadState: (state) => set({ slot: clone(state), live: clone(state) }),
       continueGame: () => {
         const slot = get().slot;
         if (!slot) return false;

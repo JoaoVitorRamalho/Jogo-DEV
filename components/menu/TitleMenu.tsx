@@ -8,12 +8,25 @@ import { CITIES } from "@/data/cities";
 import { TYPE_COLOR } from "@/data/pokemon/types";
 import { defaultAppearance } from "@/game/character/appearance";
 import { useGame, type GameState } from "@/game/state/store";
+import { testSave } from "@/game/state/testSave";
 import { playSfx, setContextTrack } from "@/lib/audio/engine";
 import { useSession } from "@/lib/game/session";
 import { createRepeater, useInputFrame } from "@/lib/input/engine";
 
 type Entry = { id: "continue" | "new" | "options"; label: string; sub: string };
-type Stage = "press" | "menu" | "overwrite";
+type Stage = "press" | "menu" | "overwrite" | "test";
+
+/** ↑ ↑ ↓ ↓ ← → ← → X Z abre o save de teste. */
+const CHEAT = ["up", "up", "down", "down", "left", "right", "left", "right", "cancel", "confirm"] as const;
+const CHEAT_KEYS = ["up", "down", "left", "right", "cancel", "confirm"] as const;
+
+/** Tira o ?save=teste da barra para o recarregar não abrir o aviso de novo. */
+function dropTestParam() {
+  const url = new URL(window.location.href);
+  if (!url.searchParams.has("save")) return;
+  url.searchParams.delete("save");
+  window.history.replaceState(null, "", url);
+}
 
 const GYMS = CITIES.flatMap((city) => (city.gym ? [city.gym] : []));
 
@@ -80,11 +93,34 @@ export function TitleMenu() {
   const [row, setRow] = useState(0);
   const [confirmRow, setConfirmRow] = useState(1);
   const repeat = useRef(createRepeater());
+  const typed = useRef<string[]>([]);
   const lead = slot?.party?.find((mon) => mon.hp > 0)?.species ?? slot?.party?.[0]?.species ?? null;
 
   useEffect(() => {
     setContextTrack("title");
+    if (new URLSearchParams(window.location.search).get("save") === "teste") {
+      setConfirmRow(0);
+      setStage("test");
+    }
   }, []);
+
+  function openTest() {
+    playSfx("discover");
+    setConfirmRow(0);
+    setStage("test");
+  }
+
+  function confirmTest(index: number) {
+    dropTestParam();
+    if (index !== 0) {
+      playSfx("cancel");
+      setStage("menu");
+      return;
+    }
+    useGame.getState().loadState(testSave(slot?.appearance));
+    playSfx("confirm");
+    setScreen("field");
+  }
 
   function openMenu() {
     playSfx("confirm");
@@ -132,6 +168,21 @@ export function TitleMenu() {
 
   useInputFrame((frame, dt) => {
     const next = repeat.current;
+    for (const key of CHEAT_KEYS) {
+      if (frame.pressed[key]) typed.current = [...typed.current, key].slice(-CHEAT.length);
+    }
+    if (stage !== "test" && typed.current.join() === CHEAT.join()) {
+      typed.current = [];
+      openTest();
+      return;
+    }
+    if (stage === "test") {
+      if (next("left", frame.held.left, dt) || next("up", frame.held.up, dt)) setConfirmRow(0);
+      if (next("right", frame.held.right, dt) || next("down", frame.held.down, dt)) setConfirmRow(1);
+      if (frame.pressed.cancel) confirmTest(1);
+      else if (frame.pressed.confirm) confirmTest(confirmRow);
+      return;
+    }
     if (stage === "press") {
       if (frame.pressed.confirm) openMenu();
       return;
@@ -217,6 +268,38 @@ export function TitleMenu() {
                   className={`ts-modal-btn${index === 0 ? " danger" : ""}${confirmRow === index ? " active" : ""}`}
                   onMouseEnter={() => setConfirmRow(index)}
                   onClick={() => confirmOverwrite(index)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {stage === "test" ? (
+        <div className="ts-modal" role="alertdialog" aria-label="Carregar o save de teste">
+          <div className="ts-modal-card">
+            <p className="ts-modal-title">Save de teste</p>
+            <ul className="ts-modal-list">
+              <li>Capítulo 1 completo, na entrada da Rota 2</li>
+              <li>Os treinadores da rota ainda esperam por você</li>
+              <li>Equipe no nível 30 e as 6 pedras de mega</li>
+              <li>₽50.000, mochila cheia e 8 Pokémon na caixa</li>
+            </ul>
+            {slot ? (
+              <p className="ts-modal-note">
+                Ele toma o lugar da jornada de <strong>{slot.appearance.name || "Viajante"}</strong>.
+              </p>
+            ) : null}
+            <div className="ts-modal-actions">
+              {["Carregar", "Voltar"].map((label, index) => (
+                <button
+                  key={label}
+                  type="button"
+                  className={`ts-modal-btn${confirmRow === index ? " active" : ""}`}
+                  onMouseEnter={() => setConfirmRow(index)}
+                  onClick={() => confirmTest(index)}
                 >
                   {label}
                 </button>

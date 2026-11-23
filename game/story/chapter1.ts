@@ -12,6 +12,7 @@ import { autosave, flag, giveOnce, healAtHome, hero, line, setFlag, spottedBy, s
 import { CH2_SIGN_RUN, CH2_SIGNS, CH2_TALK, CH2_VISIBLE, ch2CanWarp, ch2Enter } from "@/game/story/chapter2";
 import { BattleDemo } from "@/game/story/demo";
 import { type StoryHooks, story } from "@/game/story/hooks";
+import { spotted, watching } from "@/game/story/watchers";
 import { playSfx } from "@/lib/audio/engine";
 
 const STARTERS = ["torchic", "bulbasaur", "froakie"] as const;
@@ -894,6 +895,8 @@ const hooks: StoryHooks = {
     if (!flag("license")) return;
     await wildEncounter(mapKey);
   },
+  watcher: (npc) => watching(npc),
+  spotted: (npc) => spotted(npc),
 };
 
 export function installChapter1(): void {

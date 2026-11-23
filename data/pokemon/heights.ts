@@ -9,9 +9,14 @@ const HEIGHT_M: Record<string, number> = {
   mew: 0.4, giratina: 4.5, charmander: 0.6, charmeleon: 1.1, charizard: 1.7, pikachu: 0.4,
 };
 
+/** Altura real em metros (sem dado, um Pokémon médio de 0,8 m). */
+export function heightMeters(speciesId: string): number {
+  return HEIGHT_M[speciesId] ?? 0.8;
+}
+
 /** Altura em pixels do jogo (o herói tem uns 24 px ≈ 1,4 m); curva suave para o pequeno não sumir. */
 export function petHeight(speciesId: string): number {
-  const m = HEIGHT_M[speciesId] ?? 0.8;
+  const m = heightMeters(speciesId);
   return Math.round(Math.min(40, 8 + 14 * Math.pow(m, 0.6)));
 }
 

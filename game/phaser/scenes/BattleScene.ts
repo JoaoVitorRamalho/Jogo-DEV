@@ -2,6 +2,7 @@ import * as Phaser from "phaser";
 import type { MoveCategory } from "@/data/pokemon/moves";
 import { type BattleVisuals, bridge } from "@/game/phaser/bridge";
 import { monTexture } from "@/game/phaser/constants";
+import { playSfx } from "@/lib/audio/engine";
 
 const FOE = { x: 184, y: 64, platX: 128, platY: 50, height: 56 };
 const MINE = { x: 58, y: 102, platX: -10, platY: 86, height: 60 };
@@ -234,19 +235,24 @@ export class BattleScene extends Phaser.Scene {
         const enemyPlat = this.add.image(FOE.platX + 260, FOE.platY, `plat_${key}_enemy`).setOrigin(0, 0).setDepth(1);
         const myPlat = this.add.image(MINE.platX - 260, MINE.platY, `plat_${key}_player`).setOrigin(0, 0).setDepth(1);
         this.platforms = [enemyPlat, myPlat];
-        const foe = this.place("foe", foeSprite);
-        foe.x += 260;
-        foe.setTint(0x202020);
-        this.cameras.main.fadeIn(250, 255, 255, 255);
+        // Selvagem já entra no campo, em silhueta; de treinador vem depois, pela Pokébola.
+        const foe = foeSprite ? this.place("foe", foeSprite) : null;
+        if (foe) {
+          foe.x += 260;
+          foe.setTint(0x202020);
+        }
+        this.cameras.main.fadeIn(320, 0, 0, 0);
         await Promise.all([
-          this.tween({ targets: [enemyPlat, foe], x: "-=260", duration: 650, ease: "Sine.easeOut" }),
+          this.tween({ targets: foe ? [enemyPlat, foe] : [enemyPlat], x: "-=260", duration: 650, ease: "Sine.easeOut" }),
           this.tween({ targets: myPlat, x: "+=260", duration: 650, ease: "Sine.easeOut" }),
         ]);
-        foe.clearTint();
-        const shine = this.add.image(foe.x, foe.y, foe.texture.key).setOrigin(foe.originX, foe.originY)
-          .setScale(foe.scaleX, foe.scaleY).setDepth(11).setTintFill(0xffffff);
-        this.tween({ targets: shine, alpha: 0, duration: 360 }).then(() => shine.destroy());
-        this.startIdle(foe);
+        if (foe) {
+          foe.clearTint();
+          const shine = this.add.image(foe.x, foe.y, foe.texture.key).setOrigin(foe.originX, foe.originY)
+            .setScale(foe.scaleX, foe.scaleY).setDepth(11).setTintFill(0xffffff);
+          this.tween({ targets: shine, alpha: 0, duration: 360 }).then(() => shine.destroy());
+          this.startIdle(foe);
+        }
         if (playerSprite) await this.visuals().sendOut("player", playerSprite);
       },
       sendOut: async (side, key) => {
@@ -268,6 +274,7 @@ export class BattleScene extends Phaser.Scene {
           },
         } as Phaser.Types.Tweens.TweenBuilderConfig);
         // 2. abre com estouro de luz
+        playSfx("pop");
         this.burst(orb.x, orb.y, 0xfff4c4);
         this.tween({ targets: orb, scale: 1.4, alpha: 0, duration: 180 }).then(() => orb.destroy());
         // 3. o Pokémon cresce de dentro do brilho e a cor volta aos poucos
@@ -353,6 +360,7 @@ export class BattleScene extends Phaser.Scene {
         } as Phaser.Types.Tweens.TweenBuilderConfig);
         ball.angle = 0;
         if (foe) {
+          playSfx("pop");
           this.burst(ball.x, ball.y, 0xfff4c4);
           foe.setTintFill(0xfff4c4);
           await this.tween({ targets: foe, scaleX: 0, scaleY: 0.2, x: ball.x, y: ball.y + 4, duration: 260, ease: "Cubic.easeIn" });
@@ -362,6 +370,7 @@ export class BattleScene extends Phaser.Scene {
         this.dust(ball.x, FOE.y - 2);
         for (let i = 0; i < shakes; i += 1) {
           await this.wait(260);
+          playSfx("shake");
           await this.tween({ targets: ball, angle: -22, x: ball.x - 2, duration: 110, ease: "Sine.easeOut" });
           await this.tween({ targets: ball, angle: 22, x: ball.x + 4, duration: 180, ease: "Sine.easeInOut" });
           await this.tween({ targets: ball, angle: 0, x: ball.x - 2, duration: 110, ease: "Sine.easeIn" });
@@ -377,6 +386,7 @@ export class BattleScene extends Phaser.Scene {
           await this.wait(450);
           return;
         }
+        playSfx("pop");
         this.burst(ball.x, ball.y, 0xfff4c4);
         ball.destroy();
         if (foe) {

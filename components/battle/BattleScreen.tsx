@@ -18,7 +18,7 @@ import { type BattleRequest, ask, useUi, playEvolution } from "@/game/core/ui";
 import type { BattleVisuals } from "@/game/phaser/bridge";
 import { type Mon, displayName, evolve, expProgress, learnMove, maxHp, pendingEvolution } from "@/game/pokemon/mon";
 import { addMon, markCaught, useGame } from "@/game/state/store";
-import { getContextTrack, playSfx, setContextTrack } from "@/lib/audio/engine";
+import { playCry, playSfx, playVictory } from "@/lib/audio/engine";
 import { useInputFrame } from "@/lib/input/engine";
 
 type Hud = { name: string; level: number; hp: number; max: number; status: StatusId | null; exp: number };
@@ -51,6 +51,8 @@ function BattleRun({ request }: { request: BattleRequest }) {
   const visualsRef = useRef<BattleVisuals | null>(null);
   const leveled = useRef(new Set<string>());
   const started = useRef(false);
+  /** Espécie que está em campo de cada lado, para o grito certo quando ela desmaia. */
+  const onField = useRef<Record<Side, string | null>>({ player: null, foe: null });
   const [foe, setFoe] = useState<Hud | null>(null);
   const [mine, setMine] = useState<Hud | null>(null);
   const [message, setMessage] = useState("");
@@ -151,7 +153,11 @@ function BattleRun({ request }: { request: BattleRequest }) {
           const source = (prevRef.current ?? st)[event.side].party[event.index] ?? st[event.side].party[event.index];
           const mon = st[event.side].party[event.index];
           setHud(event.side, { ...hudOf(mon), hp: source.hp, status: source.status });
+          // o selvagem já está em campo desde a entrada: nada de Pokébola para ele
+          if (event.side === "foe" && st.kind === "wild" && onField.current.foe) break;
           await v?.sendOut(event.side, spriteOf(battleSpeciesId(mon)));
+          onField.current[event.side] = mon.species;
+          playCry(mon.species);
           break;
         }
         case "withdraw":
@@ -160,6 +166,7 @@ function BattleRun({ request }: { request: BattleRequest }) {
           break;
         case "move": {
           const def = move(event.moveId);
+          if (def.category !== "status") playSfx("swoosh");
           await v?.attack(event.side, hexToInt(TYPE_COLOR[def.type]), def.category);
           break;
         }
@@ -179,13 +186,19 @@ function BattleRun({ request }: { request: BattleRequest }) {
           if (event.status) await v?.status(event.side, STATUS_TINT[event.status]);
           break;
         case "stage":
-          playSfx(event.stages > 0 ? "levelup" : "weak");
+          playSfx(event.stages > 0 ? "statUp" : "statDown");
           break;
-        case "faint":
+        case "faint": {
+          const fallen = onField.current[event.side];
           playSfx("faint");
+          if (fallen) playCry(fallen, { faint: true });
           await v?.faint(event.side);
           setHud(event.side, null);
+          onField.current[event.side] = null;
+          // o último do adversário caiu: a música da luta sai e entra a fanfarra
+          if (event.side === "foe" && st.outcome === "win") playVictory();
           break;
+        }
         case "exp": {
           const mon = st.player.party.find((entry) => entry.uid === event.uid);
           if (mon && activeOf(st, "player").uid === event.uid) patchHud("player", { exp: expProgress(mon) });
@@ -213,6 +226,7 @@ function BattleRun({ request }: { request: BattleRequest }) {
           await playEvolution(event.from, event.to);
           patchHud(event.side, { name: displayName(mon), max: maxHp(mon), hp: mon.hp });
           await v?.sendOut(event.side, spriteOf(battleSpeciesId(mon)));
+          playCry(mon.species);
           break;
         }
         default:
@@ -235,7 +249,7 @@ function BattleRun({ request }: { request: BattleRequest }) {
     });
     if (caught && newSpecies) await show(`Os dados de ${species(caught.species).name} foram registrados na Pokédex.`);
     if (caught && placed === "box") await show(`${displayName(caught)} foi enviado ao PC, porque a equipe está cheia.`);
-    if (outcome === "win" && st.kind === "wild") playSfx("victory");
+    if (outcome === "run") playSfx("flee");
     for (const uid of leveled.current) {
       const mon = useGame.getState().live?.party.find((entry) => entry.uid === uid);
       if (!mon) continue;
@@ -294,23 +308,23 @@ function BattleRun({ request }: { request: BattleRequest }) {
   useEffect(() => {
     if (started.current) return;
     started.current = true;
-    const previousTrack = getContextTrack();
     void (async () => {
-      playSfx("battle");
-      setContextTrack("battle");
       const { openBattle } = await import("@/game/phaser/createGame");
       const visuals = await openBattle();
       visualsRef.current = visuals;
       const { state, events } = startBattle(request.config);
       stateRef.current = state;
       prevRef.current = state;
-      await visuals.begin(state.background, spriteOf(battleSpeciesId(activeOf(state, "foe"))), null);
+      const foe = activeOf(state, "foe");
+      const wild = state.kind === "wild";
+      await visuals.begin(state.background, wild ? spriteOf(battleSpeciesId(foe)) : null, null);
+      if (wild) {
+        onField.current.foe = foe.species;
+        playCry(foe.species);
+      }
       await play(events);
       await next();
     })();
-    return () => {
-      setContextTrack(previousTrack);
-    };
   }, []);
 
   const st = stateRef.current;

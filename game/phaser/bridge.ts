@@ -14,6 +14,8 @@ export type WorldApi = {
   setNpcVisible(id: string, visible: boolean): void;
   placeNpc(id: string, x: number, y: number, dir: Direction): void;
   emote(id: string, kind: "!" | "?" | "..."): Promise<void>;
+  /** Transição do mapa para a batalha: clarões e a tela fechando no preto. */
+  battleIntro(kind: "wild" | "trainer"): Promise<void>;
   flash(color?: number): Promise<void>;
   follow(id: string | null): void;
   fadeOutIn(): Promise<void>;
@@ -22,7 +24,8 @@ export type WorldApi = {
 };
 
 export type BattleVisuals = {
-  begin(background: string, foeSprite: string, playerSprite: string | null): Promise<void>;
+  /** `foeSprite` nulo: só o cenário entra (o treinador manda o Pokémon depois, pela Pokébola). */
+  begin(background: string, foeSprite: string | null, playerSprite: string | null): Promise<void>;
   sendOut(side: "player" | "foe", sprite: string): Promise<void>;
   withdraw(side: "player" | "foe"): Promise<void>;
   attack(side: "player" | "foe", tint: number, category: MoveCategory): Promise<void>;

@@ -1,7 +1,7 @@
 import * as Phaser from "phaser";
 import { ENCOUNTERS } from "@/data/encounters";
 import { NPCS } from "@/data/npcs";
-import { type Sfx, playSfx, setContextTrack } from "@/lib/audio/engine";
+import { type Sfx, playCry, playSfx, setContextTrack } from "@/lib/audio/engine";
 import { subscribeInput } from "@/lib/input/engine";
 import type { Action, InputFrame } from "@/lib/input/types";
 import type { Direction } from "@/game/character/appearance";
@@ -97,7 +97,10 @@ class Actor {
   }
 }
 
-type Npc = Actor & { id: string; home: { x: number; y: number }; wander: number; wanderTimer: number; scripted: boolean };
+type Npc = Actor & { id: string; home: { x: number; y: number }; wander: number; wanderTimer: number; scripted: boolean; sight: number };
+
+/** Quantos tiles um treinador enxerga à frente (o mapa pode trocar com a propriedade `sight`). */
+const SIGHT_RANGE = 4;
 
 export class WorldScene extends Phaser.Scene {
   mapKey = "";
@@ -238,6 +241,7 @@ export class WorldScene extends Phaser.Scene {
       actor.id = object.name;
       actor.home = { x: object.x, y: object.y };
       actor.wander = Number(object.props.wander ?? 0);
+      actor.sight = Number(object.props.sight ?? SIGHT_RANGE);
       actor.wanderTimer = 1 + Math.random() * 2;
       actor.scripted = false;
       actor.place(object.x, object.y, actor.dir);
@@ -581,12 +585,134 @@ export class WorldScene extends Phaser.Scene {
       });
       return;
     }
+    const watcher = this.spotter();
+    if (watcher) {
+      this.runScript(() => story.hooks?.spotted?.(watcher.id) ?? Promise.resolve());
+      return;
+    }
     if (this.onGrass(p.tx, p.ty)) {
       const table = ENCOUNTERS[this.mapKey];
       if (table && Math.random() < table.rate && story.hooks) {
         this.runScript(() => story.hooks?.wild(this.mapKey));
       }
     }
+  }
+
+  /** Treinador que ainda quer lutar, olhando para o jogador e com o caminho livre até ele. */
+  spotter(): Npc | null {
+    const hooks = story.hooks;
+    if (!hooks?.watcher) return null;
+    const p = this.player;
+    for (const npc of this.npcs.values()) {
+      if (!npc.sprite.visible || npc.moving || npc.scripted || npc.sight <= 0) continue;
+      if (!hooks.watcher(npc.id)) continue;
+      const [dx, dy] = DELTA[npc.dir];
+      for (let i = 1; i <= npc.sight; i += 1) {
+        const x = npc.tx + dx * i;
+        const y = npc.ty + dy * i;
+        if (x === p.tx && y === p.ty) return npc;
+        if (this.isBlocked(x, y, npc)) break;
+      }
+    }
+    return null;
+  }
+
+  /** Canto de cima da tela de 240 × 160 no espaço dos objetos presos à câmera (scrollFactor 0). */
+  viewOrigin(): { x: number; y: number } {
+    const cam = this.cameras.main;
+    return { x: (cam.width - VIEW_W) / 2, y: (cam.height - VIEW_H) / 2 };
+  }
+
+  introLayer: Phaser.GameObjects.Graphics | null = null;
+
+  /**
+   * Entrada da batalha no próprio mapa: clarões e a tela fecha no preto.
+   * Selvagem: persianas que cruzam a tela. Treinador: um círculo que fecha no herói.
+   * O preto fica até a batalha acabar e some devagar quando o mapa volta.
+   */
+  battleIntro(kind: "wild" | "trainer"): Promise<void> {
+    this.introLayer?.destroy();
+    const layer = this.add.graphics().setScrollFactor(0).setDepth(400000);
+    this.introLayer = layer;
+    const origin = this.viewOrigin();
+    const cam = this.cameras.main;
+    const cx = Math.round(this.player.sprite.x - cam.worldView.x);
+    const cy = Math.round(this.player.sprite.y - 12 - cam.worldView.y);
+    const FLASH = 120;
+    const flashes = kind === "wild" ? 3 : 2;
+    const wipeAt = flashes * FLASH;
+    const wipe = kind === "wild" ? 560 : 620;
+    const total = wipeAt + wipe + 140;
+    const reach = Math.hypot(Math.max(cx, VIEW_W - cx), Math.max(cy, VIEW_H - cy)) + 4;
+    const band = 16;
+    const bands = Math.ceil(VIEW_H / band);
+    const draw = (elapsed: number) => {
+      layer.clear();
+      if (elapsed < wipeAt) {
+        const k = (elapsed % FLASH) / FLASH;
+        layer.fillStyle((elapsed / FLASH) % 2 < 1 ? 0xffffff : 0x000000, 0.85 * (1 - k));
+        layer.fillRect(origin.x, origin.y, VIEW_W, VIEW_H);
+        return;
+      }
+      const t = Math.min(1, (elapsed - wipeAt) / wipe);
+      layer.fillStyle(0x000000, 1);
+      if (kind === "wild") {
+        const stagger = 0.5 / bands;
+        for (let i = 0; i < bands; i += 1) {
+          const k = Math.min(1, Math.max(0, (t - i * stagger) / 0.5));
+          const w = Math.round(VIEW_W * k * k * (3 - 2 * k));
+          if (w <= 0) continue;
+          const x = i % 2 === 0 ? 0 : VIEW_W - w;
+          layer.fillRect(origin.x + x, origin.y + i * band, w, band);
+        }
+        return;
+      }
+      const r = reach * (1 - t * t);
+      for (let y = 0; y < VIEW_H; y += 2) {
+        const dy = y + 1 - cy;
+        if (Math.abs(dy) >= r) {
+          layer.fillRect(origin.x, origin.y + y, VIEW_W, 2);
+          continue;
+        }
+        const half = Math.round(Math.sqrt(r * r - dy * dy) / 2) * 2;
+        const left = Math.max(0, cx - half);
+        const right = Math.min(VIEW_W, cx + half);
+        if (left > 0) layer.fillRect(origin.x, origin.y + y, left, 2);
+        if (right < VIEW_W) layer.fillRect(origin.x + right, origin.y + y, VIEW_W - right, 2);
+      }
+    };
+    this.events.once(Phaser.Scenes.Events.RESUME, () => {
+      if (this.introLayer !== layer) return;
+      this.tweens.add({
+        targets: layer,
+        alpha: 0,
+        duration: 280,
+        onComplete: () => {
+          layer.destroy();
+          if (this.introLayer === layer) this.introLayer = null;
+        },
+      });
+    });
+    return new Promise((resolve) => {
+      let elapsed = 0;
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        this.events.off(Phaser.Scenes.Events.UPDATE, tick);
+        draw(total);
+        resolve();
+      };
+      const tick = (_time: number, delta: number) => {
+        elapsed += delta;
+        draw(elapsed);
+        if (elapsed >= total) finish();
+      };
+      this.events.on(Phaser.Scenes.Events.UPDATE, tick);
+      draw(0);
+      // se a cena estiver parada por qualquer motivo, a luta abre mesmo assim
+      window.setTimeout(finish, total + 600);
+    });
   }
 
   handleWarp(warp: MapObject): void {
@@ -682,7 +808,8 @@ export class WorldScene extends Phaser.Scene {
       this.runScript(async () => {
         pet.face(OPPOSITE[this.player.dir]);
         pet.cheer();
-        playSfx("confirm");
+        const species = pet.mon?.species;
+        if (species) playCry(species);
         await say(this.petLines().map((text) => ({ text })));
       });
     }
@@ -773,7 +900,7 @@ export class WorldScene extends Phaser.Scene {
         new Promise((resolve) => {
           const target = this.actor(id);
           if (!target) return resolve();
-          if (kind === "!") playSfx("discover" as Sfx);
+          if (kind === "!") playSfx("spotted");
           const icon = this.add.image(target.sprite.x, target.sprite.y - 28, `emote_${kind}`).setOrigin(0.5, 1).setDepth(200001);
           this.tweens.add({ targets: icon, y: icon.y - 3, duration: 120, yoyo: true });
           this.time.delayedCall(750, () => {
@@ -802,6 +929,7 @@ export class WorldScene extends Phaser.Scene {
             });
           });
         }),
+      battleIntro: (kind) => this.battleIntro(kind),
       flash: (color = 0xffffff) =>
         new Promise((resolve) => {
           const c = Phaser.Display.Color.IntegerToRGB(color);

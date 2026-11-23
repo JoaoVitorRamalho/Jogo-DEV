@@ -9,7 +9,7 @@
 import { petHeight } from "@/data/pokemon/heights";
 import { BIG, SMALL } from "./glyphs";
 
-export type TitleStage = "press" | "menu" | "overwrite";
+export type TitleStage = "press" | "menu" | "overwrite" | "test";
 
 export type TitleScene = {
   setHero(sheet: HTMLCanvasElement | null): void;

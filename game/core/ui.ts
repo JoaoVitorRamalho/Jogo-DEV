@@ -2,6 +2,8 @@
 
 import { create } from "zustand";
 import type { BattleConfig, Outcome } from "@/game/battle/engine";
+import { bridge } from "@/game/phaser/bridge";
+import { getContextTrack, playSfx, setContextTrack } from "@/lib/audio/engine";
 
 export type Line = { speaker?: string; text: string };
 
@@ -75,10 +77,26 @@ export function ask(options: string[], prompt?: Line, cancel: number | null = nu
   });
 }
 
-export function battle(config: BattleConfig): Promise<Outcome> {
-  return new Promise((resolve) => {
-    useUi.setState({ battle: { config, resolve } });
-  });
+/**
+ * Abre a batalha: a música troca junto do susto, o mapa fecha no preto e só então a
+ * tela de luta entra. A trilha da área volta (de onde parou) quando a luta acaba.
+ */
+export async function battle(config: BattleConfig): Promise<Outcome> {
+  const previous = getContextTrack();
+  setContextTrack("battle");
+  playSfx("encounter");
+  try {
+    await bridge.world?.battleIntro(config.kind);
+  } catch (error) {
+    console.warn("Transição da batalha falhou; a luta abre direto.", error);
+  }
+  try {
+    return await new Promise<Outcome>((resolve) => {
+      useUi.setState({ battle: { config, resolve } });
+    });
+  } finally {
+    setContextTrack(previous);
+  }
 }
 
 export async function lock<T>(run: () => Promise<T>): Promise<T> {
