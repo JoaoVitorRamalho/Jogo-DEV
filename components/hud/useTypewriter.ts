@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { TEXT_SPEEDS, useSettings } from "@/lib/settings/store";
 
 export function useTypewriter(text: string, cps = 48) {
   const [progress, setProgress] = useState({ text: "", count: 0 });
@@ -14,7 +15,9 @@ export function useTypewriter(text: string, cps = 48) {
     const tick = (now: number) => {
       const dt = (now - last) / 1000;
       last = now;
-      shown += dt * cps * (fast.current ? 4 : 1);
+      // Lido a cada quadro: trocar a velocidade nas opções vale já na fala aberta.
+      const speed = TEXT_SPEEDS[useSettings.getState().textSpeed]?.factor ?? 1;
+      shown += dt * cps * speed * (fast.current ? 4 : 1);
       const next = Math.min(text.length, Math.floor(shown));
       setProgress((current) => (current.text === text && current.count >= next ? current : { text, count: next }));
       if (next < text.length) frame = requestAnimationFrame(tick);

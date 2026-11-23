@@ -10,6 +10,14 @@ import {
   type PadMap,
 } from "@/lib/input/types";
 
+/** Velocidade das falas: multiplica as letras por segundo de cada caixa de texto. */
+export const TEXT_SPEEDS = [
+  { label: "Lento", factor: 0.6 },
+  { label: "Normal", factor: 1 },
+  { label: "Rápido", factor: 1.9 },
+  { label: "Instantâneo", factor: 1000 },
+] as const;
+
 type Settings = {
   keyboard: KeyboardMap;
   pad: PadMap;
@@ -19,6 +27,8 @@ type Settings = {
   sfx: number;
   brightness: number;
   trackId: string;
+  textSpeed: number;
+  follower: boolean;
   setKeyboard: (keyboard: KeyboardMap) => void;
   setPad: (pad: PadMap) => void;
   setDeadzone: (deadzone: number) => void;
@@ -27,6 +37,8 @@ type Settings = {
   setSfx: (sfx: number) => void;
   setBrightness: (brightness: number) => void;
   setTrackId: (trackId: string) => void;
+  setTextSpeed: (textSpeed: number) => void;
+  setFollower: (follower: boolean) => void;
   resetControls: () => void;
 };
 
@@ -45,6 +57,8 @@ export const useSettings = create<Settings>()(
       sfx: 0.8,
       brightness: 1,
       trackId: "auto",
+      textSpeed: 1,
+      follower: true,
       setKeyboard: (keyboard) => set({ keyboard }),
       setPad: (pad) => set({ pad }),
       setDeadzone: (deadzone) => set({ deadzone: clamp(deadzone, 0.05, 0.5) }),
@@ -53,6 +67,8 @@ export const useSettings = create<Settings>()(
       setSfx: (sfx) => set({ sfx: clamp(sfx, 0, 1) }),
       setBrightness: (brightness) => set({ brightness: clamp(brightness, 0.4, 1.4) }),
       setTrackId: (trackId) => set({ trackId }),
+      setTextSpeed: (textSpeed) => set({ textSpeed: clamp(Math.round(textSpeed), 0, TEXT_SPEEDS.length - 1) }),
+      setFollower: (follower) => set({ follower }),
       resetControls: () =>
         set({
           keyboard: DEFAULT_KEYBOARD,

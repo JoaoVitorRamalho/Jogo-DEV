@@ -1,13 +1,23 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { type MutableRefObject, useEffect, useRef } from "react";
 import type { Appearance } from "@/game/character/appearance";
 import { renderSheet } from "@/game/character/compose";
 import { MON_SPRITES, spriteOf } from "@/game/phaser/constants";
 import { createTitleScene, type TitleScene, type TitleStage } from "./scene";
 
 /** Liga a cena em canvas ao React: cria uma vez, troca herói, parceiro e etapa sem recriar. */
-export function TitleCanvas({ stage, appearance, partner }: { stage: TitleStage; appearance: Appearance; partner: string | null }) {
+export function TitleCanvas({
+  stage,
+  appearance,
+  partner,
+  sceneRef,
+}: {
+  stage: TitleStage;
+  appearance: Appearance;
+  partner: string | null;
+  sceneRef?: MutableRefObject<TitleScene | null>;
+}) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const scene = useRef<TitleScene | null>(null);
 
@@ -21,11 +31,13 @@ export function TitleCanvas({ stage, appearance, partner }: { stage: TitleStage;
       onScale: (cssPx) => host?.style.setProperty("--px", `${cssPx}px`),
     });
     scene.current = created;
+    if (sceneRef) sceneRef.current = created;
     return () => {
       created.destroy();
       scene.current = null;
+      if (sceneRef) sceneRef.current = null;
     };
-  }, []);
+  }, [sceneRef]);
 
   useEffect(() => {
     scene.current?.setStage(stage);

@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { GameShell } from "@/components/game/GameShell";
 import { CharacterCreator } from "@/components/menu/CharacterCreator";
+import { MenuScene } from "@/components/menu/MenuScene";
 import { OptionsMenu } from "@/components/menu/OptionsMenu";
 import { TitleMenu } from "@/components/menu/TitleMenu";
 import { type GameState, useGame } from "@/game/state/store";
@@ -49,12 +50,15 @@ export default function GameApp() {
 
   return (
     <div className="game-root" style={{ filter: `brightness(${brightness})` }}>
-      {screen === "field" && live ? <GameShell /> : <div className="menu-bg" />}
-      <div className="ui">
-        {screen === "title" ? <TitleMenu /> : null}
-        {screen === "creator" ? <CharacterCreator /> : null}
-        {screen === "options" ? <OptionsMenu /> : null}
-      </div>
+      {screen === "field" && live ? (
+        <GameShell />
+      ) : (
+        <MenuScene screen={screen}>
+          {screen === "title" ? <TitleMenu /> : null}
+          {screen === "creator" ? <CharacterCreator /> : null}
+          {screen === "options" ? <OptionsMenu /> : null}
+        </MenuScene>
+      )}
     </div>
   );
 }

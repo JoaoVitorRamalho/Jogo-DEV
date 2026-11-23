@@ -9,6 +9,7 @@ import { DAY_LOOK, OUTDOOR_MAPS, type TimeOfDay, timeOfDay } from "@/game/core/d
 import { useUi, worldBusy } from "@/game/core/ui";
 import { type WorldApi, bridge } from "@/game/phaser/bridge";
 import { Pet } from "@/game/phaser/pet";
+import { useSettings } from "@/lib/settings/store";
 import { say } from "@/game/core/ui";
 import { TALL_GRASS_GID, TALL_GRASS_TOP_FRAME, TILE, TILE_SPRITE_FRAME, VIEW_H, VIEW_W } from "@/game/phaser/constants";
 import { buildPlayerTexture } from "@/game/phaser/textures";
@@ -414,6 +415,7 @@ export class WorldScene extends Phaser.Scene {
     const pet = this.pet;
     if (!pet) return;
     pet.sync(useGame.getState().live?.party);
+    pet.enabled = useSettings.getState().follower;
     const follower = this.followerId ? this.npcs.get(this.followerId) : undefined;
     const leader = follower?.sprite.visible ? follower : this.player;
     pet.update(dt, leader, (y) => y + 0.4);

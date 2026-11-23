@@ -82,7 +82,7 @@ export function GameShell() {
         </div>
       </div>
       {panel === "options" ? (
-        <div className="options-overlay">
+        <div className="options-overlay dusk">
           <OptionsMenu onClose={() => useUi.getState().setPanel("pause")} />
         </div>
       ) : null}

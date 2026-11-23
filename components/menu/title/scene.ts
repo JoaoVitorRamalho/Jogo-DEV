@@ -9,14 +9,23 @@
 import { petSize } from "@/data/pokemon/heights";
 import { BIG, SMALL } from "./glyphs";
 
-export type TitleStage = "press" | "menu" | "overwrite" | "test";
+export type TitleStage = "press" | "menu" | "overwrite" | "test" | "options" | "creator";
+
+/** O que um clique acertou na cena (cada um tem uma reação escondida). */
+export type SceneHit = "partner" | "hero" | "logo" | "lighthouse" | "sky" | "sea" | "land" | null;
 
 export type TitleScene = {
   setHero(sheet: HTMLCanvasElement | null): void;
   setPartner(img: HTMLImageElement | null, species: string | null): void;
   setStage(stage: TitleStage): void;
+  /** Clique na tela: reage no ponto (pulo, coração, facho, estrela, respingo) e diz o que era. */
+  poke(clientX: number, clientY: number): SceneHit;
+  /** Ponteiro passando: os vagalumes vêm atrás. */
+  point(clientX: number, clientY: number): void;
   destroy(): void;
 };
+
+type Box = { x: number; y: number; w: number; h: number };
 
 type RGB = [number, number, number];
 type Sprite = { w: number; h: number; px: Uint32Array; bottom: number };
@@ -203,6 +212,9 @@ const CLOUD_MID: CloudColors = { body: col("#5d3379"), top: col("#4a2a6a"), rim:
 const CLOUD_LOW: CloudColors = { body: col("#9a4c84"), top: col("#83407a"), rim: col("#ffcf9a"), hotBody: col("#c0607e"), hotRim: col("#fff0c4") };
 
 const SHADE = hex("#2a1f4c");
+const HEART = pack(hex("#ff5f86"));
+const HEART_HI = pack(hex("#ffd0dc"));
+const OUTLINE = pack(SHADE);
 const RIM = hex("#ffb98a");
 const SKYRIM = hex("#9a6ab0");
 
@@ -391,12 +403,26 @@ export function createTitleScene(
   let win = { x: -1, y: -1 };
   let heroSheet: HTMLCanvasElement | null = null;
   let hero: Sprite | null = null;
+  let heroFront: Sprite | null = null;
   let partnerImg: HTMLImageElement | null = null;
   let partnerSpecies: string | null = null;
   let partner: Sprite | null = null;
   let stage: TitleStage = "press";
   let logoX = 0;
   let hopAt = -10;
+  // reações aos cliques e ao ponteiro
+  let lift = 0;
+  let cast = 1;
+  let heartAt = -10;
+  let turnAt = -10;
+  let flashAt = -10;
+  let shineAt = -10;
+  let pointer = { x: 0, y: 0, t: -10 };
+  let splashes: { x: number; y: number; t: number }[] = [];
+  let wishes: { x: number; y: number; t: number }[] = [];
+  let heroBox: Box | null = null;
+  let partnerBox: Box | null = null;
+  let logoBox: Box | null = null;
   let raf = 0;
   let last = 0;
   let resizeRaf = 0;
@@ -741,7 +767,8 @@ export function createTitleScene(
     placeLife();
     paintVignette();
     logoX = stage === "press" ? L.logoPressX : L.logoMenuX;
-    hero = heroSheet ? buildHero(heroSheet) : null;
+    hero = heroSheet ? buildHero(heroSheet, 2) : null;
+    heroFront = heroSheet ? buildHero(heroSheet, 0) : null;
     partner = partnerImg && partnerSpecies ? buildPartner(partnerImg, partnerSpecies) : null;
   }
 
@@ -769,11 +796,11 @@ export function createTitleScene(
 
   // ---------- sprites ----------
 
-  function buildHero(sheet: HTMLCanvasElement): Sprite | null {
+  function buildHero(sheet: HTMLCanvasElement, row: number): Sprite | null {
     const g = sheet.getContext("2d");
     if (!g) return null;
-    // linha 2 = de costas, coluna 0 = parado
-    const data = g.getImageData(0, 64, 16, 32).data;
+    // linha 2 = de costas (olhando o mar), linha 0 = de frente; coluna 0 = parado
+    const data = g.getImageData(0, row * 32, 16, 32).data;
     return grade(data, 16, 32, L.sunX > L.heroX);
   }
 
@@ -853,8 +880,12 @@ export function createTitleScene(
     const p = (t - n * cycle) / 0.75;
     if (p >= 1 || n % 2 === 1) return;
     const { W, horizon } = L;
-    const sx = (0.3 + hash(n, 1, 93) * 0.6) * W;
-    const sy = (0.05 + hash(n, 2, 93) * 0.22) * horizon;
+    trail((0.3 + hash(n, 1, 93) * 0.6) * W, (0.05 + hash(n, 2, 93) * 0.22) * horizon, p);
+  }
+
+  /** Estrela cadente que sai de (sx, sy); p vai de 0 a 1. */
+  function trail(sx: number, sy: number, p: number): void {
+    const { W, horizon } = L;
     const hx = sx - p * 46;
     const hy = sy + p * 17;
     for (let k = 0; k < 10; k += 1) {
@@ -930,9 +961,11 @@ export function createTitleScene(
     const c = Math.cos(a);
     const cx = lamp.x + 1;
     const cy = lamp.y + 1;
-    const len = Math.round(W * 0.42 * Math.abs(s));
+    // clique no farol: o facho acende inteiro por um instante
+    const flash = clamp(1 - (t - flashAt) / 0.9, 0, 1);
+    const len = Math.round(W * 0.42 * Math.max(Math.abs(s), flash));
     const dir = s >= 0 ? 1 : -1;
-    const strength = 0.32 + 0.3 * Math.max(0, c);
+    const strength = 0.32 + 0.3 * Math.max(0, c) + flash * 0.45;
     for (let r = 2; r < len; r += 1) {
       const x = cx + dir * r;
       if (x < 0 || x >= W) break;
@@ -948,8 +981,8 @@ export function createTitleScene(
         if (level > 0) buf[y * W + x] = blend(buf[y * W + x], C.beam, level * 0.6);
       }
     }
-    if (c > 0.8) {
-      const rad = 1.5 + ((c - 0.8) / 0.2) * 4;
+    if (c > 0.8 || flash > 0) {
+      const rad = Math.max(c > 0.8 ? 1.5 + ((c - 0.8) / 0.2) * 4 : 0, 1.5 + flash * 6);
       const R = Math.ceil(rad * 2.6);
       for (let dy = -R; dy <= R; dy += 1) {
         for (let dx = -R; dx <= R; dx += 1) {
@@ -1043,7 +1076,7 @@ export function createTitleScene(
     }
   }
 
-  function drawSprite(s: Sprite, x0: number, y0: number, split: number): void {
+  function drawSprite(s: Sprite, x0: number, y0: number, split: number, alpha = 1): void {
     const { W, H } = L;
     const put = (r: number, dy: number) => {
       const y = y0 + r + dy;
@@ -1051,7 +1084,7 @@ export function createTitleScene(
       for (let c = 0; c < s.w; c += 1) {
         const v = s.px[r * s.w + c];
         const x = x0 + c;
-        if (v !== 0 && x >= 0 && x < W) buf[y * W + x] = v;
+        if (v !== 0 && x >= 0 && x < W && (alpha >= 1 || bayer(x, y) < alpha)) buf[y * W + x] = v;
       }
     };
     for (let r = Math.max(0, split); r < s.h; r += 1) put(r, 0);
@@ -1069,7 +1102,32 @@ export function createTitleScene(
     }
   }
 
-  function drawCharacters(t: number): void {
+  /** Primeira linha com pixel no sprite (onde fica o alto da cabeça). */
+  function topOf(s: Sprite): number {
+    for (let i = 0; i < s.px.length; i += 1) if (s.px[i] !== 0) return Math.floor(i / s.w);
+    return 0;
+  }
+
+  function dot(x: number, y: number, c: number): void {
+    if (x >= 0 && x < L.W && y >= 0 && y < L.H) buf[y * L.W + x] = c;
+  }
+
+  /** Coraçãozinho subindo e piscando no fim. */
+  function drawHeart(cx: number, top: number, since: number): void {
+    if (since < 0 || since >= 1.2 || (since > 0.85 && Math.floor(since * 16) % 2 === 0)) return;
+    const y0 = top - 7 - Math.round(Math.min(1, since / 0.5) * 4);
+    const rows = [".#.#.", "#####", "#####", ".###.", "..#.."];
+    rows.forEach((row, r) => {
+      for (let c = 0; c < 5; c += 1) if (row[c] === "#") dot(cx - 2 + c, y0 + r, r === 1 && c === 1 ? HEART_HI : HEART);
+    });
+  }
+
+  function drawCharacters(t: number, dt: number): void {
+    // no criador de personagem a dupla sai de cena em pontilhado
+    cast += ((stage === "creator" ? 0 : 1) - cast) * (opts.reduced ? 1 : 1 - Math.exp(-dt * 6));
+    heroBox = null;
+    partnerBox = null;
+    if (cast < 0.02) return;
     const surf = (x: number) => surface[clamp(x, 0, surface.length - 1)];
     if (partner) {
       const half = Math.ceil(partner.w / 2);
@@ -1079,22 +1137,73 @@ export function createTitleScene(
       const since = t - hopAt;
       const hop = since >= 0 && since < 0.7 ? Math.round(Math.abs(Math.sin((since / 0.7) * Math.PI * 2)) * 3) : 0;
       const idle = !opts.reduced && hop === 0 && (t + 1.1) % 2.1 < 0.35;
-      shadowAt(px, feet, partner.w);
-      drawSprite(partner, px - half, feet - partner.bottom - hop, idle ? partner.h - 3 : -1);
+      const y0 = feet - partner.bottom - hop;
+      if (cast > 0.5) shadowAt(px, feet, partner.w);
+      drawSprite(partner, px - half, y0, idle ? partner.h - 3 : -1, cast);
+      partnerBox = { x: px - half, y: y0, w: partner.w, h: partner.bottom + 1 };
+      drawHeart(px, y0 + topOf(partner), t - heartAt);
     }
     if (hero) {
       const feet = surf(L.heroX);
       const breath = !opts.reduced && t % 3.2 < 1.2;
-      shadowAt(L.heroX, feet, 12);
-      drawSprite(hero, L.heroX - 8, feet - hero.bottom, breath ? 19 : -1);
+      // clicado, ele se vira para a tela um pouco e volta a olhar o mar
+      const sprite = (t - turnAt < 1.6 && heroFront) || hero;
+      const y0 = feet - sprite.bottom;
+      if (cast > 0.5) shadowAt(L.heroX, feet, 12);
+      drawSprite(sprite, L.heroX - 8, y0, breath ? 19 : -1, cast);
+      heroBox = { x: L.heroX - 8, y: y0, w: 16, h: sprite.bottom + 1 };
+      if (t - turnAt < 0.9) {
+        const top = y0 + topOf(sprite) - 7;
+        for (const [dx, dy, c] of [[0, 0, C.white], [0, 1, C.white], [0, 2, C.white], [0, 4, C.white], [-1, 0, OUTLINE], [1, 0, OUTLINE], [-1, 1, OUTLINE], [1, 1, OUTLINE], [-1, 2, OUTLINE], [1, 2, OUTLINE], [-1, 4, OUTLINE], [1, 4, OUTLINE]] as const)
+          dot(L.heroX + dx, top + dy, c);
+      }
     }
+  }
+
+  /** Respingos onde clicaram no mar. */
+  function drawSplashes(t: number): void {
+    splashes = splashes.filter((s) => t - s.t < 0.9);
+    for (const s of splashes) {
+      const p = (t - s.t) / 0.9;
+      const rx = 1 + p * 7;
+      for (let a = 0; a < 24; a += 1) {
+        const x = Math.round(s.x + Math.cos((a / 24) * Math.PI * 2) * rx);
+        const y = Math.round(s.y + Math.sin((a / 24) * Math.PI * 2) * rx * 0.3);
+        if (bayer(x, y) < 1 - p) dot(x, y, C.foam);
+      }
+      if (p < 0.6) {
+        const q = p / 0.6;
+        for (const vx of [-2.2, -1, 0, 1, 2.2]) dot(Math.round(s.x + vx * q * 3), Math.round(s.y - Math.sin(q * Math.PI) * (7 - Math.abs(vx))), C.foam);
+      }
+    }
+  }
+
+  /** Estrelas cadentes pedidas com um clique no céu. */
+  function drawWishes(t: number): void {
+    wishes = wishes.filter((w) => t - w.t < 0.75);
+    for (const w of wishes) trail(w.x + 23, w.y - 8, (t - w.t) / 0.75);
   }
 
   function drawFlies(t: number): void {
     const { W, H } = L;
+    // o ponteiro por perto puxa os vagalumes (e eles esquecem dois segundos depois)
+    const pull = clamp(1 - (t - pointer.t - 1.5) / 1, 0, 1);
     for (const f of flies) {
-      const x = Math.round(f.x + Math.sin(t * f.sp + f.ph) * f.rx);
-      const y = Math.round(f.y + Math.sin(t * f.sp * 1.37 + f.ph * 2) * f.ry);
+      let fx = f.x + Math.sin(t * f.sp + f.ph) * f.rx;
+      let fy = f.y + Math.sin(t * f.sp * 1.37 + f.ph * 2) * f.ry;
+      if (pull > 0) {
+        const dx = pointer.x - fx;
+        const dy = pointer.y - fy;
+        const d = Math.hypot(dx, dy);
+        const reach = Math.max(40, W * 0.18);
+        if (d < reach) {
+          const k = (1 - d / reach) * 0.6 * pull;
+          fx += dx * k + Math.sin(t * 6 + f.ph) * 2 * k;
+          fy += dy * k + Math.cos(t * 5 + f.ph) * 2 * k;
+        }
+      }
+      const x = Math.round(fx);
+      const y = Math.round(fy);
       if (x < 1 || x >= W - 1 || y < 1 || y >= H - 1) continue;
       const pulse = 0.5 + 0.5 * Math.sin(t * 2.2 + f.ph * 3);
       if (pulse < 0.25) continue;
@@ -1144,14 +1253,19 @@ export function createTitleScene(
       if (p < 0) drop = -from;
       else if (p < 1) drop = -Math.round((1 - easeOutBounce(p)) * from);
     }
+    // no criador o logo sobe e sai, para a tela ficar com o personagem
+    lift += ((stage === "creator" ? -(L.logoY + logo.h + subtitle.h + 6) : 0) - lift) * (opts.reduced ? 1 : 1 - Math.exp(-dt * 6));
     const lx = cx - (logo.w >> 1);
-    const ly = L.logoY + drop;
+    const ly = L.logoY + drop + Math.round(lift);
+    logoBox = { x: lx, y: ly, w: logo.w, h: logo.h + subtitle.h + 2 };
     blitArt(logo, lx, ly, 1);
-    // brilho passando na diagonal
+    // brilho passando na diagonal (de tempos em tempos, ou na hora quando clicam no logo)
     const per = 5.2;
     const since = t - 1.9;
-    if (since > 0 && since % per < 0.65) {
-      const g = ((since % per) / 0.65) * (logo.w + logo.h) - logo.h;
+    const manual = t - shineAt;
+    const sweep = manual >= 0 && manual < 0.65 ? manual : since > 0 && since % per < 0.65 ? since % per : -1;
+    if (sweep >= 0) {
+      const g = (sweep / 0.65) * (logo.w + logo.h) - logo.h;
       for (let y = 0; y < logo.h; y += 1) {
         for (let x = 0; x < logo.w; x += 1) {
           if (!logo.face[y * logo.w + x]) continue;
@@ -1201,11 +1315,13 @@ export function createTitleScene(
     drawLights(t);
     drawBeam(t);
     drawSea(t);
+    drawSplashes(t);
     blitLayer(fg);
     drawSurf(t);
     drawBlades(t);
-    drawCharacters(t);
+    drawCharacters(t, dt);
     drawFlies(t);
+    drawWishes(t);
     applyVignette();
     drawLogo(t, dt);
     if (!opts.reduced && t < FADE_IN) dissolve(1 - Math.pow(1 - t / FADE_IN, 2));
@@ -1238,7 +1354,8 @@ export function createTitleScene(
   return {
     setHero(sheet) {
       heroSheet = sheet;
-      hero = sheet ? buildHero(sheet) : null;
+      hero = sheet ? buildHero(sheet, 2) : null;
+      heroFront = sheet ? buildHero(sheet, 0) : null;
       if (opts.reduced) still();
     },
     setPartner(img, species) {
@@ -1246,6 +1363,46 @@ export function createTitleScene(
       partnerSpecies = species;
       partner = img && species ? buildPartner(img, species) : null;
       if (opts.reduced) still();
+    },
+    poke(clientX, clientY) {
+      const r = canvas.getBoundingClientRect();
+      if (!r.width || !r.height) return null;
+      const x = Math.floor(((clientX - r.left) / r.width) * L.W);
+      const y = Math.floor(((clientY - r.top) / r.height) * L.H);
+      if (x < 0 || y < 0 || x >= L.W || y >= L.H) return null;
+      const t = (performance.now() - born) / 1000;
+      const inside = (b: Box | null, pad: number) => !!b && x >= b.x - pad && x < b.x + b.w + pad && y >= b.y - pad && y < b.y + b.h + pad;
+      if (cast > 0.5 && inside(partnerBox, 2)) {
+        hopAt = t;
+        heartAt = t;
+        return "partner";
+      }
+      if (cast > 0.5 && inside(heroBox, 1)) {
+        turnAt = t;
+        return "hero";
+      }
+      if (inside(logoBox, 0)) {
+        shineAt = t;
+        return "logo";
+      }
+      if (lamp.x >= 0 && Math.abs(x - L.lightX) <= 6 && y >= lamp.y - 6 && y <= L.horizon) {
+        flashAt = t;
+        return "lighthouse";
+      }
+      if (y < L.horizon) {
+        wishes = [...wishes.slice(-4), { x, y, t }];
+        return "sky";
+      }
+      if (fg[y * L.W + x] === 0) {
+        splashes = [...splashes.slice(-5), { x, y, t }];
+        return "sea";
+      }
+      return "land";
+    },
+    point(clientX, clientY) {
+      const r = canvas.getBoundingClientRect();
+      if (!r.width || !r.height) return;
+      pointer = { x: ((clientX - r.left) / r.width) * L.W, y: ((clientY - r.top) / r.height) * L.H, t: (performance.now() - born) / 1000 };
     },
     setStage(next) {
       if (next === stage) return;

@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type MouseEvent } from "react";
 import { formatTime } from "@/components/menus/PauseMenu";
+import { useBackdrop, usePoke } from "@/components/menu/title/backdrop";
 import { PartyIcon, Portrait } from "@/components/menu/title/pixels";
-import { TitleCanvas } from "@/components/menu/title/TitleCanvas";
 import { CITIES } from "@/data/cities";
 import { TYPE_COLOR } from "@/data/pokemon/types";
-import { defaultAppearance } from "@/game/character/appearance";
 import { useGame, type GameState } from "@/game/state/store";
 import { testSave } from "@/game/state/testSave";
 import { playSfx, setContextTrack } from "@/lib/audio/engine";
@@ -19,6 +18,8 @@ type Stage = "press" | "menu" | "overwrite" | "test";
 /** ↑ ↑ ↓ ↓ ← → ← → X Z abre o save de teste. */
 const CHEAT = ["up", "up", "down", "down", "left", "right", "left", "right", "cancel", "confirm"] as const;
 const CHEAT_KEYS = ["up", "down", "left", "right", "cancel", "confirm"] as const;
+/** No celular não tem setas: 7 toques no logo em 4 segundos abrem o mesmo save. */
+const LOGO_TAPS = 7;
 
 /** Tira o ?save=teste da barra para o recarregar não abrir o aviso de novo. */
 function dropTestParam() {
@@ -83,18 +84,53 @@ function SaveCard({ slot, onPick }: { slot: GameState; onPick: () => void }) {
 export function TitleMenu() {
   const slot = useGame((state) => state.slot);
   const setScreen = useSession((state) => state.setScreen);
-  const appearance = useMemo(() => slot?.appearance ?? defaultAppearance(), [slot]);
+  const poke = usePoke();
   const entries: Entry[] = [
     ...(slot ? [{ id: "continue", label: "Continuar", sub: "Volta de onde você parou" } as Entry] : []),
     { id: "new", label: "Novo jogo", sub: slot ? "Começa outra jornada do zero" : "Crie seu personagem" },
     { id: "options", label: "Opções", sub: "Som, controles e créditos" },
   ];
-  const [stage, setStage] = useState<Stage>("press");
-  const [row, setRow] = useState(0);
+  // Voltando das opções ou do criador, o menu já está aberto e no item de onde veio.
+  const [stage, setStage] = useState<Stage>(() => {
+    const from = useBackdrop.getState().stage;
+    return from === "options" || from === "creator" ? "menu" : "press";
+  });
+  const [row, setRow] = useState(() => {
+    const from = useBackdrop.getState().stage;
+    const at = entries.findIndex((entry) => entry.id === (from === "options" ? "options" : "new"));
+    return from === "options" || from === "creator" ? Math.max(0, at) : 0;
+  });
   const [confirmRow, setConfirmRow] = useState(1);
   const repeat = useRef(createRepeater());
   const typed = useRef<string[]>([]);
-  const lead = slot?.party?.find((mon) => mon.hp > 0)?.species ?? slot?.party?.[0]?.species ?? null;
+  const taps = useRef<number[]>([]);
+
+  useEffect(() => {
+    useBackdrop.getState().setStage(stage);
+  }, [stage]);
+
+  /** Clique no fundo: a cena reage; na tela de "aperte", fora das surpresas, abre o menu. */
+  function onBackground(event: MouseEvent<HTMLDivElement>) {
+    if (event.target !== event.currentTarget) return;
+    const hit = poke(event.clientX, event.clientY);
+    if (hit === "logo" && stage !== "test") {
+      const now = performance.now();
+      taps.current = [...taps.current.filter((at) => now - at < 4000), now];
+      if (taps.current.length >= LOGO_TAPS) {
+        taps.current = [];
+        openTest();
+        return;
+      }
+    }
+    const secret = hit === "partner" || hit === "hero" || hit === "logo" || hit === "lighthouse";
+    if (stage === "press" && !secret) openMenu();
+  }
+
+  function hover(index: number) {
+    if (stage !== "menu" || index === row) return;
+    playSfx("cursor");
+    setRow(index);
+  }
 
   useEffect(() => {
     setContextTrack("title");
@@ -210,8 +246,7 @@ export function TitleMenu() {
   });
 
   return (
-    <div className={`title-scene stage-${stage}`} onClick={stage === "press" ? openMenu : undefined}>
-      <TitleCanvas stage={stage} appearance={appearance} partner={lead} />
+    <div className={`ts-layer stage-${stage}`} onClick={onBackground}>
       <h1 className="ts-sr">Jornada, Região de Asteria</h1>
 
       {stage === "press" ? (
@@ -230,7 +265,7 @@ export function TitleMenu() {
                 <li
                   key={entry.id}
                   className={index === row && stage === "menu" ? "active" : undefined}
-                  onMouseEnter={() => stage === "menu" && setRow(index)}
+                  onMouseEnter={() => hover(index)}
                 >
                   <button type="button" className="ts-item" onClick={pick}>
                     <span className="ts-cursor" aria-hidden />
