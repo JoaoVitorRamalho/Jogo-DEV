@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { CharacterPreview } from "@/components/character-creator/CharacterPreview";
-import { MonSprite } from "@/components/hud/MonSprite";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { formatTime } from "@/components/menus/PauseMenu";
+import { PartyIcon, Portrait } from "@/components/menu/title/pixels";
+import { TitleCanvas } from "@/components/menu/title/TitleCanvas";
 import { CITIES } from "@/data/cities";
+import { TYPE_COLOR } from "@/data/pokemon/types";
 import { defaultAppearance } from "@/game/character/appearance";
-import { useGame } from "@/game/state/store";
+import { useGame, type GameState } from "@/game/state/store";
 import { playSfx, setContextTrack } from "@/lib/audio/engine";
 import { useSession } from "@/lib/game/session";
 import { createRepeater, useInputFrame } from "@/lib/input/engine";
@@ -14,14 +15,62 @@ import { createRepeater, useInputFrame } from "@/lib/input/engine";
 type Entry = { id: "continue" | "new" | "options"; label: string; sub: string };
 type Stage = "press" | "menu" | "overwrite";
 
+const GYMS = CITIES.flatMap((city) => (city.gym ? [city.gym] : []));
+
 function placeName(map: string): string {
   return CITIES.find((city) => city.maps.includes(map))?.name ?? ({ route1: "Rota 1", route2: "Rota 2", forest: "Floresta de Aster" } as Record<string, string>)[map] ?? "Asteria";
+}
+
+/** Resumo do jogo salvo: quem é, onde parou, insígnias, equipe, Pokédex e tempo. */
+function SaveCard({ slot, onPick }: { slot: GameState; onPick: () => void }) {
+  const badges = slot.badges.length;
+  return (
+    <div className="ts-save" onClick={onPick}>
+      <div className="ts-save-head">
+        <span className="ts-save-face">
+          <Portrait appearance={slot.appearance} />
+        </span>
+        <span className="ts-save-who">
+          <strong>{slot.appearance.name || "Viajante"}</strong>
+          <span>{placeName(slot.map)}</span>
+        </span>
+        <ul className="ts-badges" aria-label={`${badges} de ${GYMS.length} insígnias`}>
+          {GYMS.map((gym, index) => (
+            <li
+              key={gym.badge}
+              className={index < badges ? "lit" : undefined}
+              style={{ "--badge": TYPE_COLOR[gym.type] } as CSSProperties}
+              title={index < badges ? gym.badge : undefined}
+            />
+          ))}
+        </ul>
+      </div>
+      <ul className="ts-party" aria-label="Equipe">
+        {Array.from({ length: 6 }, (_, index) => {
+          const mon = slot.party[index];
+          return (
+            <li key={index} className={mon ? (mon.hp > 0 ? undefined : "out") : "empty"}>
+              {mon ? <PartyIcon id={mon.species} /> : null}
+            </li>
+          );
+        })}
+      </ul>
+      <div className="ts-save-foot">
+        <span>
+          Pokédex <b>{slot.dex.caught.length}</b> / {slot.dex.seen.length}
+        </span>
+        <span className="ts-save-time" aria-label="Tempo de jogo">
+          {formatTime(slot.playTime)}
+        </span>
+      </div>
+    </div>
+  );
 }
 
 export function TitleMenu() {
   const slot = useGame((state) => state.slot);
   const setScreen = useSession((state) => state.setScreen);
-  const preview = slot?.appearance ?? defaultAppearance();
+  const appearance = useMemo(() => slot?.appearance ?? defaultAppearance(), [slot]);
   const entries: Entry[] = [
     ...(slot ? [{ id: "continue", label: "Continuar", sub: "Volta de onde você parou" } as Entry] : []),
     { id: "new", label: "Novo jogo", sub: slot ? "Começa outra jornada do zero" : "Crie seu personagem" },
@@ -31,11 +80,16 @@ export function TitleMenu() {
   const [row, setRow] = useState(0);
   const [confirmRow, setConfirmRow] = useState(1);
   const repeat = useRef(createRepeater());
-  const lead = slot?.party?.[0]?.species;
+  const lead = slot?.party?.find((mon) => mon.hp > 0)?.species ?? slot?.party?.[0]?.species ?? null;
 
   useEffect(() => {
     setContextTrack("title");
   }, []);
+
+  function openMenu() {
+    playSfx("confirm");
+    setStage("menu");
+  }
 
   function startNew() {
     playSfx("confirm");
@@ -79,10 +133,7 @@ export function TitleMenu() {
   useInputFrame((frame, dt) => {
     const next = repeat.current;
     if (stage === "press") {
-      if (frame.pressed.confirm) {
-        playSfx("confirm");
-        setStage("menu");
-      }
+      if (frame.pressed.confirm) openMenu();
       return;
     }
     if (stage === "overwrite") {
@@ -108,77 +159,48 @@ export function TitleMenu() {
   });
 
   return (
-    <div className="title-scene" onClick={stage === "press" ? () => setStage("menu") : undefined}>
-      <div className="ts-sky" />
-      <div className="ts-stars" />
-      <div className="ts-sun" />
-      <div className="ts-clouds ts-clouds-far" />
-      <div className="ts-clouds ts-clouds-near" />
-      <div className="ts-mountains" />
-      <div className="ts-hills" />
-      <div className="ts-ground" />
-
-      <header className="ts-logo">
-        <span className="ts-region">Região de Asteria</span>
-        <h1 className="ts-wordmark" data-text="JORNADA">
-          JORNADA
-        </h1>
-        <span className="ts-tagline">uma aventura em pixel</span>
-      </header>
-
-      <div className="ts-hero">
-        <CharacterPreview appearance={preview} scale={6} walk={false} />
-        <span className="ts-hero-shadow" />
-      </div>
+    <div className={`title-scene stage-${stage}`} onClick={stage === "press" ? openMenu : undefined}>
+      <TitleCanvas stage={stage} appearance={appearance} partner={lead} />
+      <h1 className="ts-sr">Jornada, Região de Asteria</h1>
 
       {stage === "press" ? (
-        <p className="ts-press">Pressione Z ou clique para começar</p>
+        <p className="ts-press">
+          <span className="ts-press-key">Aperte Z ou clique para começar</span>
+          <span className="ts-press-touch">Toque para começar</span>
+        </p>
       ) : (
-        <section className="ts-menu" aria-label="Menu principal">
-          {entries.map((entry, index) => {
-            const active = index === row && stage === "menu";
-            return (
-              <button
-                key={entry.id}
-                type="button"
-                className={`ts-item${active ? " active" : ""}${entry.id === "continue" ? " has-save" : ""}`}
-                onMouseEnter={() => stage === "menu" && setRow(index)}
-                onClick={() => stage === "menu" && activate(index)}
-              >
-                <span className="ts-item-head">
-                  <span className="ts-cursor" aria-hidden>
-                    ▶
-                  </span>
-                  <span className="ts-item-label">{entry.label}</span>
-                </span>
-                <span className="ts-item-sub">{entry.sub}</span>
-                {entry.id === "continue" && slot ? (
-                  <span className="ts-save">
-                    <span className="ts-save-face">
-                      <CharacterPreview appearance={slot.appearance} scale={2} walk={false} />
-                    </span>
-                    <span className="ts-save-info">
-                      <strong>{slot.appearance.name || "Viajante"}</strong>
-                      <span>{placeName(slot.map)}</span>
-                      <span className="ts-save-stats">
-                        <span>Insígnias {slot.badges.length}</span>
-                        <span>Pokédex {slot.dex.caught.length}</span>
-                        <span>{formatTime(slot.playTime)}</span>
-                      </span>
-                    </span>
-                    {lead ? (
-                      <span className="ts-save-lead">
-                        <MonSprite id={lead} size={30} />
-                      </span>
-                    ) : null}
-                  </span>
-                ) : null}
-              </button>
-            );
-          })}
-          <p className="ts-hint">Setas escolhem · Z confirma · X volta</p>
+        <section className="ts-panel" aria-label="Menu principal">
+          <ul className="ts-list">
+            {entries.map((entry, index) => {
+              const pick = () => {
+                if (stage === "menu") activate(index);
+              };
+              return (
+                <li
+                  key={entry.id}
+                  className={index === row && stage === "menu" ? "active" : undefined}
+                  onMouseEnter={() => stage === "menu" && setRow(index)}
+                >
+                  <button type="button" className="ts-item" onClick={pick}>
+                    <span className="ts-cursor" aria-hidden />
+                    <span>{entry.label}</span>
+                  </button>
+                  {entry.id === "continue" && slot ? <SaveCard slot={slot} onPick={pick} /> : null}
+                </li>
+              );
+            })}
+          </ul>
+          <p className="ts-desc">{entries[row]?.sub}</p>
         </section>
       )}
+
+      {stage === "menu" ? (
+        <p className="ts-hint" aria-hidden>
+          <span><kbd>Setas</kbd> escolhe</span>
+          <span><kbd>Z</kbd> confirma</span>
+          <span><kbd>X</kbd> volta</span>
+        </p>
+      ) : null}
 
       {stage === "overwrite" ? (
         <div className="ts-modal" role="alertdialog" aria-label="Começar um novo jogo">
