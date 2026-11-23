@@ -1,3 +1,4 @@
+import { MEGA_DEFS } from "@/data/pokemon/mega";
 import type { TypeId } from "@/data/pokemon/types";
 
 export type Stats = { hp: number; atk: number; def: number; spa: number; spd: number; spe: number };
@@ -134,10 +135,32 @@ const list: SpeciesDef[] = [
     learnset: [[1, "dragon_breath"], [1, "shadow_claw"]], sprite: "giratina", category: "Renegado",
     description: "Habita um mundo onde o tempo e o espaço se dobram.",
   },
+  {
+    id: "charizard", dex: 6, name: "Charizard", types: ["fire", "flying"], base: s(78, 84, 78, 109, 85, 100), catchRate: 45, baseExp: 240, growth: "medium_slow",
+    learnset: [[1, "scratch"], [1, "growl"], [7, "ember"], [13, "flamethrower"], [21, "wing_attack"], [36, "heat_wave"]], sprite: "charizard", category: "Chama",
+    description: "Voa alto em busca de presas fortes. A cauda arde mais quente quanto mais batalhas vence.",
+  },
 ];
 
-export const SPECIES: Record<string, SpeciesDef> = Object.fromEntries(list.map((entry) => [entry.id, entry]));
-export const DEX_ORDER: string[] = [...list].sort((a, b) => a.dex - b.dex).map((entry) => entry.id);
+const megaSpecies: SpeciesDef[] = MEGA_DEFS.map((m) => ({
+  id: m.id,
+  dex: m.dex,
+  name: m.name,
+  types: m.types,
+  base: m.baseStats,
+  catchRate: 3,
+  baseExp: 300,
+  growth: "slow",
+  learnset: m.learnset,
+  sprite: m.sprite,
+  category: m.category,
+  description: m.description,
+}));
+
+const all = [...list, ...megaSpecies];
+
+export const SPECIES: Record<string, SpeciesDef> = Object.fromEntries(all.map((entry) => [entry.id, entry]));
+export const DEX_ORDER: string[] = [...all].sort((a, b) => a.dex - b.dex).map((entry) => entry.id);
 
 export function species(id: string): SpeciesDef {
   const found = SPECIES[id];

@@ -74,6 +74,9 @@ const list: MoveDef[] = [
   { id: "gust", name: "Lufada", type: "flying", category: "special", power: 40, accuracy: 100, pp: 35, description: "Levanta um vento forte." },
   { id: "bug_buzz", name: "Zumbido", type: "bug", category: "special", power: 90, accuracy: 100, pp: 10, effects: [{ kind: "stage", target: "foe", stat: "spd", stages: -1, chance: 0.1 }], description: "Vibração que fere os ouvidos." },
   { id: "dragon_claw", name: "Garra de Dragão", type: "dragon", category: "physical", power: 80, accuracy: 100, pp: 15, description: "Garras afiadas de dragão." },
+  { id: "heat_wave", name: "Onda de Calor", type: "fire", category: "special", power: 95, accuracy: 90, pp: 10, effects: [{ kind: "status", status: "burn", chance: 0.1 }], description: "Explosão de ar quente." },
+  { id: "flare_blitz", name: "Labareda Sombria", type: "fire", category: "physical", power: 120, accuracy: 100, pp: 15, effects: [{ kind: "status", status: "burn", chance: 0.1 }], description: "Investida em chamas totais." },
+  { id: "water_shuriken", name: "Estrela Ninja", type: "water", category: "special", power: 15, accuracy: 100, pp: 20, hits: 3, priority: 1, description: "Shurikens d'água em rajada." },
 ];
 
 export const MOVES: Record<string, MoveDef> = Object.fromEntries(list.map((move) => [move.id, move]));

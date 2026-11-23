@@ -1,4 +1,5 @@
 import { type StatusId, move } from "@/data/pokemon/moves";
+import { battleSpeciesId } from "@/data/pokemon/mega";
 import { type Growth, type Stats, species } from "@/data/pokemon/species";
 import { type Rng, randInt } from "@/game/core/rng";
 
@@ -7,6 +8,8 @@ export type MoveSlot = { id: string; pp: number };
 export type Mon = {
   uid: string;
   species: string;
+  /** Forma temporária em batalha (mega); não persiste no save. */
+  battleForm?: string;
   nickname?: string;
   level: number;
   exp: number;
@@ -36,8 +39,8 @@ export function expForLevel(growth: Growth, level: number): number {
   }
 }
 
-export function statsOf(mon: Pick<Mon, "species" | "level" | "ivs">): Stats {
-  const base = species(mon.species).base;
+export function statsOf(mon: Pick<Mon, "species" | "battleForm" | "level" | "ivs">): Stats {
+  const base = species(battleSpeciesId(mon)).base;
   const calc = (b: number, iv: number) => Math.floor(((2 * b + iv) * mon.level) / 100) + 5;
   return {
     hp: Math.floor(((2 * base.hp + mon.ivs.hp) * mon.level) / 100) + mon.level + 10,
@@ -54,7 +57,7 @@ export function maxHp(mon: Mon): number {
 }
 
 export function displayName(mon: Mon): string {
-  return mon.nickname || species(mon.species).name;
+  return mon.nickname || species(battleSpeciesId(mon)).name;
 }
 
 export function movesAtLevel(speciesId: string, level: number): string[] {

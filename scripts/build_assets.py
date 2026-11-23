@@ -28,6 +28,12 @@ ITEM_SPRITES: dict[str, str] = {
     "awakening": "awakening",
     "burn_heal": "burn-heal",
     "pokedex": "data-card",
+    "venusaurite": "venusaurite",
+    "charizardite_x": "charizardite-x",
+    "charizardite_y": "charizardite-y",
+    "blazikenite": "blazikenite",
+    "garchompite": "garchompite",
+    "greninja_ash": "ability-capsule",
 }
 # sprite key no jogo -> número nacional (species.dex do representante)
 SPRITE_DEX: dict[str, int] = {
@@ -39,6 +45,16 @@ SPRITE_DEX: dict[str, int] = {
     "gible": 443,
     "mew": 151,
     "giratina": 487,
+    "charizard": 6,
+}
+# Formas mega / especiais — IDs oficiais em PokeAPI/sprites (não são o dex nacional).
+MEGA_SPRITE_DEX: dict[str, int] = {
+    "venusaur_mega": 10033,
+    "charizard_mega_x": 10034,
+    "charizard_mega_y": 10035,
+    "blaziken_mega": 10051,
+    "garchomp_mega": 10089,
+    "greninja_ash": 10077,
 }
 
 
@@ -541,7 +557,8 @@ def _fetch_sprite(url: str) -> Image.Image:
 
 
 def build_creatures() -> None:
-    for name, dex in SPRITE_DEX.items():
+    dex_map = {**SPRITE_DEX, **MEGA_SPRITE_DEX}
+    for name, dex in dex_map.items():
         _fetch_sprite(f"{RAW_SPRITES}/{dex}.png").save(ensure(OUT / "sprites" / "pokemon" / f"{name}.png"))
         _fetch_sprite(f"{RAW_SPRITES}/back/{dex}.png").save(ensure(OUT / "sprites" / "pokemon" / f"{name}_back.png"))
 

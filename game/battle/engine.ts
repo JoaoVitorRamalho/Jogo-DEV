@@ -1,4 +1,5 @@
 import { ITEMS, type ItemId } from "@/data/items";
+import { availableMegas, battleSpeciesId, megaFromStone } from "@/data/pokemon/mega";
 import { type MoveDef, type StageStat, type StatusId, STAT_NAME, move } from "@/data/pokemon/moves";
 import { species } from "@/data/pokemon/species";
 import { TYPE_NAME, effectiveness } from "@/data/pokemon/types";
@@ -41,18 +42,22 @@ export type BattleState = {
   pendingLearn: { uid: string; moveId: string }[];
   caught: Mon | null;
   turn: number;
+  /** uid → já usou mega nesta batalha */
+  megaUsed: Record<string, boolean>;
 };
 
 export type Action =
   | { type: "move"; index: number }
   | { type: "item"; item: ItemId; target?: number }
   | { type: "switch"; index: number }
+  | { type: "mega"; stone: ItemId }
   | { type: "run" };
 
 export type BattleEvent =
   | { type: "message"; text: string }
   | { type: "sendOut"; side: Side; index: number }
   | { type: "withdraw"; side: Side }
+  | { type: "mega"; side: Side; from: string; to: string }
   | { type: "move"; side: Side; moveId: string }
   | { type: "damage"; side: Side; amount: number; hp: number; max: number; effectiveness: number; crit: boolean }
   | { type: "heal"; side: Side; hp: number; max: number }
@@ -122,6 +127,7 @@ export function startBattle(config: BattleConfig): { state: BattleState; events:
     pendingLearn: [],
     caught: null,
     turn: 0,
+    megaUsed: {},
   };
   const events: BattleEvent[] = [];
   if (config.kind === "wild") {
@@ -149,7 +155,7 @@ export type DamageInput = {
 export function calcDamage(input: DamageInput): { damage: number; effectiveness: number } {
   const { attacker, defender } = input;
   const def = input.move;
-  const types = species(defender.species).types;
+  const types = species(battleSpeciesId(defender)).types;
   const eff = effectiveness(def.type, types);
   if (eff === 0) return { damage: 0, effectiveness: 0 };
   const fixed = def.effects?.find((effect) => effect.kind === "fixed");
@@ -163,7 +169,7 @@ export function calcDamage(input: DamageInput): { damage: number; effectiveness:
   const defense = (physical ? d.def : d.spd) * statStageMultiplier(dStage);
   if (physical && attacker.status === "burn") attack *= 0.5;
   const base = Math.floor(Math.floor((Math.floor((2 * attacker.level) / 5 + 2) * def.power * attack) / defense) / 50) + 2;
-  const stab = species(attacker.species).types.includes(def.type) ? 1.5 : 1;
+  const stab = species(battleSpeciesId(attacker)).types.includes(def.type) ? 1.5 : 1;
   const roll = input.roll ?? 1;
   const crit = input.crit ? 1.5 : 1;
   const damage = Math.max(1, Math.floor(base * stab * eff * crit * roll));
@@ -177,7 +183,7 @@ export function speedOf(mon: Mon, stages: Stages): number {
 
 export function captureOdds(foe: Mon, ballBonus: number, rng: Rng): { shakes: number; caught: boolean } {
   const max = maxHp(foe);
-  const rate = species(foe.species).catchRate;
+  const rate = species(battleSpeciesId(foe)).catchRate;
   const statusBonus = foe.status === "sleep" || foe.status === "freeze" ? 2 : foe.status ? 1.5 : 1;
   const a = Math.floor((((3 * max - 2 * foe.hp) * rate * ballBonus) / (3 * max)) * statusBonus);
   if (a >= 255) return { shakes: 4, caught: true };
@@ -194,7 +200,7 @@ export function escapes(playerSpeed: number, foeSpeed: number, attempts: number,
 }
 
 function immuneTo(mon: Mon, status: StatusId): boolean {
-  const types = species(mon.species).types;
+  const types = species(battleSpeciesId(mon)).types;
   if (status === "burn") return types.includes("fire");
   if (status === "poison") return types.includes("poison") || types.includes("steel");
   if (status === "paralysis") return types.includes("electric");
@@ -298,7 +304,7 @@ function useMove(state: BattleState, side: Side, moveIndex: number, rng: Rng, ev
   }
 
   if (def.category === "status") {
-    if (def.powder && species(defender.species).types.includes("grass")) {
+    if (def.powder && species(battleSpeciesId(defender)).types.includes("grass")) {
       events.push({ type: "message", text: `Não afeta ${label(state, targetSide)}...` });
       return;
     }
@@ -366,8 +372,8 @@ export function chooseFoeMove(state: BattleState, rng: Rng): number {
     }
     return options[Math.floor(rng() * options.length)].index;
   }
-  const targetTypes = species(target.species).types;
-  const foeTypes = species(foe.species).types;
+  const targetTypes = species(battleSpeciesId(target)).types;
+  const foeTypes = species(battleSpeciesId(foe)).types;
   const scored = options.map(({ slot, index }) => {
     const def = move(slot.id);
     if (def.category === "status") return { index, score: 18 + rng() * 10 };
@@ -463,6 +469,8 @@ function handleFaints(state: BattleState, events: BattleEvent[]): void {
 function switchIn(state: BattleState, index: number, events: BattleEvent[]): boolean {
   const target = state.player.party[index];
   if (!target || target.hp <= 0 || index === state.player.active) return false;
+  const current = activeOf(state, "player");
+  if (current.battleForm) delete current.battleForm;
   events.push({ type: "withdraw", side: "player" });
   events.push({ type: "message", text: `Volte, ${displayName(activeOf(state, "player"))}!` });
   state.player.active = index;
@@ -478,6 +486,26 @@ function consumeItem(state: BattleState, item: ItemId, count: number): void {
   if (ITEMS[item].infinite) return;
   state.bag[item] = count - 1;
 }
+
+function useMega(state: BattleState, stone: ItemId, events: BattleEvent[]): boolean {
+  const mon = activeOf(state, "player");
+  const options = availableMegas(mon, state.bag, state.megaUsed);
+  const def = megaFromStone(mon.species, stone);
+  if (!def || !options.some((m) => m.stone === stone)) return false;
+  const beforeMax = maxHp(mon);
+  const ratio = beforeMax > 0 ? mon.hp / beforeMax : 1;
+  const from = battleSpeciesId(mon);
+  mon.battleForm = def.id;
+  state.megaUsed[mon.uid] = true;
+  const afterMax = maxHp(mon);
+  mon.hp = Math.min(afterMax, Math.max(1, Math.round(ratio * afterMax)));
+  events.push({ type: "message", text: `${species(mon.species).name} está reagindo à ${ITEMS[stone].name}!` });
+  events.push({ type: "mega", side: "player", from, to: def.id });
+  events.push({ type: "message", text: `Mega Evolução! ${ITEMS[stone].name} em ${displayName(mon)}!` });
+  return true;
+}
+
+export { availableMegas };
 
 function useItem(state: BattleState, item: ItemId, target: number, rng: Rng, events: BattleEvent[]): "used" | "invalid" | "caught" {
   const def = ITEMS[item];
@@ -582,6 +610,10 @@ export function runTurn(input: BattleState, action: Action, rng: Rng): { state: 
       return { state, events, consumed: true };
     }
     events.push({ type: "message", text: "Não conseguiu fugir!" });
+  } else if (action.type === "mega") {
+    if (!useMega(state, action.stone, events)) {
+      return { state: input, events: [{ type: "message", text: "Não dá para mega evoluir agora." }], consumed: false };
+    }
   } else if (action.type === "item") {
     const result = useItem(state, action.item, action.target ?? state.player.active, rng, events);
     if (result === "invalid") return { state: input, events, consumed: false };

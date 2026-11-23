@@ -11,7 +11,8 @@ import { ITEMS, type ItemId } from "@/data/items";
 import { STATUS_NAME, type StatusId, move } from "@/data/pokemon/moves";
 import { species } from "@/data/pokemon/species";
 import { TYPE_COLOR, TYPE_NAME } from "@/data/pokemon/types";
-import { type Action, type BattleEvent, type BattleState, type Outcome, type Side, activeOf, runTurn, startBattle } from "@/game/battle/engine";
+import { battleSpeciesId } from "@/data/pokemon/mega";
+import { type Action, type BattleEvent, type BattleState, type Outcome, type Side, activeOf, availableMegas, runTurn, startBattle } from "@/game/battle/engine";
 import { defaultRng } from "@/game/core/rng";
 import { type BattleRequest, ask, useUi, playEvolution } from "@/game/core/ui";
 import type { BattleVisuals } from "@/game/phaser/bridge";
@@ -150,7 +151,7 @@ function BattleRun({ request }: { request: BattleRequest }) {
           const source = (prevRef.current ?? st)[event.side].party[event.index] ?? st[event.side].party[event.index];
           const mon = st[event.side].party[event.index];
           setHud(event.side, { ...hudOf(mon), hp: source.hp, status: source.status });
-          await v?.sendOut(event.side, spriteOf(mon.species));
+          await v?.sendOut(event.side, spriteOf(battleSpeciesId(mon)));
           break;
         }
         case "withdraw":
@@ -206,6 +207,14 @@ function BattleRun({ request }: { request: BattleRequest }) {
           await v?.throwBall(event.shakes, event.caught);
           if (event.caught) playSfx("catch");
           break;
+        case "mega": {
+          const mon = st[event.side].party[st[event.side].active];
+          playSfx("levelup");
+          await playEvolution(event.from, event.to);
+          patchHud(event.side, { name: displayName(mon), max: maxHp(mon), hp: mon.hp });
+          await v?.sendOut(event.side, spriteOf(battleSpeciesId(mon)));
+          break;
+        }
         default:
           break;
       }
@@ -219,6 +228,7 @@ function BattleRun({ request }: { request: BattleRequest }) {
     const caught = st.caught;
     const newSpecies = caught ? !useGame.getState().live?.dex.caught.includes(caught.species) : false;
     useGame.getState().update((state) => {
+      for (const mon of st.player.party) delete mon.battleForm;
       state.party = st.player.party;
       state.bag = st.bag;
       if (caught) placed = addMon(state, caught);
@@ -294,7 +304,7 @@ function BattleRun({ request }: { request: BattleRequest }) {
       const { state, events } = startBattle(request.config);
       stateRef.current = state;
       prevRef.current = state;
-      await visuals.begin(state.background, spriteOf(activeOf(state, "foe").species), null);
+      await visuals.begin(state.background, spriteOf(battleSpeciesId(activeOf(state, "foe"))), null);
       await play(events);
       await next();
     })();
@@ -305,19 +315,33 @@ function BattleRun({ request }: { request: BattleRequest }) {
 
   const st = stateRef.current;
   const active = st ? activeOf(st, "player") : null;
+  const megaOptions = st && active ? availableMegas(active, st.bag, st.megaUsed) : [];
+  const actionLabels = megaOptions.length ? (["Lutar", "Mega", "Mochila", "Pokémon", "Fugir"] as const) : (ACTIONS as readonly string[]);
   const usable = st
     ? (Object.entries(st.bag) as [ItemId, number][]).filter(([id, count]) => count > 0 && (ITEMS[id].pocket === "medicine" || st.kind === "wild"))
     : [];
 
   const actionMenu = useMenu({
-    count: 4,
+    count: actionLabels.length,
     columns: 2,
     enabled: mode === "action",
     onSelect: (index) => {
-      if (index === 0) setMode("moves");
-      if (index === 1) setMode("bag");
-      if (index === 2) setMode("party");
-      if (index === 3) void takeTurn({ type: "run" });
+      const label = actionLabels[index];
+      if (label === "Lutar") setMode("moves");
+      else if (label === "Mega") {
+        void (async () => {
+          if (megaOptions.length === 1) void takeTurn({ type: "mega", stone: megaOptions[0].stone });
+          else {
+            const names = megaOptions.map((m) => ITEMS[m.stone].name);
+            const pick = await ask(names, { text: "Qual Mega Evolução?" }, names.length - 1);
+            const chosen = megaOptions[pick];
+            if (chosen) void takeTurn({ type: "mega", stone: chosen.stone });
+            else setMode("action");
+          }
+        })();
+      } else if (label === "Mochila") setMode("bag");
+      else if (label === "Pokémon") setMode("party");
+      else if (label === "Fugir") void takeTurn({ type: "run" });
     },
   });
   const moveMenu = useMenu({
@@ -466,7 +490,7 @@ function BattleRun({ request }: { request: BattleRequest }) {
             </p>
             {mode === "action" ? (
               <div className="action-grid">
-                {ACTIONS.map((label, index) => (
+                {actionLabels.map((label, index) => (
                   <button key={label} type="button" className={index === actionMenu.index ? "active" : ""}>
                     <span className="gba-cursor">{index === actionMenu.index ? "▶" : ""}</span>
                     {label}

@@ -14,6 +14,7 @@ import { playSfx } from "@/lib/audio/engine";
 const POCKETS: { id: ItemDef["pocket"]; label: string }[] = [
   { id: "medicine", label: "Remédios" },
   { id: "balls", label: "Pokébolas" },
+  { id: "mega", label: "Pedras Mega" },
 ];
 
 export function ItemIcon({ id }: { id: ItemId }) {
