@@ -6,7 +6,7 @@
  * a luz, vagalumes, o herói e o parceiro de costas olhando o mar e o logo letra a letra.
  * Tudo na mesma grade de pixels, para nada parecer colado por cima.
  */
-import { petHeight } from "@/data/pokemon/heights";
+import { petSize } from "@/data/pokemon/heights";
 import { BIG, SMALL } from "./glyphs";
 
 export type TitleStage = "press" | "menu" | "overwrite" | "test";
@@ -800,8 +800,11 @@ export function createTitleScene(
     if (x1 < 0) return null;
     const w = x1 - x0 + 1;
     const h = y1 - y0 + 1;
-    const th = petHeight(species);
-    const tw = Math.max(1, Math.round((w * th) / h));
+    // O mesmo tamanho do mapa: altura da tabela com teto de largura.
+    const size = petSize(species);
+    const fit = Math.min(size.height / h, size.width / w);
+    const th = Math.max(1, Math.round(h * fit));
+    const tw = Math.max(1, Math.round(w * fit));
     const out = document.createElement("canvas");
     out.width = tw;
     out.height = th;

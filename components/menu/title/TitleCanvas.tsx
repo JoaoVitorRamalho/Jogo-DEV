@@ -54,7 +54,9 @@ export function TitleCanvas({ stage, appearance, partner }: { stage: TitleStage;
     let alive = true;
     const img = new Image();
     img.onload = () => {
-      if (alive) scene.current?.setPartner(img, partner);
+      // Vai o nome do desenho, não da espécie: evolução sem desenho próprio usa o da
+      // primeira forma, e o tamanho tem que ser o do bicho que aparece.
+      if (alive) scene.current?.setPartner(img, sprite);
     };
     img.src = `/assets/sprites/pokemon/${sprite}_back.png`;
     return () => {

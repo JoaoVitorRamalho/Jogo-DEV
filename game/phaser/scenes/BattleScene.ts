@@ -1,7 +1,8 @@
 import * as Phaser from "phaser";
 import type { MoveCategory } from "@/data/pokemon/moves";
 import { type BattleVisuals, bridge } from "@/game/phaser/bridge";
-import { monTexture } from "@/game/phaser/constants";
+import { VIEW_H, VIEW_W, monTexture } from "@/game/phaser/constants";
+import { fitCamera, hiresTexture, viewZoom } from "@/game/phaser/view";
 import { playSfx } from "@/lib/audio/engine";
 
 const FOE = { x: 184, y: 64, platX: 128, platY: 50, height: 56 };
@@ -15,6 +16,10 @@ export class BattleScene extends Phaser.Scene {
   bg: Phaser.GameObjects.Image | null = null;
   platforms: Phaser.GameObjects.Image[] = [];
   trims = new Map<string, Trim>();
+  // Cópias em alta resolução feitas nesta luta: saem da memória quando a luta acaba.
+  hires = new Set<string>();
+  ballKey = "item_ball";
+  ballUnit = 1;
   static ready: ((visuals: BattleVisuals) => void) | null = null;
 
   constructor() {
@@ -23,6 +28,16 @@ export class BattleScene extends Phaser.Scene {
 
   create(): void {
     this.cameras.main.setBackgroundColor("#000000");
+    fitCamera(this, (zoom) => {
+      this.cameras.main.centerOn(VIEW_W / 2, VIEW_H / 2);
+      const ball = this.sharp("item_ball", 0.8 * zoom);
+      this.ballKey = ball.key;
+      this.ballUnit = 1 / ball.k;
+    });
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      for (const key of this.hires) if (this.textures.exists(key)) this.textures.remove(key);
+      this.hires.clear();
+    });
     this.foe = null;
     this.mine = null;
     this.platforms = [];
@@ -34,6 +49,13 @@ export class BattleScene extends Phaser.Scene {
     const ready = BattleScene.ready;
     BattleScene.ready = null;
     ready?.(visuals);
+  }
+
+  /** Textura ampliada em passo inteiro para a escala de tela pedida (ver `hiresTexture`). */
+  sharp(key: string, factor: number): { key: string; k: number } {
+    const out = hiresTexture(this, key, factor);
+    if (out.key !== key) this.hires.add(out.key);
+    return out;
   }
 
   tween(config: Phaser.Types.Tweens.TweenBuilderConfig): Promise<void> {
@@ -180,8 +202,10 @@ export class BattleScene extends Phaser.Scene {
 
   fit(image: Phaser.GameObjects.Image, side: "player" | "foe"): number {
     const slot = side === "player" ? MINE : FOE;
-    const trim = this.trim(image.texture.key);
-    const scale = Math.min(1.5, slot.height / trim.height);
+    // A conta é feita no sprite original; a cópia ampliada k vezes é desenhada k vezes menor.
+    const trim = this.trim((image.getData("base") as string | undefined) ?? image.texture.key);
+    const k = (image.getData("k") as number | undefined) ?? 1;
+    const scale = Math.min(1.5, slot.height / trim.height) / k;
     image.setOrigin(trim.originX, trim.originY).setScale(scale);
     image.setData("fit", scale);
     image.setData("homeY", slot.y);
@@ -219,7 +243,10 @@ export class BattleScene extends Phaser.Scene {
       existing.destroy();
     }
     const back = side === "player";
-    const image = this.add.image(at.x, at.y, monTexture(key, (k) => this.textures.exists(k), back)).setDepth(10);
+    const base = monTexture(key, (name) => this.textures.exists(name), back);
+    const size = Math.min(1.5, at.height / this.trim(base).height);
+    const sharp = this.sharp(base, size * viewZoom(this));
+    const image = this.add.image(at.x, at.y, sharp.key).setDepth(10).setData("base", base).setData("k", sharp.k);
     this.fit(image, side);
     if (side === "player") this.mine = image;
     else this.foe = image;
@@ -259,7 +286,7 @@ export class BattleScene extends Phaser.Scene {
         const at = side === "player" ? MINE : FOE;
         const groundY = at.y - 4;
         // 1. a esfera voa em arco, girando
-        const orb = this.add.image(side === "player" ? -8 : 248, groundY - 40, "item_ball").setDepth(30).setScale(0.75);
+        const orb = this.add.image(side === "player" ? -8 : 248, groundY - 40, this.ballKey).setDepth(30).setScale(0.75 * this.ballUnit);
         const startX = orb.x;
         await this.tween({
           targets: { t: 0 },
@@ -276,7 +303,7 @@ export class BattleScene extends Phaser.Scene {
         // 2. abre com estouro de luz
         playSfx("pop");
         this.burst(orb.x, orb.y, 0xfff4c4);
-        this.tween({ targets: orb, scale: 1.4, alpha: 0, duration: 180 }).then(() => orb.destroy());
+        this.tween({ targets: orb, scale: 1.4 * this.ballUnit, alpha: 0, duration: 180 }).then(() => orb.destroy());
         // 3. o Pokémon cresce de dentro do brilho e a cor volta aos poucos
         const image = this.place(side, key);
         const fit = image.getData("fit") as number;
@@ -301,7 +328,8 @@ export class BattleScene extends Phaser.Scene {
         image.setTintFill(0xfff4c4);
         const x = image.x;
         const y = image.y - 10;
-        await this.tween({ targets: image, scaleX: 0, scaleY: 0.2, y: y, duration: 240, ease: "Cubic.easeIn" });
+        const shrink = ((image.getData("fit") as number | undefined) ?? 1) * 0.2;
+        await this.tween({ targets: image, scaleX: 0, scaleY: shrink, y: y, duration: 240, ease: "Cubic.easeIn" });
         image.destroy();
         this.burst(x, y, 0xfff4c4);
         await this.wait(160);
@@ -344,7 +372,7 @@ export class BattleScene extends Phaser.Scene {
         const foe = this.foe;
         if (foe) this.stopIdle(foe);
         const fit = (foe?.getData("fit") as number | undefined) ?? 1;
-        const ball = this.add.image(40, 120, "item_ball").setDepth(30).setScale(0.8);
+        const ball = this.add.image(40, 120, this.ballKey).setDepth(30).setScale(0.8 * this.ballUnit);
         await this.tween({
           targets: { t: 0 },
           t: 1,
@@ -355,7 +383,7 @@ export class BattleScene extends Phaser.Scene {
             ball.x = Phaser.Math.Linear(40, FOE.x, t);
             ball.y = Phaser.Math.Linear(120, FOE.y - 30, t) - Math.sin(t * Math.PI) * 34;
             ball.angle = Math.sin(t * Math.PI * 3) * 14 * (1 - t);
-            ball.setScale(0.8 - t * 0.2);
+            ball.setScale((0.8 - t * 0.2) * this.ballUnit);
           },
         } as Phaser.Types.Tweens.TweenBuilderConfig);
         ball.angle = 0;
@@ -363,7 +391,7 @@ export class BattleScene extends Phaser.Scene {
           playSfx("pop");
           this.burst(ball.x, ball.y, 0xfff4c4);
           foe.setTintFill(0xfff4c4);
-          await this.tween({ targets: foe, scaleX: 0, scaleY: 0.2, x: ball.x, y: ball.y + 4, duration: 260, ease: "Cubic.easeIn" });
+          await this.tween({ targets: foe, scaleX: 0, scaleY: fit * 0.2, x: ball.x, y: ball.y + 4, duration: 260, ease: "Cubic.easeIn" });
           foe.setPosition(FOE.x, FOE.y);
         }
         await this.tween({ targets: ball, y: FOE.y - 6, duration: 320, ease: "Bounce.easeOut" });

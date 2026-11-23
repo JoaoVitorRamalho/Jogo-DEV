@@ -346,6 +346,12 @@ input[type="range"] {
   display: block;
 }
 
+/* O canvas tem mais pixels que a caixa (densidade da tela); quem manda no tamanho é a caixa. */
+.canvas-host canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
 .overlay {
   position: absolute;
   inset: 0;

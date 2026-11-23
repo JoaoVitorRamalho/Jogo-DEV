@@ -14,9 +14,24 @@ export function heightMeters(speciesId: string): number {
   return HEIGHT_M[speciesId] ?? 0.8;
 }
 
-/** Altura em pixels do jogo (o herói tem uns 24 px ≈ 1,4 m); curva suave para o pequeno não sumir. */
-export function petHeight(speciesId: string): number {
+const HERO_PX = 24;
+
+/**
+ * Tamanho do Pokémon que segue o herói, em pixels do jogo (o herói tem 24 de altura).
+ *
+ * Regra dos jogos com Pokémon seguidor: o herói e quase todo Pokémon cabem na mesma caixa
+ * de 32 × 32, e só os gigantes ganham uma de 64 × 64. Escala real não funciona (um Pokémon
+ * de 2 m cobriria o herói), então a altura real só ordena os tamanhos:
+ * - pequeno, até 0,5 m: metade do herói (12 px);
+ * - médio, perto de 1 m: três quartos (18 px);
+ * - grande, de 1,5 m para cima: para um pouco abaixo dele (21 px);
+ * - lendário de 3 m ou mais: passa um pouco do herói (26 px).
+ * A largura também tem teto, para o bicho largo não virar um borrão maior que o herói.
+ */
+export function petSize(speciesId: string): { height: number; width: number } {
   const m = heightMeters(speciesId);
-  return Math.round(Math.min(40, 8 + 14 * Math.pow(m, 0.6)));
+  if (m >= 3) return { height: 26, width: 30 };
+  const height = Math.round(Math.min(21, Math.max(12, HERO_PX * Math.pow(m / 2, 0.45))));
+  return { height, width: 24 };
 }
 

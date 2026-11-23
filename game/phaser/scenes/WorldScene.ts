@@ -12,6 +12,7 @@ import { Pet } from "@/game/phaser/pet";
 import { say } from "@/game/core/ui";
 import { TALL_GRASS_GID, TALL_GRASS_TOP_FRAME, TILE, TILE_SPRITE_FRAME, VIEW_H, VIEW_W } from "@/game/phaser/constants";
 import { buildPlayerTexture } from "@/game/phaser/textures";
+import { fitCamera, viewOrigin } from "@/game/phaser/view";
 import { useGame } from "@/game/state/store";
 import { story } from "@/game/story/hooks";
 
@@ -149,6 +150,7 @@ export class WorldScene extends Phaser.Scene {
     this.pet.place(data.x, data.y, data.dir);
     this.setupCamera();
     this.setupLighting();
+    fitCamera(this, (zoom) => this.onZoom(zoom));
     this.unsubscribe = subscribeInput((frame) => this.collect(frame));
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.teardown());
     bridge.world = this.api();
@@ -355,6 +357,7 @@ export class WorldScene extends Phaser.Scene {
         g.fillStyle = grad;
         g.fillRect(0, 0, 64, 64);
         glow.refresh();
+        glow.setFilter(Phaser.Textures.FilterMode.LINEAR);
       }
       const vig = this.textures.createCanvas("fx_vignette", VIEW_W, VIEW_H);
       const v = vig?.getContext();
@@ -365,6 +368,7 @@ export class WorldScene extends Phaser.Scene {
         v.fillStyle = grad;
         v.fillRect(0, 0, VIEW_W, VIEW_H);
         vig.refresh();
+        vig.setFilter(Phaser.Textures.FilterMode.LINEAR);
       }
     }
     const grade = this.add.rectangle(0, 0, VIEW_W, VIEW_H, 0xffffff).setOrigin(0, 0).setScrollFactor(0).setDepth(150000).setBlendMode(Phaser.BlendModes.MULTIPLY);
@@ -619,8 +623,15 @@ export class WorldScene extends Phaser.Scene {
 
   /** Canto de cima da tela de 240 × 160 no espaço dos objetos presos à câmera (scrollFactor 0). */
   viewOrigin(): { x: number; y: number } {
-    const cam = this.cameras.main;
-    return { x: (cam.width - VIEW_W) / 2, y: (cam.height - VIEW_H) / 2 };
+    return viewOrigin(this);
+  }
+
+  /** A janela mudou de tamanho: o que é preso à tela acompanha e o Pokémon refaz o sprite. */
+  onZoom(zoom: number): void {
+    const origin = this.viewOrigin();
+    this.light?.grade.setPosition(origin.x, origin.y);
+    this.light?.vignette.setPosition(origin.x, origin.y);
+    this.pet?.setZoom(zoom);
   }
 
   introLayer: Phaser.GameObjects.Graphics | null = null;

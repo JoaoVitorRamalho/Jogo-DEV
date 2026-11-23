@@ -2,9 +2,12 @@ import * as Phaser from "phaser";
 import type { Direction } from "@/game/character/appearance";
 import { displayName, type Mon } from "@/game/pokemon/mon";
 import { TILE, spriteOf } from "@/game/phaser/constants";
-import { petHeight } from "@/data/pokemon/heights";
+import { snap, viewZoom } from "@/game/phaser/view";
+import { petSize } from "@/data/pokemon/heights";
 
-const heights = new Map<string, number>();
+const fronts = new Map<string, { w: number; h: number }>();
+/** Escala de cada textura pronta: o sprite fica do tamanho certo no mapa com o detalhe todo. */
+const scales = new Map<string, number>();
 
 type Leader = { tx: number; ty: number; dir: Direction; moving: boolean; duration: number };
 
@@ -26,21 +29,36 @@ export class Pet {
   duration = 0.24;
   speciesKey = "";
   px = 16;
+  maxW = 24;
   mon: Mon | null = null;
   lastLeader: { x: number; y: number } | null = null;
   clock = 0;
   hop = 0;
   enabled = true;
+  zoom = 1;
+  scale = 1;
 
   constructor(private scene: Phaser.Scene) {
+    this.zoom = viewZoom(scene);
     this.shadow = scene.add.ellipse(0, 0, 12, 4, 0x10141e, 0.32).setVisible(false);
     this.sprite = scene.add.image(0, 0, "__DEFAULT").setOrigin(0.5, 1).setVisible(false);
   }
 
-  /** Recorta o PNG 96×96 e reduz com suavização uma vez por espécie; no mapa fica nítido. */
+  /** A tela mudou de densidade: refaz o sprite no tamanho novo. */
+  setZoom(zoom: number): void {
+    if (zoom === this.zoom) return;
+    this.zoom = zoom;
+    this.face(this.dir);
+  }
+
+  /**
+   * Recorta a sobra do PNG 96 × 96 e amplia em passo inteiro até passar do tamanho que ele
+   * ocupa na tela real. Desenhado reduzido com filtro linear, o Pokémon tem o detalhe do
+   * sprite original, e não um borrão de 20 pixels.
+   */
   texture(sprite: string, back: boolean, px: number): string | null {
     const source = `mon_${sprite}${back ? "_back" : ""}`;
-    const key = `pet_${sprite}_${px}${back ? "_back" : ""}`;
+    const key = `pet_${sprite}_${px}_${this.zoom}${back ? "_back" : ""}`;
     if (this.scene.textures.exists(key)) return key;
     if (!this.scene.textures.exists(source)) return null;
     const img = this.scene.textures.get(source).getSourceImage() as HTMLImageElement;
@@ -65,29 +83,26 @@ export class Pet {
     if (x1 < 0) return null;
     const w = x1 - x0 + 1;
     const h = y1 - y0 + 1;
-    // A frente define a escala, para frente e costas terem o mesmo tamanho.
-    const frontH = back ? this.frontHeight(sprite) ?? h : h;
-    const scale = Math.min(1, px / frontH);
-    const tw = Math.max(1, Math.round(w * scale));
-    const th = Math.max(1, Math.round(h * scale));
-    const out = this.scene.textures.createCanvas(key, tw + 2, th + 2);
+    // A frente define a escala, para frente e costas terem o mesmo tamanho: a altura da
+    // tabela, com teto de largura, e nunca maior que o PNG.
+    const front = back ? this.front(sprite) ?? { w, h } : { w, h };
+    const size = Math.min(px / front.h, this.maxW / front.w, 1);
+    const k = Math.max(1, Math.ceil(size * this.zoom - 0.01));
+    const out = this.scene.textures.createCanvas(key, (w + 2) * k, (h + 1) * k);
     const g = out?.getContext();
     if (!out || !g) return null;
-    g.imageSmoothingEnabled = true;
-    g.imageSmoothingQuality = "high";
-    g.drawImage(probe, x0, y0, w, h, 1, 1, tw, th);
-    // Endurece a borda: alfa parcial vira 0 ou 255, sem halo borrado no pixel art.
-    const pixels = g.getImageData(0, 0, tw + 2, th + 2);
-    for (let i = 3; i < pixels.data.length; i += 4) pixels.data[i] = pixels.data[i] > 110 ? 255 : 0;
-    g.putImageData(pixels, 0, 0);
+    g.imageSmoothingEnabled = false;
+    g.drawImage(probe, x0, y0, w, h, k, k, w * k, h * k);
     out.refresh();
-    if (!back) heights.set(sprite, h);
+    out.setFilter(Phaser.Textures.FilterMode.LINEAR);
+    scales.set(key, size / k);
+    if (!back) fronts.set(sprite, { w, h });
     return key;
   }
 
-  frontHeight(sprite: string): number | null {
-    if (!heights.has(sprite)) this.texture(sprite, false, this.px);
-    return heights.get(sprite) ?? null;
+  front(sprite: string): { w: number; h: number } | null {
+    if (!fronts.has(sprite)) this.texture(sprite, false, this.px);
+    return fronts.get(sprite) ?? null;
   }
 
   /** Atualiza quem anda junto: o primeiro da equipe que ainda está de pé. */
@@ -95,10 +110,14 @@ export class Pet {
     const mon = party?.find((m) => m.hp > 0) ?? null;
     this.mon = mon;
     const key = mon ? spriteOf(mon.species) : "";
-    const px = mon ? petHeight(mon.species) : 16;
+    // O tamanho é o do desenho que aparece: evolução sem desenho próprio usa o da primeira
+    // forma (Greninja sai como Froakie), e um Froakie do tamanho de um Greninja fica gigante.
+    const size = mon ? petSize(key) : { height: 16, width: 24 };
+    const px = size.height;
     if (key !== this.speciesKey || px !== this.px) {
       this.speciesKey = key;
       this.px = px;
+      this.maxW = size.width;
       this.face(this.dir);
     }
   }
@@ -112,7 +131,10 @@ export class Pet {
     if (!this.speciesKey) return;
     const back = dir === "up";
     const key = this.texture(this.speciesKey, back, this.px) ?? this.texture(this.speciesKey, false, this.px);
-    if (key) this.sprite.setTexture(key);
+    if (key) {
+      this.sprite.setTexture(key);
+      this.scale = scales.get(key) ?? 1;
+    }
     // Sprites oficiais olham para a esquerda.
     this.sprite.setFlipX(dir === "right");
   }
@@ -166,16 +188,16 @@ export class Pet {
     if (this.moving) {
       lift = Math.sin(Math.PI * Math.min(1, this.t)) * 3;
     } else {
-      // Respira: um pixel de altura a cada ~1,2 s.
-      squash = Math.sin(this.clock * 5.2) > 0.6 ? 0.94 : 1;
+      // Respira devagar: em alta resolução dá para encolher um tico, sem pular pixel.
+      squash = 1 - (Math.sin(this.clock * 2.6) * 0.5 + 0.5) * 0.035;
     }
     if (this.hop > 0) {
       this.hop = Math.max(0, this.hop - dt);
       lift += Math.abs(Math.sin(this.hop * Math.PI * 4)) * 5;
     }
-    this.sprite.setVisible(true).setPosition(base.x, Math.round(base.y - lift)).setScale(1, squash);
+    this.sprite.setVisible(true).setPosition(base.x, base.y - snap(lift, this.zoom)).setScale(this.scale, this.scale * squash);
     this.shadow.setVisible(true).setPosition(base.x, base.y - 1).setScale(Math.max(0.7, 1 - lift / 12), 1);
-    this.shadow.setSize(Math.max(8, Math.min(16, this.sprite.width * 0.7)), 4);
+    this.shadow.setSize(Math.max(8, Math.min(16, this.sprite.displayWidth * 0.7)), 4);
     const depth = depthOf(base.y);
     this.shadow.setDepth(depth - 0.2);
     this.sprite.setDepth(depth);
