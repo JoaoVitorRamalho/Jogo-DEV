@@ -484,10 +484,32 @@ canvas {
   display: flex;
   gap: calc(var(--u) * 6);
   flex: 1;
+  min-height: 0;
 }
 
+/* A lista rola dentro do painel (sem barra) e esmaece a borda do lado que ainda tem mais. */
 .dex-list {
   flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.dex-list::-webkit-scrollbar {
+  display: none;
+}
+
+.dex-list.more-down {
+  mask-image: linear-gradient(to bottom, #000 calc(100% - var(--u) * 14), transparent);
+}
+
+.dex-list.more-up {
+  mask-image: linear-gradient(to top, #000 calc(100% - var(--u) * 14), transparent);
+}
+
+.dex-list.more-up.more-down {
+  mask-image: linear-gradient(to bottom, transparent, #000 calc(var(--u) * 14), #000 calc(100% - var(--u) * 14), transparent);
 }
 
 .dex-list .caught {
@@ -500,10 +522,22 @@ canvas {
 
 .dex-preview {
   width: calc(var(--u) * 64);
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--u) * 3);
   background: #e8f0f8;
   border-radius: calc(var(--u) * 4);
+}
+
+.dex-preview strong {
+  font-size: calc(var(--u) * 8);
+}
+
+.dex-preview .types {
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .dex-detail,

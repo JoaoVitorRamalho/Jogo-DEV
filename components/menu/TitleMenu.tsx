@@ -7,14 +7,14 @@ import { PartyIcon, Portrait } from "@/components/menu/title/pixels";
 import { CITIES } from "@/data/cities";
 import { TYPE_COLOR } from "@/data/pokemon/types";
 import { useGame, type GameState } from "@/game/state/store";
-import { testSave } from "@/game/state/testSave";
-import { dexEntries } from "@/data/pokemon/species";
+import { COMPLETE_LEVEL, COMPLETE_MONEY, completeSave, testSave } from "@/game/state/testSave";
+import { DEX_ORDER, dexEntries } from "@/data/pokemon/species";
 import { playSfx, setContextTrack } from "@/lib/audio/engine";
 import { useSession } from "@/lib/game/session";
 import { createRepeater, useInputFrame } from "@/lib/input/engine";
 
 type Entry = { id: "continue" | "new" | "options"; label: string; sub: string };
-type Stage = "press" | "menu" | "overwrite" | "test";
+type Stage = "press" | "menu" | "overwrite" | "test" | "complete";
 
 /** ↑ ↑ ↓ ↓ ← → ← → X Z abre o save de teste. */
 const CHEAT = ["up", "up", "down", "down", "left", "right", "left", "right", "cancel", "confirm"] as const;
@@ -107,7 +107,8 @@ export function TitleMenu() {
   const taps = useRef<number[]>([]);
 
   useEffect(() => {
-    useBackdrop.getState().setStage(stage);
+    // O fundo trata o save completo como o de teste: mesmo modal por cima.
+    useBackdrop.getState().setStage(stage === "complete" ? "test" : stage);
   }, [stage]);
 
   /** Clique no fundo: a cena reage; na tela de "aperte", fora das surpresas, abre o menu. */
@@ -137,9 +138,10 @@ export function TitleMenu() {
 
   useEffect(() => {
     setContextTrack("title");
-    if (new URLSearchParams(window.location.search).get("save") === "teste") {
+    const param = new URLSearchParams(window.location.search).get("save");
+    if (param === "teste" || param === "completo") {
       setConfirmRow(0);
-      setStage("test");
+      setStage(param === "teste" ? "test" : "complete");
     }
   }, []);
 
@@ -157,6 +159,19 @@ export function TitleMenu() {
       return;
     }
     useGame.getState().loadState(testSave(slot?.appearance));
+    playSfx("confirm");
+    setScreen("field");
+  }
+
+  /** `?save=completo`: completa o jogo salvo (ou o de teste, se não houver) e entra nele. */
+  function confirmComplete(index: number) {
+    dropTestParam();
+    if (index !== 0) {
+      playSfx("cancel");
+      setStage("menu");
+      return;
+    }
+    useGame.getState().loadState(completeSave(slot ?? testSave()));
     playSfx("confirm");
     setScreen("field");
   }
@@ -210,16 +225,17 @@ export function TitleMenu() {
     for (const key of CHEAT_KEYS) {
       if (frame.pressed[key]) typed.current = [...typed.current, key].slice(-CHEAT.length);
     }
-    if (stage !== "test" && typed.current.join() === CHEAT.join()) {
+    if (stage !== "test" && stage !== "complete" && typed.current.join() === CHEAT.join()) {
       typed.current = [];
       openTest();
       return;
     }
-    if (stage === "test") {
+    if (stage === "test" || stage === "complete") {
+      const pick = stage === "test" ? confirmTest : confirmComplete;
       if (next("left", frame.held.left, dt) || next("up", frame.held.up, dt)) setConfirmRow(0);
       if (next("right", frame.held.right, dt) || next("down", frame.held.down, dt)) setConfirmRow(1);
-      if (frame.pressed.cancel) confirmTest(1);
-      else if (frame.pressed.confirm) confirmTest(confirmRow);
+      if (frame.pressed.cancel) pick(1);
+      else if (frame.pressed.confirm) pick(confirmRow);
       return;
     }
     if (stage === "press") {
@@ -338,6 +354,41 @@ export function TitleMenu() {
                   className={`ts-modal-btn${confirmRow === index ? " active" : ""}`}
                   onMouseEnter={() => setConfirmRow(index)}
                   onClick={() => confirmTest(index)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {stage === "complete" ? (
+        <div className="ts-modal" role="alertdialog" aria-label="Completar o jogo salvo">
+          <div className="ts-modal-card">
+            <p className="ts-modal-title">Save completo</p>
+            <ul className="ts-modal-list">
+              <li>Os {DEX_ORDER.length} Pokémon vistos e capturados na Pokédex</li>
+              <li>Quem falta entra na caixa, no nível {COMPLETE_LEVEL}</li>
+              <li>Todos os itens na mochila e ₽{COMPLETE_MONEY.toLocaleString("pt-BR")}</li>
+              <li>A história e o lugar onde você parou continuam iguais</li>
+            </ul>
+            <p className="ts-modal-note">
+              {slot ? (
+                <>
+                  Vale para a jornada de <strong>{slot.appearance.name || "Viajante"}</strong>.
+                </>
+              ) : (
+                "Sem jogo salvo: começa pelo save de teste."
+              )}
+            </p>
+            <div className="ts-modal-actions">
+              {["Completar", "Voltar"].map((label, index) => (
+                <button
+                  key={label}
+                  type="button"
+                  className={`ts-modal-btn${confirmRow === index ? " active" : ""}`}
+                  onMouseEnter={() => setConfirmRow(index)}
+                  onClick={() => confirmComplete(index)}
                 >
                   {label}
                 </button>

@@ -1,4 +1,4 @@
-import type { ItemId } from "@/data/items";
+import { ITEMS, type ItemId } from "@/data/items";
 import { DEX_ORDER } from "@/data/pokemon/species";
 import { type Appearance, defaultAppearance } from "@/game/character/appearance";
 import { seeded } from "@/game/core/rng";
@@ -79,6 +79,37 @@ export function testSave(appearance?: Appearance): GameState {
   const owned = [...TEAM, ...BOX].map(([id]) => id);
   state.dex = { seen: [...DEX_ORDER], caught: DEX_ORDER.filter((id) => owned.includes(id)) };
   state.playTime = 3 * 3600 + 27 * 60;
+  state.savedAt = Date.now();
+  return state;
+}
+
+/** Nível de quem entra na caixa pelo save completo e o dinheiro dele. */
+export const COMPLETE_LEVEL = 50;
+export const COMPLETE_MONEY = 999_999;
+
+/**
+ * Save completo ("zerado") em cima de um jogo salvo: a Pokédex inteira vista e capturada, quem
+ * falta entra na caixa, a mochila ganha todos os itens e o dinheiro vai a ₽999.999. A história,
+ * a equipe e o lugar onde parou não mudam, para o capítulo em andamento continuar jogável.
+ * Abre pela URL `?save=completo`.
+ */
+export function completeSave(base: GameState): GameState {
+  const state = JSON.parse(JSON.stringify(base)) as GameState;
+  const rng = seeded(0xc0de);
+  const owned = new Set([...state.party, ...state.box].map((mon) => mon.species));
+  for (const id of DEX_ORDER) {
+    if (!owned.has(id)) state.box.push(createMon(id, COMPLETE_LEVEL, rng, { perfect: true, metAt: "Asteria" }));
+  }
+  state.dex = {
+    seen: [...new Set([...state.dex.seen, ...DEX_ORDER])],
+    caught: [...new Set([...state.dex.caught, ...DEX_ORDER])],
+  };
+  // Item sem preço é único (pedra mega, cristal, poção infinita); o resto vem em 99.
+  for (const def of Object.values(ITEMS)) {
+    const amount = def.price || def.candy ? 99 : 1;
+    state.bag[def.id] = Math.max(state.bag[def.id] ?? 0, amount);
+  }
+  state.money = Math.max(state.money, COMPLETE_MONEY);
   state.savedAt = Date.now();
   return state;
 }

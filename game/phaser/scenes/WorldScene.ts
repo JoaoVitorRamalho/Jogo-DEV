@@ -466,7 +466,14 @@ export class WorldScene extends Phaser.Scene {
     pet.enabled = useSettings.getState().follower;
     const follower = this.followerId ? this.npcs.get(this.followerId) : undefined;
     const leader = follower?.sprite.visible ? follower : this.player;
-    pet.update(dt, leader, (y) => y + 0.4);
+    // O herói e os NPCs pisam 1 px mais baixo que o Pokémon e têm 3 px vazios embaixo do pé: com
+    // +4 os dois ficam na mesma régua. Na mesma linha, o herói fica na frente.
+    pet.update(dt, leader, (y) => y + 4.4, (x, y) => this.petFree(x, y));
+  }
+
+  /** Tile onde o Pokémon que segue pode sair de lado: sem parede, sem NPC e sem o herói. */
+  petFree(x: number, y: number): boolean {
+    return !this.isBlocked(x, y, this.player) && !this.npcAt(x, y) && !(this.player.tx === x && this.player.ty === y);
   }
 
   petLines(): string[] {

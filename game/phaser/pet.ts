@@ -9,7 +9,7 @@ const fronts = new Map<string, { w: number; h: number }>();
 /** Escala de cada textura pronta: o sprite fica do tamanho certo no mapa com o detalhe todo. */
 const scales = new Map<string, number>();
 
-type Leader = { tx: number; ty: number; dir: Direction; moving: boolean; duration: number };
+type Leader = { tx: number; ty: number; dir: Direction; moving: boolean; duration: number; depth(): number };
 
 /** Duração da amassadinha ao parar e da virada de lado, em segundos. */
 const LAND = 0.16;
@@ -46,6 +46,8 @@ export class Pet {
   side = 1;
   land = 0;
   turn = 0;
+  /** Trocando de lugar com o líder num corredor: passa por trás dele, não por cima. */
+  behind = false;
 
   constructor(private scene: Phaser.Scene) {
     this.zoom = viewZoom(scene);
@@ -158,6 +160,7 @@ export class Pet {
     this.tx = tx;
     this.ty = ty;
     this.moving = false;
+    this.behind = false;
     this.face(dir);
     const p = this.pixel(tx, ty);
     this.sprite.setPosition(p.x, p.y);
@@ -173,7 +176,7 @@ export class Pet {
   }
 
   /** Chamado todo frame: anda para o tile que o líder acabou de deixar. */
-  update(dt: number, leader: Leader | null, depthOf: (y: number) => number): void {
+  update(dt: number, leader: Leader | null, depthOf: (y: number) => number, free: (x: number, y: number) => boolean = () => false): void {
     this.clock += dt;
     const show = this.enabled && Boolean(this.speciesKey) && Boolean(leader);
     if (!show || !leader) {
@@ -192,7 +195,12 @@ export class Pet {
         // Ficou longe (cena que moveu o líder): reaparece no tile que ele acabou de deixar.
         this.place(last.x, last.y, leader.dir);
       } else if (this.tx !== last.x || this.ty !== last.y) {
-        this.begin(last.x, last.y, leader.moving ? leader.duration : 0.24);
+        // O líder voltou para cima do Pokémon: ele sai para o lado, em vez de atravessar o herói.
+        // Sem lado livre (corredor), troca de lugar passando por trás dele.
+        const into = leader.tx === this.tx && leader.ty === this.ty;
+        const side = into ? this.aside(leader.tx - last.x, leader.ty - last.y, free) : null;
+        this.begin(side?.x ?? last.x, side?.y ?? last.y, leader.moving ? leader.duration : 0.24);
+        this.behind = into && !side;
       }
       this.lastLeader = { x: leader.tx, y: leader.ty };
     }
@@ -242,9 +250,20 @@ export class Pet {
       .setAngle(angle);
     this.shadow.setVisible(true).setPosition(base.x, base.y - 1).setScale(Math.max(0.7, 1 - lift / 12), 1);
     this.shadow.setSize(Math.max(8, Math.min(22, this.sprite.displayWidth * 0.7)), 4);
-    const depth = depthOf(base.y);
+    let depth = depthOf(base.y);
+    if (this.behind) depth = Math.min(depth, leader.depth() - 0.3);
     this.shadow.setDepth(depth - 0.2);
     this.sprite.setDepth(depth);
+  }
+
+  /** Tile livre ao lado, de través ao passo do líder (dx, dy), para sair da frente dele. */
+  aside(dx: number, dy: number, free: (x: number, y: number) => boolean): { x: number; y: number } | null {
+    for (const s of [this.side, -this.side]) {
+      const x = this.tx + (dy !== 0 ? s : 0);
+      const y = this.ty + (dx !== 0 ? s : 0);
+      if (free(x, y)) return { x, y };
+    }
+    return null;
   }
 
   begin(tx: number, ty: number, duration: number): void {
@@ -270,6 +289,7 @@ export class Pet {
     const k = Math.min(1, this.t);
     if (k >= 1) {
       this.moving = false;
+      this.behind = false;
       this.land = LAND;
       return p;
     }
