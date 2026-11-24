@@ -20,6 +20,14 @@ TILESETS = [
 ]
 
 
+KT_FIRST = 2601  # Kenney Tiny Town vem depois de overworld, inner e extra
+
+
+def KT(i: int) -> int:
+    """Tile do Kenney Tiny Town pelo número do arquivo original (tile_XXXX.png)."""
+    return KT_FIRST + i
+
+
 def _kenney_tileset() -> dict | None:
     png = ASSETS / "tilesets" / "kenney_tiny_town.png"
     if not png.is_file():
@@ -30,16 +38,52 @@ def _kenney_tileset() -> dict | None:
         "image": "../tilesets/kenney_tiny_town.png",
         "w": img.width,
         "h": img.height,
-        "first": 1,
+        "first": KT_FIRST,
     }
 
 
+KX_FIRST = KT_FIRST + 144  # kenney_extra.png: tiles no traço do Kenney que o pacote não tem
+SAND_RAMP = {(234, 165, 108): (243, 216, 152), (207, 130, 84): (222, 186, 120), (254, 201, 156): (252, 236, 190)}
+
+
+def KX(i: int) -> int:
+    return KX_FIRST + i
+
+
+def make_kenney_extra() -> dict | None:
+    """Gera kenney_extra.png (16 × 2 tiles) a partir da folha do Kenney.
+
+    0–8: areia 3 × 3 (a terra do Kenney recolorida), na ordem quina, borda, miolo."""
+    src = ASSETS / "tilesets" / "kenney_tiny_town.png"
+    if not src.is_file():
+        return None
+    sheet = Image.open(src).convert("RGBA")
+    out = Image.new("RGBA", (16 * T, 2 * T), (0, 0, 0, 0))
+    for k, tile in enumerate((12, 13, 14, 24, 25, 26, 36, 37, 38)):
+        sx, sy = (tile % 16) * T, (tile // 16) * T
+        piece = sheet.crop((sx, sy, sx + T, sy + T))
+        px = piece.load()
+        for y in range(T):
+            for x in range(T):
+                r, g, b, a = px[x, y]
+                if (r, g, b) in SAND_RAMP:
+                    px[x, y] = (*SAND_RAMP[(r, g, b)], a)
+        out.alpha_composite(piece, (k * T, 0))
+    path = ASSETS / "tilesets" / "kenney_extra.png"
+    out.save(path)
+    return {"name": "kenney_extra", "image": "../tilesets/kenney_extra.png", "w": out.width, "h": out.height, "first": KX_FIRST}
+
+
 def _tilesets_for(m: "Map") -> list[dict]:
-    if m.name == "art_lab":
-        kt = _kenney_tileset()
-        if kt:
-            return [kt]
-    return TILESETS
+    """As folhas antigas sempre; as do Kenney só se o mapa usa algum tile delas."""
+    used = {gid for layer in m.layers.values() for row in layer for gid in row}
+    sets = list(TILESETS)
+    kt = _kenney_tileset()
+    if kt and any(KT_FIRST <= gid < KX_FIRST for gid in used):
+        sets.append(kt)
+    if any(gid >= KX_FIRST for gid in used):
+        sets.append({"name": "kenney_extra", "image": "../tilesets/kenney_extra.png", "w": 16 * T, "h": 2 * T, "first": KX_FIRST})
+    return sets
 
 
 def OW(c: int, r: int) -> int:
@@ -318,12 +362,126 @@ def fence_h(m: Map, c: int, r: int, length: int) -> None:
 
 
 def house(m: Map, c: int, r: int, lab: bool = False) -> tuple[int, int]:
+    """Casa Kenney 5 × 4 nas linhas r+1..r+4, porta em (c+2, r+4), como a casa antiga 5 × 5.
+
+    A linha de cima do telhado fica na camada "above" (o herói passa por trás)."""
     if lab:
-        m.stamp(c, r, 11, 0, 5, 5, above_rows=1, open_cells=((2, 4),))
-        m.set("buildings", c + 2, r + 4, OW(8, 4))
+        rows = [[48, 49, 49, 51, 50], [60, 61, 61, 61, 62], [76, 88, 77, 88, 79], [76, 77, 89, 77, 79]]
     else:
-        m.stamp(c, r, 6, 0, 5, 5, above_rows=1, open_cells=((2, 4),))
+        # Varia telhado e chaminé pela posição, para a rua não ficar com casas iguais.
+        gray = (c * 5 + r * 3) % 3 == 1
+        top, low, chimney = (48, 60, 51) if gray else (52, 64, 55)
+        roof = [top, top + 1, top + 1, top + 1, top + 2]
+        roof[1 + (c + r) % 3] = chimney
+        rows = [roof, [low, low + 1, low + 1, low + 1, low + 2], [72, 84, 73, 84, 73], [72, 73, 85, 73, 73]]
+    for dy, row in enumerate(rows):
+        for dx, tile in enumerate(row):
+            m.set("above" if dy == 0 else "buildings", c + dx, r + 1 + dy, KT(tile))
+            if (dx, dy) != (2, 3):
+                m.solid(c + dx, r + 1 + dy)
     return c + 2, r + 4
+
+
+TREE_TILES = {OW(5, 16), OW(6, 16), OW(5, 17), OW(6, 17)}
+LIPS = {LIP_LEFT, LIP_RIGHT, LIP_TOP, LIP_BOTTOM}
+FENCE_TILES = {OW(0, 19), OW(1, 19)}
+SIGN_TILE = OW(35, 2)
+WATER_TILES = {gid for row in WATER for gid in row} | set(WAVES)
+
+
+def blob9(m: Map, cells, first, layer_of, edge_full: bool) -> None:
+    """Pinta uma mancha 3 × 3 do Kenney (quinas, bordas e miolo) pelo vizinho de cada célula.
+
+    `first` é o tile da quina de cima à esquerda (ou função da célula); `layer_of` diz a camada."""
+    cells = set(cells)
+
+    def has(c: int, r: int) -> bool:
+        return (c, r) in cells or (edge_full and not m.inside(c, r))
+
+    for c, r in cells:
+        n, s, w, e = has(c, r - 1), has(c, r + 1), has(c - 1, r), has(c + 1, r)
+        col = 0 if not w else 2 if not e else 1
+        row = 0 if not n else 2 if not s else 1
+        base = first(c, r) if callable(first) else first
+        layer = layer_of(c, r) if callable(layer_of) else layer_of
+        m.set(layer, c, r, KT(base + row * 12 + col))
+
+
+def kenney_skin(m: Map, autumn=lambda c, r: False) -> None:
+    """Veste um mapa externo com o Kenney Tiny Town sem mudar colisão, warps, NPCs nem placas.
+
+    Troca grama, terra, árvores, flores, cercas e placas pelo tile equivalente. O resto
+    (água, areia, chafariz, barracas, prédios do capítulo 2) continua na folha antiga."""
+    L = m.layers
+    cells = [(c, r) for r in range(m.rows) for c in range(m.cols)]
+    forest = {}
+    for layer in ("buildings", "above"):
+        for c, r in cells:
+            if L[layer][r][c] in TREE_TILES:
+                forest[(c, r)] = layer
+    dirt = {(c, r) for c, r in cells if L["ground"][r][c] == DIRT}
+    grassy = set()
+    for c, r in cells:
+        if L["ground"][r][c] in GRASS or L["ground"][r][c] in LIPS:
+            h = (c * 73 + r * 151 + c * r * 7) % 100
+            L["ground"][r][c] = KT(2 if h < 4 else 1 if h < 16 else 0)
+            grassy.add((c, r))
+
+    # O Kenney não tem caminho de 1 tile: alarga para o lado de grama livre.
+    def free(c: int, r: int) -> bool:
+        return (c, r) in grassy and not L["collision"][r][c] and not L["buildings"][r][c]
+
+    for c, r in sorted(dirt):
+        if (c - 1, r) not in dirt and (c + 1, r) not in dirt:
+            for side in ((c + 1, r), (c - 1, r)):
+                if free(*side):
+                    dirt.add(side)
+                    break
+        if (c, r - 1) not in dirt and (c, r + 1) not in dirt:
+            for side in ((c, r + 1), (c, r - 1)):
+                if free(*side):
+                    dirt.add(side)
+                    break
+    blob9(m, dirt, 12, "ground", False)
+
+    # Lago no meio da grama ganha uma beira de areia (só visual, não muda a colisão).
+    wet0 = {(c, r) for c, r in cells if L["ground"][r][c] in WATER_TILES}
+    for c, r in list(grassy):
+        if any((c + dc, r + dr) in wet0 for dc in (-1, 0, 1) for dr in (-1, 0, 1)):
+            L["ground"][r][c] = SAND
+            grassy.discard((c, r))
+            L["detail"][r][c] = 0 if L["detail"][r][c] in FLOWERS else L["detail"][r][c]
+
+    # Areia: a terra do Kenney recolorida. A beira com a água não leva grama.
+    sand = {(c, r) for c, r in cells if L["ground"][r][c] in (SAND, SHORE)}
+    wet = {(c, r) for c, r in cells if L["ground"][r][c] in WATER_TILES}
+    for c, r in sand:
+        n, s_, w, e = ((c + dc, r + dr) for dc, dr in ((0, -1), (0, 1), (-1, 0), (1, 0)))
+        near = sand | wet
+
+        def has(cell):
+            return cell in near or not m.inside(*cell)
+
+        col = 0 if not has(w) else 2 if not has(e) else 1
+        row = 0 if not has(n) else 2 if not has(s_) else 1
+        L["ground"][r][c] = KX(row * 3 + col)
+    blob9(m, forest, lambda c, r: 9 if autumn(c, r) else 6, lambda c, r: forest[(c, r)], True)
+    # Fileira de 1 tile não fecha a mancha 3 × 3: vira pé de árvore solto.
+    for c, r in forest:
+        lone_h = (c - 1, r) not in forest and (c + 1, r) not in forest and m.inside(c - 1, r) and m.inside(c + 1, r)
+        lone_v = (c, r - 1) not in forest and (c, r + 1) not in forest and m.inside(c, r - 1) and m.inside(c, r + 1)
+        if lone_h or lone_v:
+            m.set(forest[(c, r)], c, r, KT(3 if autumn(c, r) else 4))
+
+    for c, r in cells:
+        if L["detail"][r][c] in FLOWERS and (c, r) in grassy:
+            L["detail"][r][c] = KT(2)
+        if L["buildings"][r][c] == SIGN_TILE:
+            L["buildings"][r][c] = KT(83)
+        if L["buildings"][r][c] in FENCE_TILES:
+            left = c > 0 and L["buildings"][r][c - 1] in FENCE_TILES | {KT(80), KT(81)}
+            right = c + 1 < m.cols and L["buildings"][r][c + 1] in FENCE_TILES
+            L["buildings"][r][c] = KT(81 if left and right else 80 if right else 82 if left else 81)
 
 
 def build_art_lab() -> Map | None:
@@ -331,8 +489,7 @@ def build_art_lab() -> Map | None:
     if _kenney_tileset() is None:
         return None
 
-    def K(i: int) -> int:
-        return 1 + i  # tile_XXXX.png do Kenney = índice XXXX
+    K = KT
 
     cols, rows = 28, 20
     m = Map("art_lab", cols, rows, fill=K(0), music="town")
@@ -1102,8 +1259,16 @@ def render_preview(m: Map) -> None:
     img.resize((img.width * 2, img.height * 2), Image.NEAREST).save(PREVIEW / f"{m.key}.png")
 
 
+# Pés de outono por mapa (o resto da mata é verde).
+AUTUMN = {
+    "forest": lambda c, r: ((c // 2) * 7 + (r // 2) * 13) % 10 < 3,
+    "route2": lambda c, r: ((c // 2) * 11 + (r // 2) * 5) % 13 < 2,
+}
+
+
 def main() -> None:
     MAPS.mkdir(parents=True, exist_ok=True)
+    make_kenney_extra()
     built = {
         "brisamar": build_brisamar(),
         "house_1f": build_house_1f(),
@@ -1122,6 +1287,8 @@ def main() -> None:
         "ferruria_mart": build_ferruria_mart(),
         "ferruria_house": build_ferruria_house(),
     }
+    for key in ("brisamar", "route1", "clearing", "forest", "route2", "ferruria"):
+        kenney_skin(built[key], autumn=AUTUMN.get(key, lambda c, r: False))
     lab = build_art_lab()
     if lab is not None:
         built["art_lab"] = lab
