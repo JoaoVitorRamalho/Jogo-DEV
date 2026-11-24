@@ -235,6 +235,10 @@ def grass_fill(m: Map) -> None:
 
 
 def tree(m: Map, c: int, r: int) -> None:
+    for y in range(r, r + 2):
+        for x in range(c, c + 2):
+            if m.inside(x, y) and m.layers["detail"][y][x] == TALL:
+                m.set("detail", x, y, 0)
     m.stamp(c, r, 5, 16, 2, 2, above_rows=1)
 
 
@@ -559,11 +563,7 @@ def build_route1() -> Map:
     path(m, route)
 
     def grass_patch(c0: int, r0: int, w: int, h: int) -> None:
-        for r in range(r0, r0 + h):
-            for c in range(c0, c0 + w):
-                if (c, r) in route:
-                    continue
-                m.set("detail", c, r, TALL)
+        tall(m, rect(c0, r0, w, h), route)
 
     grass_patch(13, 37, 6, 6)
     grass_patch(4, 28, 3, 7)
@@ -589,9 +589,7 @@ def build_route1() -> Map:
     m.event("forest_edge", 10, 1, 4, 1)
     m.npc("gael_route", 13, 40, "left")
     m.npc("youngster", 7, 32, "down")
-    m.event("sight_teo", 2, 34, 20, 1)
     m.npc("picnic_mel", 17, 17, "left")
-    m.event("sight_mel", 2, 19, 20, 1)
     m.npc("ren_route1", 10, 35, "up")
     m.npc("item_potion", 18, 11, "down")
     m.npc("hiker", 12, 6, "down")
@@ -640,39 +638,24 @@ def build_clearing() -> Map:
 def build_forest() -> Map:
     m = Map("Floresta de Aster", 20, 22, music="dungeon")
     grass_fill(m)
-    tree_band(m, 0, 0, 20, 22)
     trail = line_cells([(10, 21), (10, 14), (6, 14), (6, 8), (12, 8), (12, 2), (10, 2), (10, 0)])
+    patches = rect(12, 15, 4, 4) | rect(3, 9, 3, 4) | rect(13, 4, 4, 3)
+    clearing = rect(8, 4, 4, 6) | rect(12, 4, 6, 4)
+    # Reserve as clareiras antes de plantar árvores inteiras, sem cortar copas
+    # nem colocar personagens dentro de troncos ou no gargalo da trilha.
+    woods(m, trail | patches | clearing | rect(8, 18, 2, 2))
     path(m, trail)
-    for c, r in list(trail):
-        for layer in ("buildings", "above"):
-            m.set(layer, c, r, 0)
-        m.solid(c, r, False)
-
-    def grass_patch(c0: int, r0: int, w: int, h: int) -> None:
-        for r in range(r0, r0 + h):
-            for c in range(c0, c0 + w):
-                if (c, r) in trail:
-                    continue
-                if not m.inside(c, r):
-                    continue
-                m.set("detail", c, r, TALL)
-                m.set("buildings", c, r, 0)
-                m.set("above", c, r, 0)
-                m.solid(c, r, False)
-
-    grass_patch(12, 15, 4, 4)
-    grass_patch(3, 9, 3, 4)
-    grass_patch(13, 4, 4, 3)
-    flowers(m, [(8, 16), (9, 17), (14, 10), (7, 6)])
+    tall(m, patches, trail | clearing)
+    flowers(m, [(8, 7), (10, 4), (16, 7), (14, 4)])
     m.warp(10, 21, "route1", 11, 2, "down", w=2)
     m.warp(10, 0, "route2", 17, 62, "up", w=2)
     m.spawn("from_route", 10, 19, "up")
     m.spawn("from_city", 10, 2, "down")
     m.npc("bia_forest", 6, 12, "down")
-    m.npc("ravi", 13, 6, "left")
+    m.npc("ravi", 15, 6, "left")
     m.npc("lost_kid", 8, 5, "down")
-    m.npc("cora_forest", 9, 8, "left")  # capítulo 2: a líder investiga a floresta
-    m.npc("thomas_researcher", 12, 5, "down")
+    m.npc("cora_forest", 9, 6, "down")  # capítulo 2: a líder investiga a clareira
+    m.npc("thomas_researcher", 14, 5, "down")
     m.sign("sign_forest_in", 8, 18)
     m.set("buildings", 8, 18, OW(35, 2))
     return m
@@ -693,7 +676,7 @@ def rect(c0: int, r0: int, w: int, h: int) -> set[tuple[int, int]]:
 
 def tall(m: Map, cells: set[tuple[int, int]], skip: set[tuple[int, int]]) -> None:
     for c, r in cells - skip:
-        if m.inside(c, r):
+        if m.inside(c, r) and not any(m.layers[layer][r][c] for layer in ("collision", "buildings", "above")):
             m.set("detail", c, r, TALL)
 
 
@@ -738,9 +721,7 @@ def build_route2() -> Map:
     m.npc("ranger_r2", 24, 10, "down")
     m.npc("r2_trainer_a", 29, 46, "left")
     m.npc("r2_rui", 18, 56, "down")
-    m.event("sight_rui", 17, 59, 2, 1)
     m.npc("r2_tais", 18, 5, "down")
-    m.event("sight_tais", 17, 9, 2, 1)
     m.npc("r2_trainer_b", 30, 30, "left")
     m.npc("r2_fisher", 15, 34, "right")
     m.npc("r2_hiker", 14, 54, "right", wander=1)

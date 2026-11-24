@@ -80,6 +80,7 @@ describe("Pokémon", () => {
 
   it("evolui no nível certo e preserva a proporção de PS", () => {
     const mon = createMon("wurmple", 7, seeded(4));
+    mon.evolutionTarget = "silcoon";
     expect(pendingEvolution(mon)).toBe("silcoon");
     mon.hp = Math.floor(maxHp(mon) / 2);
     evolve(mon, "silcoon");
@@ -141,6 +142,19 @@ describe("captura e fuga", () => {
 });
 
 describe("turno", () => {
+  it.each(["wild", "trainer"] as const)("rejeita Doce Raro em batalha %s sem gastar item nem turno", (kind) => {
+    const { state } = startBattle({
+      kind,
+      playerParty: [createMon("froakie", 5, seeded(80))],
+      foeParty: [createMon("wurmple", 5, seeded(81))],
+      bag: { rare_candy: 3 },
+    });
+    const result = runTurn(state, { type: "item", item: "rare_candy", target: 0 }, seeded(82));
+    expect(result.consumed).toBe(false);
+    expect(result.state).toEqual(state);
+    expect(result.events).toEqual([{ type: "message", text: "Doces Raros só podem ser usados fora de batalha." }]);
+  });
+
   it("resolve um turno completo e termina com vitória", () => {
     const player = createMon("torchic", 30, seeded(11), { perfect: true });
     const foe = createMon("wurmple", 2, seeded(12));

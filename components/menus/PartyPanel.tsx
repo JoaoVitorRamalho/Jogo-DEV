@@ -5,10 +5,12 @@ import { HpBar, MonSprite } from "@/components/hud/MonSprite";
 import { useMenu } from "@/components/menus/useMenu";
 import { STATUS_NAME, move } from "@/data/pokemon/moves";
 import { species } from "@/data/pokemon/species";
+import { abilityOf } from "@/data/pokemon/abilities";
+import { ITEMS } from "@/data/items";
 import { TYPE_COLOR, TYPE_NAME } from "@/data/pokemon/types";
-import { ask } from "@/game/core/ui";
+import { ask, say } from "@/game/core/ui";
 import { type Mon, displayName, expProgress, maxHp, statsOf } from "@/game/pokemon/mon";
-import { useGame } from "@/game/state/store";
+import { giveItem, useGame } from "@/game/state/store";
 
 export function PartyList({
   party,
@@ -30,13 +32,11 @@ export function PartyList({
             <strong>
               {displayName(mon)} {i === active ? <em>em campo</em> : null}
             </strong>
-            <span>
-              Nv. {mon.level} {mon.status ? <i className="status">{STATUS_NAME[mon.status]}</i> : null}
-            </span>
+            <div className="party-meta">
+              <span>Nv. {mon.level} {mon.status ? <i className="status">{STATUS_NAME[mon.status]}</i> : null}</span>
+              <small>{mon.hp}/{maxHp(mon)}</small>
+            </div>
             <HpBar hp={mon.hp} max={maxHp(mon)} />
-            <small>
-              {mon.hp}/{maxHp(mon)}
-            </small>
           </div>
         </li>
       ))}
@@ -46,6 +46,7 @@ export function PartyList({
 
 export function MonSummary({ mon }: { mon: Mon }) {
   const def = species(mon.species);
+  const ability = abilityOf(mon);
   const stats = statsOf(mon);
   return (
     <div className="mon-summary">
@@ -56,6 +57,9 @@ export function MonSummary({ mon }: { mon: Mon }) {
             Nº {def.dex.toString().padStart(3, "0")} {displayName(mon)}
           </strong>
           <span>Nv. {mon.level}</span>
+          <span title={ability.originalName}>Habilidade: {ability.name}</span>
+          <small>{ability.description}</small>
+          {mon.heldItem ? <small>Item: {ITEMS[mon.heldItem].name}</small> : null}
           <span className="types">
             {def.types.map((type) => (
               <b key={type} style={{ background: TYPE_COLOR[type] }}>
@@ -109,14 +113,24 @@ export function PartyPanel({ onClose }: { onClose: () => void }) {
       return;
     }
     setBusy(true);
-    const choice = await ask(["Resumo", "Mudar ordem", "Voltar"], { text: `O que fazer com ${displayName(party[index])}?` }, 2);
+    const held = party[index].heldItem;
+    const options = ["Resumo", "Mudar ordem", ...(held ? ["Retirar item"] : []), "Voltar"];
+    const choice = await ask(options, { text: `O que fazer com ${displayName(party[index])}?` }, options.length - 1);
     setBusy(false);
     if (choice === 0) setSummary(index);
     if (choice === 1) setSwapFrom(index);
+    if (choice === 2 && held) {
+      useGame.getState().update((state) => {
+        const item = state.party[index].heldItem;
+        if (item) { giveItem(state, item, 1); delete state.party[index].heldItem; }
+      });
+      await say(`${ITEMS[held].name} foi guardado na mochila.`);
+    }
   }
 
   const menu = useMenu({
     count: party.length,
+    columns: 2,
     enabled: summary === null && !busy,
     onSelect: select,
     onCancel: () => (swapFrom !== null ? setSwapFrom(null) : onClose()),

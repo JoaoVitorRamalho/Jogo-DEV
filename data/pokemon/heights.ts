@@ -1,5 +1,9 @@
 /** Altura real (m, PokeAPI): o tamanho no mapa acompanha o Pokémon, pequeno fica pequeno e grande fica grande. */
 const HEIGHT_M: Record<string, number> = {
+  poochyena: 0.5, mightyena: 1.0, weedle: 0.3, kakuna: 0.6, beedrill: 1.0,
+  pachirisu: 0.4, bidoof: 0.5, bibarel: 1.0,
+  pidgey: 0.3, pidgeotto: 1.1, pidgeot: 1.5,
+  caterpie: 0.3, metapod: 0.7, butterfree: 1.1,
   bulbasaur: 0.7, ivysaur: 1.0, venusaur: 2.0,
   torchic: 0.4, combusken: 0.9, blaziken: 1.9,
   froakie: 0.3, frogadier: 0.6, greninja: 1.5,

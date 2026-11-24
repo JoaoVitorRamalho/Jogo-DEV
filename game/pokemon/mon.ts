@@ -1,5 +1,7 @@
 import { type StatusId, move } from "@/data/pokemon/moves";
 import { battleSpeciesId } from "@/data/pokemon/mega";
+import { abilitySlots, genderOf, type Gender } from "@/data/pokemon/abilities";
+import type { TypeId } from "@/data/pokemon/types";
 import { type Growth, type Stats, species } from "@/data/pokemon/species";
 import { type Rng, randInt } from "@/game/core/rng";
 
@@ -10,6 +12,13 @@ export type Mon = {
   species: string;
   /** Forma temporária em batalha (mega); não persiste no save. */
   battleForm?: string;
+  battleTypes?: TypeId[];
+  abilitySlot?: number;
+  battleBond?: boolean;
+  gender?: Gender;
+  heldItem?: import("@/data/items").ItemId;
+  /** Ramo evolutivo escolhido ao nascer; não muda ao salvar ou recarregar. */
+  evolutionTarget?: string;
   nickname?: string;
   level: number;
   exp: number;
@@ -60,6 +69,10 @@ export function displayName(mon: Mon): string {
   return mon.nickname || species(battleSpeciesId(mon)).name;
 }
 
+export function typesOf(mon: Pick<Mon, "species" | "battleForm" | "battleTypes">): TypeId[] {
+  return mon.battleTypes ?? species(battleSpeciesId(mon)).types;
+}
+
 export function movesAtLevel(speciesId: string, level: number): string[] {
   const learned: string[] = [];
   for (const [at, id] of species(speciesId).learnset) {
@@ -78,7 +91,7 @@ export function newUid(rng: Rng): string {
   return `${Date.now().toString(36)}-${counter.toString(36)}-${Math.floor(rng() * 1e9).toString(36)}`;
 }
 
-export function createMon(speciesId: string, level: number, rng: Rng, options: { perfect?: boolean; metAt?: string } = {}): Mon {
+export function createMon(speciesId: string, level: number, rng: Rng, options: { perfect?: boolean; metAt?: string; battleBond?: boolean } = {}): Mon {
   const def = species(speciesId);
   const iv = () => (options.perfect ? 31 : randInt(rng, 0, 31));
   const mon: Mon = {
@@ -94,6 +107,14 @@ export function createMon(speciesId: string, level: number, rng: Rng, options: {
     metAt: options.metAt,
   };
   mon.hp = maxHp(mon);
+  const slots = abilitySlots(speciesId).filter((slot) => !slot.hidden);
+  mon.abilitySlot = slots.length > 1 ? slots[randInt(rng, 0, slots.length - 1)].slot : slots[0]?.slot;
+  mon.gender = genderOf(mon);
+  if (speciesId === "greninja" && options.battleBond) mon.battleBond = true;
+  if (def.evolution?.alternatives?.length) {
+    const targets = [def.evolution.into, ...def.evolution.alternatives];
+    mon.evolutionTarget = targets[randInt(rng, 0, targets.length - 1)];
+  }
   return mon;
 }
 
@@ -151,7 +172,7 @@ export function learnMove(mon: Mon, moveId: string, replaceIndex: number | null)
 export function pendingEvolution(mon: Mon): string | null {
   const evolution = species(mon.species).evolution;
   if (!evolution || mon.level < evolution.level || mon.hp <= 0) return null;
-  return evolution.into;
+  return evolution.alternatives?.includes(mon.evolutionTarget ?? "") ? mon.evolutionTarget! : evolution.into;
 }
 
 /** Evolui e ensina os golpes da nova forma: os marcados com nível 0 (ao evoluir) e os do nível atual. */

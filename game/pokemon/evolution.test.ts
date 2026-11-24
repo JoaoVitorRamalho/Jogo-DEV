@@ -5,13 +5,14 @@ import { createMon, evolve, grantLevel, pendingEvolution } from "@/game/pokemon/
 
 const rng = () => 0.5;
 const all = Object.values(SPECIES);
-const evolvedFrom = new Set(all.flatMap((def) => (def.evolution ? [def.evolution.into] : [])));
+const evolvedFrom = new Set(all.flatMap((def) => (def.evolution ? [def.evolution.into, ...(def.evolution.alternatives ?? [])] : [])));
 const bases = all.filter((def) => !evolvedFrom.has(def.id));
 
 describe("dados das espécies", () => {
   test.each(all.map((def) => [def.id, def] as const))("%s: evolução e golpes existem", (_, def) => {
     if (def.evolution) {
       expect(SPECIES[def.evolution.into], `${def.id} evolui para algo que não existe`).toBeDefined();
+      for (const target of def.evolution.alternatives ?? []) expect(SPECIES[target]).toBeDefined();
       expect(def.evolution.level).toBeGreaterThan(1);
     }
     for (const [, id] of def.learnset) expect(MOVES[id], `${def.id} tem golpe inexistente: ${id}`).toBeDefined();
@@ -43,7 +44,8 @@ describe("cada linha evolui até o fim e continua aprendendo golpes", () => {
     let last = SPECIES[id];
     const expected = [last.id];
     while (last.evolution) {
-      last = SPECIES[last.evolution.into];
+      const target = last.evolution.alternatives?.includes(mon.evolutionTarget ?? "") ? mon.evolutionTarget! : last.evolution.into;
+      last = SPECIES[target];
       expected.push(last.id);
     }
     expect(path).toEqual(expected);

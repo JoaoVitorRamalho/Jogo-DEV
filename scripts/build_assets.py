@@ -8,7 +8,7 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
-from build_battle_art import main as build_battle_art, orb
+from build_battle_art import main as build_battle_art
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / ".tmp-art" / "gfx" / "gfx"
@@ -21,6 +21,9 @@ RAW_SPRITES = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/
 RAW_ITEMS = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items"
 # nome do arquivo em ui/items/ -> slug no repositório PokeAPI/sprites
 ITEM_SPRITES: dict[str, str] = {
+    "ball": "poke-ball",
+    "greatball": "great-ball",
+    "rare_candy": "rare-candy",
     "potion": "potion",
     "superpotion": "super-potion",
     "antidote": "antidote",
@@ -35,14 +38,43 @@ ITEM_SPRITES: dict[str, str] = {
     "garchompite": "garchompite",
     "greninja_ash": "ability-capsule",
 }
-# sprite key no jogo -> número nacional (species.dex do representante)
+# sprite key no jogo -> número nacional de cada espécie
 SPRITE_DEX: dict[str, int] = {
+    "poochyena": 261,
+    "mightyena": 262,
+    "weedle": 13,
+    "kakuna": 14,
+    "beedrill": 15,
+    "pikachu": 25,
+    "caterpie": 10,
+    "metapod": 11,
+    "butterfree": 12,
+    "pidgey": 16,
+    "pidgeotto": 17,
+    "pidgeot": 18,
+    "cascoon": 268,
+    "dustox": 269,
+    "bidoof": 399,
+    "bibarel": 400,
+    "pachirisu": 417,
     "bulbasaur": 1,
+    "ivysaur": 2,
+    "venusaur": 3,
     "torchic": 255,
+    "combusken": 256,
+    "blaziken": 257,
     "froakie": 656,
+    "frogadier": 657,
+    "greninja": 658,
     "wurmple": 265,
+    "silcoon": 266,
+    "beautifly": 267,
     "starly": 396,
+    "staravia": 397,
+    "staraptor": 398,
     "gible": 443,
+    "gabite": 444,
+    "garchomp": 445,
     "mew": 151,
     "giratina": 487,
     "charizard": 6,
@@ -52,9 +84,9 @@ MEGA_SPRITE_DEX: dict[str, int] = {
     "venusaur_mega": 10033,
     "charizard_mega_x": 10034,
     "charizard_mega_y": 10035,
-    "blaziken_mega": 10051,
-    "garchomp_mega": 10089,
-    "greninja_ash": 10077,
+    "blaziken_mega": 10050,
+    "garchomp_mega": 10058,
+    "greninja_ash": 10117,
 }
 
 

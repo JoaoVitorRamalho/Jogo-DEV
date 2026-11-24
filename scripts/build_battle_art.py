@@ -318,10 +318,6 @@ def main() -> None:
         build(rng).save(battle / f"bg_{name}.png")
         for side, width in (("enemy", 112), ("player", 136)):
             platform(width, PLATFORMS[name], rng, name != "gym").save(battle / f"platform_{name}_{side}.png")
-    items = OUT / "ui" / "items"
-    items.mkdir(parents=True, exist_ok=True)
-    orb((40, 178, 160), (18, 104, 100), (236, 184, 64), None).save(items / "ball.png")
-    orb((104, 92, 214), (52, 40, 130), (250, 206, 84), "stars").save(items / "greatball.png")
     print("arte da batalha ok")
 
 

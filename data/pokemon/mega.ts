@@ -21,6 +21,7 @@ export type MegaDef = {
   category: string;
   description: string;
   learnset: [number, string][];
+  kind?: "bond";
 };
 
 export const MEGA_STONE_ITEMS: ItemId[] = [
@@ -29,7 +30,6 @@ export const MEGA_STONE_ITEMS: ItemId[] = [
   "charizardite_y",
   "blazikenite",
   "garchompite",
-  "greninja_ash",
 ];
 
 export const MEGA_DEFS: MegaDef[] = [
@@ -41,7 +41,7 @@ export const MEGA_DEFS: MegaDef[] = [
     sprite: "venusaur_mega",
     pokeapiId: 10033,
     types: ["grass", "poison"],
-    dex: 10033,
+    dex: 3,
     category: "Semente",
     baseStats: s(80, 100, 123, 122, 120, 80),
     learnset: [[0, "earthquake"], [1, "vine_whip"], [13, "razor_leaf"], [28, "giga_drain"]],
@@ -55,7 +55,7 @@ export const MEGA_DEFS: MegaDef[] = [
     sprite: "charizard_mega_x",
     pokeapiId: 10034,
     types: ["fire", "dragon"],
-    dex: 10034,
+    dex: 6,
     category: "Chama",
     baseStats: s(78, 130, 111, 130, 85, 100),
     learnset: [[0, "dragon_claw"], [1, "flamethrower"], [1, "wing_attack"]],
@@ -69,7 +69,7 @@ export const MEGA_DEFS: MegaDef[] = [
     sprite: "charizard_mega_y",
     pokeapiId: 10035,
     types: ["fire", "flying"],
-    dex: 10035,
+    dex: 6,
     category: "Chama",
     baseStats: s(78, 104, 78, 159, 115, 100),
     learnset: [[0, "heat_wave"], [1, "flamethrower"], [1, "wing_attack"]],
@@ -81,9 +81,9 @@ export const MEGA_DEFS: MegaDef[] = [
     baseSpecies: "blaziken",
     stone: "blazikenite",
     sprite: "blaziken_mega",
-    pokeapiId: 10051,
+    pokeapiId: 10050,
     types: ["fire", "fighting"],
-    dex: 10051,
+    dex: 257,
     category: "Chama",
     baseStats: s(80, 160, 80, 130, 80, 100),
     learnset: [[0, "flare_blitz"], [1, "blaze_kick"], [1, "close_combat"]],
@@ -95,9 +95,9 @@ export const MEGA_DEFS: MegaDef[] = [
     baseSpecies: "garchomp",
     stone: "garchompite",
     sprite: "garchomp_mega",
-    pokeapiId: 10089,
+    pokeapiId: 10058,
     types: ["dragon", "ground"],
-    dex: 10089,
+    dex: 445,
     category: "Mach",
     baseStats: s(108, 170, 115, 120, 95, 92),
     learnset: [[0, "earthquake"], [1, "dragon_claw"], [1, "crunch"]],
@@ -105,13 +105,14 @@ export const MEGA_DEFS: MegaDef[] = [
   },
   {
     id: "greninja_ash",
-    name: "Greninja Forma Ash",
+    kind: "bond",
+    name: "Greninja Ash",
     baseSpecies: "greninja",
     stone: "greninja_ash",
     sprite: "greninja_ash",
-    pokeapiId: 10077,
+    pokeapiId: 10117,
     types: ["water", "dark"],
-    dex: 10077,
+    dex: 658,
     category: "Ninja",
     baseStats: s(72, 145, 67, 153, 71, 132),
     learnset: [[0, "water_shuriken"], [1, "dark_pulse"], [1, "surf"]],
@@ -144,6 +145,6 @@ export function availableMegas(
   bag: Partial<Record<ItemId, number>>,
   megaUsed: Record<string, boolean>,
 ): MegaDef[] {
-  if (mon.hp <= 0 || mon.battleForm || megaUsed[mon.uid]) return [];
+  if (mon.hp <= 0 || mon.battleForm || Object.values(megaUsed).some(Boolean)) return [];
   return megaFormsFor(mon.species).filter((m) => (bag[m.stone] ?? 0) > 0);
 }

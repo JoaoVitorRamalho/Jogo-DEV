@@ -21,7 +21,7 @@ export type ItemId =
 export type ItemDef = {
   id: ItemId;
   name: string;
-  pocket: "medicine" | "balls" | "mega";
+  pocket: "medicine" | "balls" | "training" | "mega";
   price: number;
   icon: string;
   heal?: number;
@@ -42,7 +42,7 @@ const list: ItemDef[] = [
   { id: "burn_heal", name: "Antiqueimadura", pocket: "medicine", price: 250, icon: "burn_heal", cures: ["burn"], description: "Cura queimaduras." },
   { id: "pokeball", name: "Pokébola", pocket: "balls", price: 200, icon: "ball", ball: 1, description: "Captura Pokémon selvagens." },
   { id: "greatball", name: "Grande Bola", pocket: "balls", price: 600, icon: "greatball", ball: 1.5, description: "Captura melhor que a Pokébola." },
-  { id: "rare_candy", name: "Doce Raro", pocket: "medicine", price: 0, icon: "superpotion", candy: true, description: "Sobe 1 nível. Se chegar na evolução, ela acontece." },
+  { id: "rare_candy", name: "Doce Raro", pocket: "training", price: 0, icon: "rare_candy", candy: true, description: "Sobe 1 nível fora de batalha. Se chegar na evolução, ela acontece." },
   { id: "infinite_potion", name: "Poção Infinita", pocket: "medicine", price: 0, icon: "potion", heal: 999, infinite: true, description: "Recupera todos os PS e não acaba." },
   { id: "venusaurite", name: "Venusaurita", pocket: "mega", price: 0, icon: "venusaurite", mega: true, description: "Faz Venusaur mega evoluir em batalha." },
   { id: "charizardite_x", name: "Charizardita X", pocket: "mega", price: 0, icon: "charizardite_x", mega: true, description: "Mega Evolução X de Charizard." },
@@ -52,12 +52,16 @@ const list: ItemDef[] = [
   {
     id: "greninja_ash",
     name: "Cristal Ash",
-    pocket: "mega",
+    pocket: "training",
     price: 0,
     icon: "greninja_ash",
-    mega: true,
-    description: "Desperta a forma Ash de Greninja. Só em eventos de história.",
+    description: "Concede Laço de Batalha e libera a opção manual Forma Ash para Greninja durante a batalha.",
   },
 ];
 
 export const ITEMS: Record<ItemId, ItemDef> = Object.fromEntries(list.map((item) => [item.id, item])) as Record<ItemId, ItemDef>;
+
+export function canUseInBattle(id: ItemId, kind: "wild" | "trainer"): boolean {
+  const item = ITEMS[id];
+  return Boolean(!item.candy && (item.heal || item.cures?.length || (kind === "wild" && item.ball)));
+}

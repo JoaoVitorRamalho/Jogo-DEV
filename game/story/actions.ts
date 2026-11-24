@@ -1,7 +1,7 @@
-import { ENCOUNTERS } from "@/data/encounters";
+import { encountersFor } from "@/data/encounters";
 import { ITEMS, type ItemId } from "@/data/items";
 import { species } from "@/data/pokemon/species";
-import { TRAINERS } from "@/data/trainers";
+import { TRAINERS, rollTrainerTeam } from "@/data/trainers";
 import type { BattleConfig, Outcome } from "@/game/battle/engine";
 import { defaultRng } from "@/game/core/rng";
 import { type Line, ask, battle, say, useUi } from "@/game/core/ui";
@@ -109,7 +109,7 @@ export async function trainerBattle(id: string, npc: string, seen = false): Prom
   }
   if (!seen) await world().emote(npc, "!");
   await talk(def.name, ...def.intro);
-  const foeParty = def.team.map((member) => createMon(member.species, member.level, defaultRng));
+  const foeParty = rollTrainerTeam(def).map((member) => createMon(member.species, member.level, defaultRng));
   const outcome = await runBattle({ kind: "trainer", foeParty, trainerName: def.name, reward: def.reward, background: def.background });
   if (outcome === "win") {
     useGame.getState().grantOnce(`beat_${id}`, (s) => {
@@ -126,6 +126,7 @@ export async function trainerBattle(id: string, npc: string, seen = false): Prom
 export async function spottedBy(id: string, npc: string): Promise<void> {
   if (flag(`beat_${id}`) || !hasHealthyMon()) return;
   const w = world();
+  const map = w.mapKey();
   const from = w.npcTile(npc);
   if (!from) return;
   await w.emote(npc, "!");
@@ -140,6 +141,9 @@ export async function spottedBy(id: string, npc: string): Promise<void> {
   w.faceNpcToPlayer(npc);
   const won = await trainerBattle(id, npc, true);
   if (won) {
+    // Devolve o treinador ao ponto de origem para não fechar uma trilha estreita.
+    const reverse: Record<Direction, Direction> = { up: "down", down: "up", left: "right", right: "left" };
+    if (w.mapKey() === map) await w.moveNpc(npc, [...steps].reverse().map((step) => reverse[step]));
     useGame.getState().update((s) => healParty(s));
     playSfx("heal");
     await talk(TRAINERS[id].name, "Toma, deixa eu cuidar do seu parceiro. Assim você segue inteiro.");
@@ -147,7 +151,7 @@ export async function spottedBy(id: string, npc: string): Promise<void> {
 }
 
 export async function wildEncounter(mapKey: string): Promise<void> {
-  const table = ENCOUNTERS[mapKey];
+  const table = encountersFor(mapKey, state());
   if (!table || !hasHealthyMon()) return;
   const total = table.grass.reduce((sum, slot) => sum + slot.weight, 0);
   let roll = Math.random() * total;

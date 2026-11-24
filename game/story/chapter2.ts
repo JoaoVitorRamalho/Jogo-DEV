@@ -43,7 +43,7 @@ async function arrival(): Promise<void> {
   await talk("Gael", "Vou treinar um pouco. Quando ela voltar, quem chegar primeiro leva!");
   await w.moveNpc("gael_ferruria", ["up", "up", "up", "up", "up"]);
   w.setNpcVisible("gael_ferruria", false);
-  await goal("Explore Ferrúria. O Centro de Cura e a loja ficam na rua de cima.");
+  await goal("O Centro de Cura e a loja ficam na rua de cima. Para desafiar o ginásio, procure Cora na clareira central da Floresta de Aster, ao sul da Rota 2.");
   autosave();
 }
 
@@ -108,7 +108,7 @@ async function gymGate(): Promise<boolean> {
   await talk("Guia do Ginásio", "Essa mesma. Fica depois da Rota 2, para o sul. Se encontrar a Cora, diz que a cidade está esperando.");
   if (!flag("ch2_gym_closed")) {
     setFlag("ch2_gym_closed");
-    await goal("Volte pela Rota 2 até a Floresta de Aster e procure a líder Cora.");
+    await goal("Volte ao sul pela Rota 2. Cora está na clareira central da Floresta de Aster, a oeste da trilha norte.");
     autosave();
   }
   return false;
@@ -127,14 +127,14 @@ async function coraForest(): Promise<void> {
   await talk("Pesquisador", "O Grupo Thomas cuida disso, líder. Aliás, a obra da estrada norte também é nossa.", "Logo Ferrúria vai estar ligada a Verdelume. Progresso, sabe?");
   await w.emote("cora_forest", "...");
   await talk("Pesquisador", "Bom, já tenho as leituras. Com licença.");
-  await w.moveNpc("thomas_researcher", ["up", "up", "up"]);
+  await w.moveNpc("thomas_researcher", ["left", "left", "up", "up", "up"]);
   w.setNpcVisible("thomas_researcher", false);
   await think("Um frio passou pela trilha quando ele saiu. Igual ao que a professora Lira anotava nos cadernos dela.");
   w.faceNpcToPlayer("cora_forest");
   await talk("Cora", "Não gostei dele. Mas não dá para resolver isso hoje.", "Você atravessou a floresta para me encontrar, não foi? Veio pela insígnia.");
   await talk(hero(), "Vim. E a cidade inteira está te esperando.");
   await talk("Cora", "Então vamos. Eu abro o ginásio e te espero lá dentro.", "Meu ginásio é um viveiro. Os casulos abrem e fecham as teias. Use a cabeça, não só a força.");
-  await w.moveNpc("cora_forest", ["right", "up", "up", "up"]);
+  await w.moveNpc("cora_forest", ["right", "right", "right", "up", "up", "up"]);
   w.setNpcVisible("cora_forest", false);
   setFlag("ch2_met_cora");
   await goal("Volte a Ferrúria. O ginásio da Cora está aberto.");
@@ -335,7 +335,6 @@ export const CH2_SIGNS: Record<string, string[]> = {
   sign_mart: ["Loja do Joca.", "Poções, Pokébolas e tudo para a estrada."],
   sign_works: ["OBRAS DO GRUPO THOMAS.", "Estrada Ferrúria–Verdelume. Passagem proibida."],
   sign_lake: ["Lago da Praça.", "Proibido nadar. Pescar pode."],
-  center_pc: ["O computador do Centro.", "O sistema de guardar Pokémon chega na próxima atualização."],
   house_locked: ["A porta está trancada."],
   house_locked_2: ["Tem alguém cozinhando lá dentro. Cheira a bolo de fubá."],
   house_locked_3: ["A porta está trancada. Uma plaquinha diz: Família Torres."],
@@ -344,18 +343,20 @@ export const CH2_SIGNS: Record<string, string[]> = {
 };
 
 export const CH2_SIGN_RUN: Record<string, () => Promise<void>> = {
+  center_pc: async () => { useUi.getState().setPanel("pc"); },
   center_desk: nurse,
   mart_desk: shop,
 };
 
 const WEB_A = () => !flag("gym_switch");
 const WEB_B = () => flag("gym_switch");
+const CORA_IN_FOREST = () => (ch2() || flag("ch2_gym_closed")) && !flag("ch2_met_cora");
 
 export const CH2_VISIBLE: Record<string, () => boolean> = {
   gael_ferruria: () => (flag("chapter1_complete") && !ch2()) || (badge() && !flag("ch2_rival")),
   gael_gym: () => false,
-  cora_forest: () => flag("ch2_gym_closed") && !flag("ch2_met_cora"),
-  thomas_researcher: () => flag("ch2_gym_closed") && !flag("ch2_met_cora"),
+  cora_forest: CORA_IN_FOREST,
+  thomas_researcher: CORA_IN_FOREST,
   gym_guard: () => !flag("ch2_met_cora"),
   ranger_r2: () => !flag("r2_grove_open"),
   item_r2_super: () => !flag("r2_item_super"),
@@ -385,7 +386,7 @@ export async function ch2Enter(key: string): Promise<void> {
     if (tile.x === 7 && tile.y === 10) await rival();
   }
   if (key === "ferruria_gym" && flag("ch2_met_cora") && !flag("ch2_gym_intro")) await gymIntro();
-  if (key === "forest" && flag("ch2_gym_closed") && !flag("ch2_met_cora")) await goal("A Cora deve estar no meio da floresta, perto da trilha.");
+  if (key === "forest" && CORA_IN_FOREST()) await goal("Cora está na clareira central, a oeste da trilha que vem da Rota 2. Procure a treinadora de chapéu e cabelo verde.");
 }
 
 /** null = o capítulo 2 não tem opinião sobre essa passagem. */

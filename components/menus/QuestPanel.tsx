@@ -18,7 +18,7 @@ export function QuestPanel({ onClose }: { onClose: () => void }) {
     onLeft: () => setTab((value) => (value + 1) % 2),
     onRight: () => setTab((value) => (value + 1) % 2),
   });
-  const quest = QUESTS[0];
+  const quest = QUESTS[flags.chapter1_complete ? 1 : 0];
   const progress = questProgress(quest, flags);
 
   return (

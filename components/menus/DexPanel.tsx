@@ -4,6 +4,7 @@ import { useState } from "react";
 import { MonSprite } from "@/components/hud/MonSprite";
 import { useMenu } from "@/components/menus/useMenu";
 import { DEX_ORDER, species } from "@/data/pokemon/species";
+import { ABILITIES, abilitySlots } from "@/data/pokemon/abilities";
 import { TYPE_COLOR, TYPE_NAME } from "@/data/pokemon/types";
 import { useGame } from "@/game/state/store";
 
@@ -37,6 +38,7 @@ export function DexPanel({ onClose }: { onClose: () => void }) {
               ))}
             </span>
             <p>{caught ? species(current).description : "Capture este Pokémon para registrar mais dados."}</p>
+            {caught ? <small>Habilidades: {abilitySlots(current).map((slot) => `${ABILITIES[slot.id].name}${slot.hidden ? " (oculta)" : ""}`).join(" · ")}</small> : null}
           </div>
         </div>
       ) : (

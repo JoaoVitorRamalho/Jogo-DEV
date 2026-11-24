@@ -5,15 +5,15 @@ import { PartyList } from "@/components/menus/PartyPanel";
 import { useMenu } from "@/components/menus/useMenu";
 import { ITEMS, type ItemDef, type ItemId } from "@/data/items";
 import { move } from "@/data/pokemon/moves";
-import { species } from "@/data/pokemon/species";
 import { ask, say, playEvolution } from "@/game/core/ui";
-import { displayName, evolve, grantLevel, learnMove, maxHp } from "@/game/pokemon/mon";
+import { displayName, evolve, grantLevel, learnMove, maxHp, pendingEvolution } from "@/game/pokemon/mon";
 import { markCaught, takeItem, useGame } from "@/game/state/store";
 import { playSfx } from "@/lib/audio/engine";
 
 const POCKETS: { id: ItemDef["pocket"]; label: string }[] = [
   { id: "medicine", label: "Remédios" },
   { id: "balls", label: "Pokébolas" },
+  { id: "training", label: "Treino" },
   { id: "mega", label: "Pedras Mega" },
 ];
 
@@ -73,7 +73,13 @@ export function BagPanel({ onClose }: { onClose: () => void }) {
     const def = ITEMS[target];
     const mon = live.party[index];
     let message = "Não terá efeito.";
-    if (def.candy) {
+    if (target === "greninja_ash") {
+      if (mon.species !== "greninja") message = "Este cristal só reage a Greninja.";
+      else {
+        useGame.getState().update((state) => { state.party[index].battleBond = true; });
+        message = `${displayName(mon)} recebeu a habilidade Laço de Batalha!`;
+      }
+    } else if (def.candy) {
       if (mon.level >= 100) message = `${displayName(mon)} já está no nível máximo.`;
       else {
         const name = displayName(mon);
@@ -95,14 +101,14 @@ export function BagPanel({ onClose }: { onClose: () => void }) {
           for (const learned of gained.learned) await say(`${displayName(updated)} aprendeu ${move(learned).name}!`);
           for (const pending of gained.pending) await forgetMove(updated.uid, pending);
           const current = useGame.getState().live?.party.find((entry) => entry.uid === updated.uid);
-          const evo = current ? species(current.species).evolution : undefined;
-          if (current && evo && current.level >= evo.level) {
-            await playEvolution(current.species, evo.into);
+          const into = current ? pendingEvolution(current) : null;
+          if (current && into) {
+            await playEvolution(current.species, into);
             let taught = { learned: [] as string[], pending: [] as string[] };
             useGame.getState().update((state) => {
               const next = state.party.find((entry) => entry.uid === current.uid);
-              if (next) taught = evolve(next, evo.into);
-              markCaught(state, evo.into);
+              if (next) taught = evolve(next, into);
+              markCaught(state, into);
             });
             const evolved = useGame.getState().live?.party.find((entry) => entry.uid === current.uid);
             if (evolved) for (const learned of taught.learned) await say(`${displayName(evolved)} aprendeu ${move(learned).name}!`);
@@ -142,7 +148,7 @@ export function BagPanel({ onClose }: { onClose: () => void }) {
     onLeft: () => setPocket((value) => (value + POCKETS.length - 1) % POCKETS.length),
     onRight: () => setPocket((value) => (value + 1) % POCKETS.length),
   });
-  const targetMenu = useMenu({ count: live?.party.length ?? 0, enabled: target !== null, onSelect: applyTo, onCancel: () => setTarget(null) });
+  const targetMenu = useMenu({ count: live?.party.length ?? 0, columns: 2, enabled: target !== null, onSelect: applyTo, onCancel: () => setTarget(null) });
   const selected = items[list.index];
 
   return (

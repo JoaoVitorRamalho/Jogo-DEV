@@ -1,0 +1,86 @@
+{
+  "venusaur_mega.png": {
+    "size": [
+      96,
+      96
+    ],
+    "rgbaSha256": "09c7c616b06c0426e5eac4edd66f7f1ce6e5531e7b96709318507399dbab021f"
+  },
+  "venusaur_mega_back.png": {
+    "size": [
+      96,
+      96
+    ],
+    "rgbaSha256": "50fec2f03f04ec80ef0838bf9008d19469aaf476badb1dd8c0077b0d346603ce"
+  },
+  "charizard_mega_x.png": {
+    "size": [
+      96,
+      96
+    ],
+    "rgbaSha256": "0c93225de1b3e6463164c48d8f39309b4df7cb8a39fbd96f85fff8ca5d4349bc"
+  },
+  "charizard_mega_x_back.png": {
+    "size": [
+      96,
+      96
+    ],
+    "rgbaSha256": "0e7c6d3f8565726f4c370f154a3de6a373eea643b7a235a60403bcf3fa8132f9"
+  },
+  "charizard_mega_y.png": {
+    "size": [
+      96,
+      96
+    ],
+    "rgbaSha256": "3231174904301aa47cfdcc69b1d8b7f135d7de6fdc64d7c86105f81cbde5f875"
+  },
+  "charizard_mega_y_back.png": {
+    "size": [
+      96,
+      96
+    ],
+    "rgbaSha256": "5272b26ebbf5b844f3732d6f78260b1113e782db6b98214b1258d5c0f887dfc4"
+  },
+  "blaziken_mega.png": {
+    "size": [
+      96,
+      96
+    ],
+    "rgbaSha256": "2c70139718824259f5b6398978d564bdf2db2727742b345b0e86de82fa6ba4e5"
+  },
+  "blaziken_mega_back.png": {
+    "size": [
+      96,
+      96
+    ],
+    "rgbaSha256": "0cb4c57dc13e6d057aa33cfd57bc97fd1475ede29173a9b4e3213794c2c3b330"
+  },
+  "garchomp_mega.png": {
+    "size": [
+      96,
+      96
+    ],
+    "rgbaSha256": "7a0f0b5e2e82e37655a5f83bd31615bca4e25b4bf50489cfcee7145c5656f660"
+  },
+  "garchomp_mega_back.png": {
+    "size": [
+      96,
+      96
+    ],
+    "rgbaSha256": "fff686c2a9426da6c4c42df71fba3d96a86fa29b212f688633ebb98979bca9ed"
+  },
+  "greninja_ash.png": {
+    "size": [
+      96,
+      96
+    ],
+    "rgbaSha256": "9036485ab8385f2a80e52a414430db2d9e3e27856b1bca3449321ca041e4035a"
+  },
+  "greninja_ash_back.png": {
+    "size": [
+      96,
+      96
+    ],
+    "rgbaSha256": "92289bcf3fef990db04986dfd2986ec007497db91a73468186a887e375c9a840"
+  }
+}

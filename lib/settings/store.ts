@@ -76,6 +76,18 @@ export const useSettings = create<Settings>()(
           deadzone: DEFAULT_DEADZONE,
         }),
     }),
-    { name: "jornada-settings" },
+    {
+      name: "jornada-settings",
+      version: 1,
+      migrate: (persisted) => {
+        const settings = persisted as Partial<Settings>;
+        const keys = settings.keyboard;
+        // Atualiza o padrão antigo também em instalações que já salvaram opções.
+        if (keys?.run[0] === "ShiftLeft" && keys.run[1] === "ShiftRight") {
+          return { ...settings, keyboard: { ...keys, run: DEFAULT_KEYBOARD.run } };
+        }
+        return settings;
+      },
+    },
   ),
 );

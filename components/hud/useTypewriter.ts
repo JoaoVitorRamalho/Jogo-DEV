@@ -1,11 +1,19 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { TEXT_SPEEDS, useSettings } from "@/lib/settings/store";
 
 export function useTypewriter(text: string, cps = 48) {
   const [progress, setProgress] = useState({ text: "", count: 0 });
   const fast = useRef(false);
+  const currentText = useRef(text);
+  currentText.current = text;
+  // Battle sequences can retain this callback across several messages.
+  // Always finish the text currently on screen, even from an older render.
+  const finish = useCallback(() => {
+    const latest = currentText.current;
+    setProgress({ text: latest, count: latest.length });
+  }, []);
   useEffect(() => {
     setProgress({ text, count: 0 });
     if (!text) return undefined;
@@ -29,7 +37,7 @@ export function useTypewriter(text: string, cps = 48) {
   return {
     shown: text.slice(0, count),
     done: progress.text === text && count >= text.length,
-    finish: () => setProgress({ text, count: text.length }),
+    finish,
     setFast: (value: boolean) => {
       fast.current = value;
     },

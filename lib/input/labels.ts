@@ -86,8 +86,10 @@ export function assignKey(action: Action, slot: number, code: string): void {
   const next = {} as Record<Action, KeyPair>;
   for (const name of ACTIONS) {
     const pair: KeyPair = [...current[name]];
-    if (pair[0] === code) pair[0] = "";
-    if (pair[1] === code) pair[1] = "";
+    // Correr no mapa e cancelar nos menus podem compartilhar a mesma tecla.
+    const shared = (action === "run" && name === "cancel") || (action === "cancel" && name === "run");
+    if (!shared && pair[0] === code) pair[0] = "";
+    if (!shared && pair[1] === code) pair[1] = "";
     next[name] = pair;
   }
   const mine: KeyPair = [...next[action]];

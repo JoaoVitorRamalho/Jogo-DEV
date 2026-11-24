@@ -22,6 +22,19 @@ export const QUESTS: QuestDef[] = [
       { flag: "chapter1_complete", text: "Saia de Brisamar e comece a jornada." },
     ],
   },
+  {
+    id: "act2_silk",
+    title: "Ninho de Seda",
+    act: 2,
+    steps: [
+      { flag: "ch2_started", text: "Atravesse a Rota 2 para o norte e chegue a Ferrúria." },
+      { flag: "ch2_met_cora", text: "Encontre Cora na clareira central da Floresta de Aster, a oeste da trilha norte." },
+      { flag: "ch2_gym_intro", text: "Volte ao ginásio de telhado verde, no noroeste de Ferrúria." },
+      { flag: "beat_leader_cora", text: "Abra as teias usando os casulos e enfrente Cora." },
+      { flag: "ch2_rival", text: "Saia do ginásio e enfrente Gael." },
+      { flag: "chapter2_complete", text: "Investigue a obra na saída norte de Ferrúria." },
+    ],
+  },
 ];
 
 export function questProgress(quest: QuestDef, flags: Record<string, unknown>): { done: number; current: QuestStep | null } {

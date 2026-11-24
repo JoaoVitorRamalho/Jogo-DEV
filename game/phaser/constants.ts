@@ -1,14 +1,11 @@
-import { MEGA_SPRITE_KEYS } from "@/data/pokemon/mega";
-import { species } from "@/data/pokemon/species";
+import { SPECIES, species } from "@/data/pokemon/species";
 
 export const VIEW_W = 240;
 export const VIEW_H = 160;
 export const TILE = 16;
 
 export const MAP_KEYS = ["brisamar", "house_1f", "house_2f", "neighbor", "lab", "clinic", "route1", "clearing", "forest", "route2", "ferruria", "ferruria_lab", "ferruria_center", "ferruria_gym", "ferruria_mart", "ferruria_house"] as const;
-const BASE_MON_SPRITES = ["torchic", "bulbasaur", "froakie", "wurmple", "starly", "gible", "mew", "giratina", "charizard"] as const;
-
-export const MON_SPRITES = [...BASE_MON_SPRITES, ...MEGA_SPRITE_KEYS] as const;
+export const MON_SPRITES = [...new Set(Object.values(SPECIES).map((mon) => mon.sprite))];
 
 const LOADED_SPRITES = new Set<string>(MON_SPRITES);
 

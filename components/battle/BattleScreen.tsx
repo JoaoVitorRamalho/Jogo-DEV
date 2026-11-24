@@ -7,7 +7,7 @@ import { useTypewriter } from "@/components/hud/useTypewriter";
 import { ItemIcon } from "@/components/menus/BagPanel";
 import { PartyList } from "@/components/menus/PartyPanel";
 import { useMenu } from "@/components/menus/useMenu";
-import { ITEMS, type ItemId } from "@/data/items";
+import { ITEMS, type ItemId, canUseInBattle } from "@/data/items";
 import { STATUS_NAME, type StatusId, move } from "@/data/pokemon/moves";
 import { species } from "@/data/pokemon/species";
 import { TYPE_COLOR, TYPE_NAME } from "@/data/pokemon/types";
@@ -20,11 +20,14 @@ import { type Mon, displayName, evolve, expProgress, learnMove, maxHp, pendingEv
 import { addMon, markCaught, useGame } from "@/game/state/store";
 import { playCry, playSfx, playVictory } from "@/lib/audio/engine";
 import { useInputFrame } from "@/lib/input/engine";
+import { collectPickup } from "@/game/pokemon/pickup";
 
 type Hud = { name: string; level: number; hp: number; max: number; status: StatusId | null; exp: number };
 type Mode = "busy" | "action" | "moves" | "bag" | "target" | "party";
 
 const ACTIONS = ["Lutar", "Mochila", "Pokémon", "Fugir"];
+const BAG_POCKETS = [{ id: "medicine", label: "Cura" }, { id: "balls", label: "Pokébolas" }] as const;
+const BAG_PAGE_SIZE = 5;
 const STATUS_TINT: Record<StatusId, number> = { burn: 0xff6030, poison: 0xa040c0, paralysis: 0xf0d030, sleep: 0x8080a0, freeze: 0x80d0ff };
 
 function hudOf(mon: Mon): Hud {
@@ -51,16 +54,20 @@ function BattleRun({ request }: { request: BattleRequest }) {
   const visualsRef = useRef<BattleVisuals | null>(null);
   const leveled = useRef(new Set<string>());
   const started = useRef(false);
+  const turnBusy = useRef(false);
   /** Espécie que está em campo de cada lado, para o grito certo quando ela desmaia. */
   const onField = useRef<Record<Side, string | null>>({ player: null, foe: null });
   const [foe, setFoe] = useState<Hud | null>(null);
   const [mine, setMine] = useState<Hud | null>(null);
-  const [message, setMessage] = useState("");
+  const [message, setMessageState] = useState({ text: "" });
+  const setMessage = (text: string) => setMessageState({ text });
   const [mode, setMode] = useState<Mode>("busy");
   const [forced, setForced] = useState(false);
   const [pendingItem, setPendingItem] = useState<ItemId | null>(null);
+  const [pendingMega, setPendingMega] = useState<ItemId | null>(null);
+  const [bagPocket, setBagPocket] = useState(0);
   const [, force] = useState(0);
-  const typer = useTypewriter(message, 60);
+  const typer = useTypewriter(message.text, 60);
   const typedRef = useRef(false);
   const messageGen = useRef(0);
   typedRef.current = typer.done;
@@ -217,16 +224,16 @@ function BattleRun({ request }: { request: BattleRequest }) {
           break;
         case "throw":
           playSfx("ball");
-          await v?.throwBall(event.shakes, event.caught);
+          await v?.throwBall(event.shakes, event.caught, event.item);
           if (event.caught) playSfx("catch");
           break;
         case "mega": {
           const mon = st[event.side].party[st[event.side].active];
           playSfx("levelup");
-          await playEvolution(event.from, event.to);
-          patchHud(event.side, { name: displayName(mon), max: maxHp(mon), hp: mon.hp });
-          await v?.sendOut(event.side, spriteOf(battleSpeciesId(mon)));
-          playCry(mon.species);
+          await v?.transform(event.side, spriteOf(event.to));
+          patchHud(event.side, { name: displayName(mon), max: maxHp(mon) });
+          onField.current[event.side] = event.to;
+          playCry(event.to);
           break;
         }
         default:
@@ -242,7 +249,10 @@ function BattleRun({ request }: { request: BattleRequest }) {
     const caught = st.caught;
     const newSpecies = caught ? !useGame.getState().live?.dex.caught.includes(caught.species) : false;
     useGame.getState().update((state) => {
-      for (const mon of st.player.party) delete mon.battleForm;
+      for (const mon of st.player.party) {
+        delete mon.battleForm;
+        delete mon.battleTypes;
+      }
       state.party = st.player.party;
       state.bag = st.bag;
       if (caught) placed = addMon(state, caught);
@@ -266,6 +276,14 @@ function BattleRun({ request }: { request: BattleRequest }) {
       if (evolved) {
         for (const id of taught.learned) await show(`${displayName(evolved)} aprendeu ${move(id).name}!`);
         for (const id of taught.pending) await learnFlow(uid, id, true);
+      }
+    }
+    if (outcome !== "lose") {
+      let found: ReturnType<typeof collectPickup> = [];
+      useGame.getState().update((state) => { found = collectPickup(state.party, defaultRng); });
+      for (const entry of found) {
+        const mon = useGame.getState().live?.party.find((candidate) => candidate.uid === entry.uid);
+        if (mon) await show(`${displayName(mon)} encontrou ${ITEMS[entry.item].name} com Coleta!`);
       }
     }
     visualsRef.current?.end();
@@ -295,14 +313,20 @@ function BattleRun({ request }: { request: BattleRequest }) {
 
   async function takeTurn(action: Action) {
     const prev = stateRef.current;
-    if (!prev) return;
-    setMode("busy");
-    const result = runTurn(prev, action, defaultRng);
-    prevRef.current = prev;
-    if (result.consumed) stateRef.current = result.state;
-    await play(result.events);
-    force((n) => n + 1);
-    await next();
+    if (!prev || turnBusy.current) return;
+    turnBusy.current = true;
+    try {
+      setMode("busy");
+      const result = runTurn(prev, action, defaultRng);
+      if (result.consumed) setPendingMega(null);
+      prevRef.current = prev;
+      if (result.consumed) stateRef.current = result.state;
+      await play(result.events);
+      force((n) => n + 1);
+      await next();
+    } finally {
+      turnBusy.current = false;
+    }
   }
 
   useEffect(() => {
@@ -330,9 +354,11 @@ function BattleRun({ request }: { request: BattleRequest }) {
   const st = stateRef.current;
   const active = st ? activeOf(st, "player") : null;
   const megaOptions = st && active ? availableMegas(active, st.bag, st.megaUsed) : [];
-  const actionLabels = megaOptions.length ? (["Lutar", "Mega", "Mochila", "Pokémon", "Fugir"] as const) : (ACTIONS as readonly string[]);
+  const transformLabel = megaOptions[0]?.kind === "bond" ? "Forma Ash" : "Mega";
+  const actionLabels = megaOptions.length ? (["Lutar", transformLabel, "Mochila", "Pokémon", "Fugir"] as const) : (ACTIONS as readonly string[]);
+  const pockets = st?.kind === "wild" ? BAG_POCKETS : BAG_POCKETS.slice(0, 1);
   const usable = st
-    ? (Object.entries(st.bag) as [ItemId, number][]).filter(([id, count]) => count > 0 && (ITEMS[id].pocket === "medicine" || st.kind === "wild"))
+    ? (Object.entries(st.bag) as [ItemId, number][]).filter(([id, count]) => count > 0 && ITEMS[id].pocket === pockets[bagPocket].id && canUseInBattle(id, st.kind))
     : [];
 
   const actionMenu = useMenu({
@@ -341,59 +367,73 @@ function BattleRun({ request }: { request: BattleRequest }) {
     enabled: mode === "action",
     onSelect: (index) => {
       const label = actionLabels[index];
-      if (label === "Lutar") setMode("moves");
-      else if (label === "Mega") {
+      if (label === "Lutar") { setPendingMega(null); setMode("moves"); }
+      else if (label === transformLabel) {
         void (async () => {
-          if (megaOptions.length === 1) void takeTurn({ type: "mega", stone: megaOptions[0].stone });
-          else {
+          let chosen = megaOptions[0];
+          if (megaOptions.length > 1) {
             const names = megaOptions.map((m) => ITEMS[m.stone].name);
             const pick = await ask(names, { text: "Qual Mega Evolução?" }, names.length - 1);
-            const chosen = megaOptions[pick];
-            if (chosen) void takeTurn({ type: "mega", stone: chosen.stone });
-            else setMode("action");
+            chosen = megaOptions[pick];
           }
+          if (chosen) { setPendingMega(chosen.stone); setMode("moves"); }
         })();
       } else if (label === "Mochila") setMode("bag");
       else if (label === "Pokémon") setMode("party");
       else if (label === "Fugir") void takeTurn({ type: "run" });
     },
   });
+  function chooseMove(index: number) {
+    if (!active) return;
+    if (active.moves[index].pp <= 0) {
+      setMode("busy");
+      void show("Não há PP para esse golpe!").then(() => setMode("moves"));
+      return;
+    }
+    void takeTurn({ type: "move", index, ...(pendingMega ? { mega: pendingMega } : {}) });
+  }
+
   const moveMenu = useMenu({
     count: active?.moves.length ?? 0,
     columns: 2,
     enabled: mode === "moves",
-    onSelect: (index) => {
-      if (!active) return;
-      if (active.moves[index].pp <= 0) {
-        void show("Não há PP para esse golpe!").then(() => setMode("moves"));
-        return;
-      }
-      void takeTurn({ type: "move", index });
-    },
-    onCancel: () => setMode("action"),
+    onSelect: chooseMove,
+    onCancel: () => { setPendingMega(null); setMode("action"); },
   });
+  function changePocket(index: number) {
+    setBagPocket(index);
+    bagMenu.setIndex(0);
+  }
+
+  function useBagItem(index: number) {
+    const entry = usable[index];
+    if (!entry) return;
+    if (ITEMS[entry[0]].ball) void takeTurn({ type: "item", item: entry[0] });
+    else {
+      setPendingItem(entry[0]);
+      setMode("target");
+    }
+  }
+
   const bagMenu = useMenu({
     count: usable.length,
     enabled: mode === "bag",
-    onSelect: (index) => {
-      const entry = usable[index];
-      if (!entry) return;
-      if (ITEMS[entry[0]].ball) void takeTurn({ type: "item", item: entry[0] });
-      else {
-        setPendingItem(entry[0]);
-        setMode("target");
-      }
-    },
+    onSelect: useBagItem,
+    onLeft: () => changePocket((bagPocket + pockets.length - 1) % pockets.length),
+    onRight: () => changePocket((bagPocket + 1) % pockets.length),
     onCancel: () => setMode("action"),
   });
+  const bagPageStart = Math.floor(bagMenu.index / BAG_PAGE_SIZE) * BAG_PAGE_SIZE;
   const targetMenu = useMenu({
     count: st?.player.party.length ?? 0,
+    columns: 2,
     enabled: mode === "target",
     onSelect: (index) => pendingItem && void takeTurn({ type: "item", item: pendingItem, target: index }),
     onCancel: () => setMode("bag"),
   });
   const partyMenu = useMenu({
     count: st?.player.party.length ?? 0,
+    columns: 2,
     enabled: mode === "party",
     onSelect: (index) => {
       if (!st) return;
@@ -459,11 +499,16 @@ function BattleRun({ request }: { request: BattleRequest }) {
       {mode === "bag" ? (
         <div className="gba-panel battle-bag">
           <h2>Mochila</h2>
+          <nav className="battle-bag-tabs" aria-label="Categorias da mochila">
+            {pockets.map((pocket, index) => (
+              <button key={pocket.id} type="button" aria-pressed={index === bagPocket} onClick={() => changePocket(index)}>{pocket.label}</button>
+            ))}
+          </nav>
           <ul className="item-list">
-            {usable.length === 0 ? <li className="empty">Nada que possa ser usado agora.</li> : null}
-            {usable.map(([id, count], index) => (
-              <li key={id} className={index === bagMenu.index ? "active" : ""}>
-                <span className="gba-cursor">{index === bagMenu.index ? "▶" : ""}</span>
+            {usable.length === 0 ? <li className="empty">{bagPocket === 1 ? "Você não tem Pokébolas." : "Nenhum item de cura."}</li> : null}
+            {usable.slice(bagPageStart, bagPageStart + BAG_PAGE_SIZE).map(([id, count], offset) => (
+              <li key={id} className={bagPageStart + offset === bagMenu.index ? "active" : ""}>
+                <span className="gba-cursor">{bagPageStart + offset === bagMenu.index ? "▶" : ""}</span>
                 <ItemIcon id={id} />
                 {ITEMS[id].name}
                 <b>{ITEMS[id].infinite ? "∞" : `×${count}`}</b>
@@ -471,6 +516,7 @@ function BattleRun({ request }: { request: BattleRequest }) {
             ))}
           </ul>
           <p className="item-desc">{usable[bagMenu.index] ? ITEMS[usable[bagMenu.index][0]].description : ""}</p>
+          <p className="panel-foot battle-bag-foot"><span>{pockets.length > 1 ? "← → bolsos · " : ""}Z usa · X volta</span><span>{usable.length ? `${bagMenu.index + 1}/${usable.length}` : ""}</span></p>
         </div>
       ) : null}
 
@@ -479,7 +525,7 @@ function BattleRun({ request }: { request: BattleRequest }) {
           <>
             <div className="move-grid">
               {active.moves.map((slot, index) => (
-                <button key={slot.id} type="button" className={index === moveMenu.index ? "active" : ""} onClick={() => void takeTurn({ type: "move", index })}>
+                <button key={slot.id} type="button" className={index === moveMenu.index ? "active" : ""} onClick={() => chooseMove(index)}>
                   <span className="gba-cursor">{index === moveMenu.index ? "▶" : ""}</span>
                   {move(slot.id).name}
                 </button>
@@ -492,6 +538,7 @@ function BattleRun({ request }: { request: BattleRequest }) {
                     PP {highlighted.pp}/{move(highlighted.id).pp}
                   </span>
                   <span style={{ color: TYPE_COLOR[move(highlighted.id).type] }}>{TYPE_NAME[move(highlighted.id).type]}</span>
+                  {pendingMega ? <b className="mega-ready">{pendingMega === "greninja_ash" ? "Forma Ash pronta" : "Mega pronta"}</b> : null}
                 </>
               ) : null}
             </div>

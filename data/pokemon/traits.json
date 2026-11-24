@@ -1,0 +1,735 @@
+{
+  "poochyena": {
+    "sourceId": 261,
+    "sourceName": "poochyena",
+    "genderRate": 4,
+    "abilities": [
+      {
+        "id": "run-away",
+        "slot": 1,
+        "hidden": false
+      },
+      {
+        "id": "quick-feet",
+        "slot": 2,
+        "hidden": false
+      },
+      {
+        "id": "rattled",
+        "slot": 3,
+        "hidden": true
+      }
+    ]
+  },
+  "mightyena": {
+    "sourceId": 262,
+    "sourceName": "mightyena",
+    "genderRate": 4,
+    "abilities": [
+      {
+        "id": "intimidate",
+        "slot": 1,
+        "hidden": false
+      },
+      {
+        "id": "quick-feet",
+        "slot": 2,
+        "hidden": false
+      },
+      {
+        "id": "moxie",
+        "slot": 3,
+        "hidden": true
+      }
+    ]
+  },
+  "weedle": {
+    "sourceId": 13,
+    "sourceName": "weedle",
+    "genderRate": 4,
+    "abilities": [
+      {
+        "id": "shield-dust",
+        "slot": 1,
+        "hidden": false
+      },
+      {
+        "id": "run-away",
+        "slot": 3,
+        "hidden": true
+      }
+    ]
+  },
+  "kakuna": {
+    "sourceId": 14,
+    "sourceName": "kakuna",
+    "genderRate": 4,
+    "abilities": [
+      {
+        "id": "shed-skin",
+        "slot": 1,
+        "hidden": false
+      }
+    ]
+  },
+  "beedrill": {
+    "sourceId": 15,
+    "sourceName": "beedrill",
+    "genderRate": 4,
+    "abilities": [
+      {
+        "id": "swarm",
+        "slot": 1,
+        "hidden": false
+      },
+      {
+        "id": "sniper",
+        "slot": 3,
+        "hidden": true
+      }
+    ]
+  },
+  "pikachu": {
+    "sourceId": 25,
+    "sourceName": "pikachu",
+    "genderRate": 4,
+    "abilities": [
+      {
+        "id": "static",
+        "slot": 1,
+        "hidden": false
+      },
+      {
+        "id": "lightning-rod",
+        "slot": 3,
+        "hidden": true
+      }
+    ]
+  },
+  "caterpie": {
+    "sourceId": 10,
+    "sourceName": "caterpie",
+    "genderRate": 4,
+    "abilities": [
+      {
+        "id": "shield-dust",
+        "slot": 1,
+        "hidden": false
+      },
+      {
+        "id": "run-away",
+        "slot": 3,
+        "hidden": true
+      }
+    ]
+  },
+  "metapod": {
+    "sourceId": 11,
+    "sourceName": "metapod",
+    "genderRate": 4,
+    "abilities": [
+      {
+        "id": "shed-skin",
+        "slot": 1,
+        "hidden": false
+      }
+    ]
+  },
+  "butterfree": {
+    "sourceId": 12,
+    "sourceName": "butterfree",
+    "genderRate": 4,
+    "abilities": [
+      {
+        "id": "compound-eyes",
+        "slot": 1,
+        "hidden": false
+      },
+      {
+        "id": "tinted-lens",
+        "slot": 3,
+        "hidden": true
+      }
+    ]
+  },
+  "pidgey": {
+    "sourceId": 16,
+    "sourceName": "pidgey",
+    "genderRate": 4,
+    "abilities": [
+      {
+        "id": "keen-eye",
+        "slot": 1,
+        "hidden": false
+      },
+      {
+        "id": "tangled-feet",
+        "slot": 2,
+        "hidden": false
+      },
+      {
+        "id": "big-pecks",
+        "slot": 3,
+        "hidden": true
+      }
+    ]
+  },
+  "pidgeotto": {
+    "sourceId": 17,
+    "sourceName": "pidgeotto",
+    "genderRate": 4,
+    "abilities": [
+      {
+        "id": "keen-eye",
+        "slot": 1,
+        "hidden": false
+      },
+      {
+        "id": "tangled-feet",
+        "slot": 2,
+        "hidden": false
+      },
+      {
+        "id": "big-pecks",
+        "slot": 3,
+        "hidden": true
+      }
+    ]
+  },
+  "pidgeot": {
+    "sourceId": 18,
+    "sourceName": "pidgeot",
+    "genderRate": 4,
+    "abilities": [
+      {
+        "id": "keen-eye",
+        "slot": 1,
+        "hidden": false
+      },
+      {
+        "id": "tangled-feet",
+        "slot": 2,
+        "hidden": false
+      },
+      {
+        "id": "big-pecks",
+        "slot": 3,
+        "hidden": true
+      }
+    ]
+  },
+  "cascoon": {
+    "sourceId": 268,
+    "sourceName": "cascoon",
+    "genderRate": 4,
+    "abilities": [
+      {
+        "id": "shed-skin",
+        "slot": 1,
+        "hidden": false
+      }
+    ]
+  },
+  "dustox": {
+    "sourceId": 269,
+    "sourceName": "dustox",
+    "genderRate": 4,
+    "abilities": [
+      {
+        "id": "shield-dust",
+        "slot": 1,
+        "hidden": false
+      },
+      {
+        "id": "compound-eyes",
+        "slot": 3,
+        "hidden": true
+      }
+    ]
+  },
+  "bidoof": {
+    "sourceId": 399,
+    "sourceName": "bidoof",
+    "genderRate": 4,
+    "abilities": [
+      {
+        "id": "simple",
+        "slot": 1,
+        "hidden": false
+      },
+      {
+        "id": "unaware",
+        "slot": 2,
+        "hidden": false
+      },
+      {
+        "id": "moody",
+        "slot": 3,
+        "hidden": true
+      }
+    ]
+  },
+  "bibarel": {
+    "sourceId": 400,
+    "sourceName": "bibarel",
+    "genderRate": 4,
+    "abilities": [
+      {
+        "id": "simple",
+        "slot": 1,
+        "hidden": false
+      },
+      {
+        "id": "unaware",
+        "slot": 2,
+        "hidden": false
+      },
+      {
+        "id": "moody",
+        "slot": 3,
+        "hidden": true
+      }
+    ]
+  },
+  "pachirisu": {
+    "sourceId": 417,
+    "sourceName": "pachirisu",
+    "genderRate": 4,
+    "abilities": [
+      {
+        "id": "run-away",
+        "slot": 1,
+        "hidden": false
+      },
+      {
+        "id": "pickup",
+        "slot": 2,
+        "hidden": false
+      },
+      {
+        "id": "volt-absorb",
+        "slot": 3,
+        "hidden": true
+      }
+    ]
+  },
+  "bulbasaur": {
+    "sourceId": 1,
+    "sourceName": "bulbasaur",
+    "genderRate": 1,
+    "abilities": [
+      {
+        "id": "overgrow",
+        "slot": 1,
+        "hidden": false
+      },
+      {
+        "id": "chlorophyll",
+        "slot": 3,
+        "hidden": true
+      }
+    ]
+  },
+  "ivysaur": {
+    "sourceId": 2,
+    "sourceName": "ivysaur",
+    "genderRate": 1,
+    "abilities": [
+      {
+        "id": "overgrow",
+        "slot": 1,
+        "hidden": false
+      },
+      {
+        "id": "chlorophyll",
+        "slot": 3,
+        "hidden": true
+      }
+    ]
+  },
+  "venusaur": {
+    "sourceId": 3,
+    "sourceName": "venusaur",
+    "genderRate": 1,
+    "abilities": [
+      {
+        "id": "overgrow",
+        "slot": 1,
+        "hidden": false
+      },
+      {
+        "id": "chlorophyll",
+        "slot": 3,
+        "hidden": true
+      }
+    ]
+  },
+  "torchic": {
+    "sourceId": 255,
+    "sourceName": "torchic",
+    "genderRate": 1,
+    "abilities": [
+      {
+        "id": "blaze",
+        "slot": 1,
+        "hidden": false
+      },
+      {
+        "id": "speed-boost",
+        "slot": 3,
+        "hidden": true
+      }
+    ]
+  },
+  "combusken": {
+    "sourceId": 256,
+    "sourceName": "combusken",
+    "genderRate": 1,
+    "abilities": [
+      {
+        "id": "blaze",
+        "slot": 1,
+        "hidden": false
+      },
+      {
+        "id": "speed-boost",
+        "slot": 3,
+        "hidden": true
+      }
+    ]
+  },
+  "blaziken": {
+    "sourceId": 257,
+    "sourceName": "blaziken",
+    "genderRate": 1,
+    "abilities": [
+      {
+        "id": "blaze",
+        "slot": 1,
+        "hidden": false
+      },
+      {
+        "id": "speed-boost",
+        "slot": 3,
+        "hidden": true
+      }
+    ]
+  },
+  "froakie": {
+    "sourceId": 656,
+    "sourceName": "froakie",
+    "genderRate": 1,
+    "abilities": [
+      {
+        "id": "torrent",
+        "slot": 1,
+        "hidden": false
+      },
+      {
+        "id": "protean",
+        "slot": 3,
+        "hidden": true
+      }
+    ]
+  },
+  "frogadier": {
+    "sourceId": 657,
+    "sourceName": "frogadier",
+    "genderRate": 1,
+    "abilities": [
+      {
+        "id": "torrent",
+        "slot": 1,
+        "hidden": false
+      },
+      {
+        "id": "protean",
+        "slot": 3,
+        "hidden": true
+      }
+    ]
+  },
+  "greninja": {
+    "sourceId": 658,
+    "sourceName": "greninja",
+    "genderRate": 1,
+    "abilities": [
+      {
+        "id": "torrent",
+        "slot": 1,
+        "hidden": false
+      },
+      {
+        "id": "protean",
+        "slot": 3,
+        "hidden": true
+      }
+    ]
+  },
+  "wurmple": {
+    "sourceId": 265,
+    "sourceName": "wurmple",
+    "genderRate": 4,
+    "abilities": [
+      {
+        "id": "shield-dust",
+        "slot": 1,
+        "hidden": false
+      },
+      {
+        "id": "run-away",
+        "slot": 3,
+        "hidden": true
+      }
+    ]
+  },
+  "silcoon": {
+    "sourceId": 266,
+    "sourceName": "silcoon",
+    "genderRate": 4,
+    "abilities": [
+      {
+        "id": "shed-skin",
+        "slot": 1,
+        "hidden": false
+      }
+    ]
+  },
+  "beautifly": {
+    "sourceId": 267,
+    "sourceName": "beautifly",
+    "genderRate": 4,
+    "abilities": [
+      {
+        "id": "swarm",
+        "slot": 1,
+        "hidden": false
+      },
+      {
+        "id": "rivalry",
+        "slot": 3,
+        "hidden": true
+      }
+    ]
+  },
+  "starly": {
+    "sourceId": 396,
+    "sourceName": "starly",
+    "genderRate": 4,
+    "abilities": [
+      {
+        "id": "keen-eye",
+        "slot": 1,
+        "hidden": false
+      },
+      {
+        "id": "reckless",
+        "slot": 3,
+        "hidden": true
+      }
+    ]
+  },
+  "staravia": {
+    "sourceId": 397,
+    "sourceName": "staravia",
+    "genderRate": 4,
+    "abilities": [
+      {
+        "id": "intimidate",
+        "slot": 1,
+        "hidden": false
+      },
+      {
+        "id": "reckless",
+        "slot": 3,
+        "hidden": true
+      }
+    ]
+  },
+  "staraptor": {
+    "sourceId": 398,
+    "sourceName": "staraptor",
+    "genderRate": 4,
+    "abilities": [
+      {
+        "id": "intimidate",
+        "slot": 1,
+        "hidden": false
+      },
+      {
+        "id": "reckless",
+        "slot": 3,
+        "hidden": true
+      }
+    ]
+  },
+  "gible": {
+    "sourceId": 443,
+    "sourceName": "gible",
+    "genderRate": 4,
+    "abilities": [
+      {
+        "id": "sand-veil",
+        "slot": 1,
+        "hidden": false
+      },
+      {
+        "id": "rough-skin",
+        "slot": 3,
+        "hidden": true
+      }
+    ]
+  },
+  "gabite": {
+    "sourceId": 444,
+    "sourceName": "gabite",
+    "genderRate": 4,
+    "abilities": [
+      {
+        "id": "sand-veil",
+        "slot": 1,
+        "hidden": false
+      },
+      {
+        "id": "rough-skin",
+        "slot": 3,
+        "hidden": true
+      }
+    ]
+  },
+  "garchomp": {
+    "sourceId": 445,
+    "sourceName": "garchomp",
+    "genderRate": 4,
+    "abilities": [
+      {
+        "id": "sand-veil",
+        "slot": 1,
+        "hidden": false
+      },
+      {
+        "id": "rough-skin",
+        "slot": 3,
+        "hidden": true
+      }
+    ]
+  },
+  "mew": {
+    "sourceId": 151,
+    "sourceName": "mew",
+    "genderRate": -1,
+    "abilities": [
+      {
+        "id": "synchronize",
+        "slot": 1,
+        "hidden": false
+      }
+    ]
+  },
+  "giratina": {
+    "sourceId": 487,
+    "sourceName": "giratina-altered",
+    "genderRate": -1,
+    "abilities": [
+      {
+        "id": "pressure",
+        "slot": 1,
+        "hidden": false
+      },
+      {
+        "id": "telepathy",
+        "slot": 3,
+        "hidden": true
+      }
+    ]
+  },
+  "charizard": {
+    "sourceId": 6,
+    "sourceName": "charizard",
+    "genderRate": 1,
+    "abilities": [
+      {
+        "id": "blaze",
+        "slot": 1,
+        "hidden": false
+      },
+      {
+        "id": "solar-power",
+        "slot": 3,
+        "hidden": true
+      }
+    ]
+  },
+  "venusaur_mega": {
+    "sourceId": 10033,
+    "sourceName": "venusaur-mega",
+    "genderRate": 1,
+    "abilities": [
+      {
+        "id": "thick-fat",
+        "slot": 1,
+        "hidden": false
+      }
+    ]
+  },
+  "charizard_mega_x": {
+    "sourceId": 10034,
+    "sourceName": "charizard-mega-x",
+    "genderRate": 1,
+    "abilities": [
+      {
+        "id": "tough-claws",
+        "slot": 1,
+        "hidden": false
+      }
+    ]
+  },
+  "charizard_mega_y": {
+    "sourceId": 10035,
+    "sourceName": "charizard-mega-y",
+    "genderRate": 1,
+    "abilities": [
+      {
+        "id": "drought",
+        "slot": 1,
+        "hidden": false
+      }
+    ]
+  },
+  "blaziken_mega": {
+    "sourceId": 10050,
+    "sourceName": "blaziken-mega",
+    "genderRate": 1,
+    "abilities": [
+      {
+        "id": "speed-boost",
+        "slot": 1,
+        "hidden": false
+      }
+    ]
+  },
+  "garchomp_mega": {
+    "sourceId": 10058,
+    "sourceName": "garchomp-mega",
+    "genderRate": 4,
+    "abilities": [
+      {
+        "id": "sand-force",
+        "slot": 1,
+        "hidden": false
+      }
+    ]
+  },
+  "greninja_ash": {
+    "sourceId": 10117,
+    "sourceName": "greninja-ash",
+    "genderRate": 1,
+    "abilities": [
+      {
+        "id": "battle-bond",
+        "slot": 1,
+        "hidden": false
+      }
+    ]
+  }
+}

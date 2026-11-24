@@ -1,5 +1,6 @@
 import type { Direction } from "@/game/character/appearance";
 import type { MoveCategory } from "@/data/pokemon/moves";
+import type { ItemId } from "@/data/items";
 
 export type WorldApi = {
   mapKey(): string;
@@ -27,12 +28,13 @@ export type BattleVisuals = {
   /** `foeSprite` nulo: só o cenário entra (o treinador manda o Pokémon depois, pela Pokébola). */
   begin(background: string, foeSprite: string | null, playerSprite: string | null): Promise<void>;
   sendOut(side: "player" | "foe", sprite: string): Promise<void>;
+  transform(side: "player" | "foe", sprite: string): Promise<void>;
   withdraw(side: "player" | "foe"): Promise<void>;
   attack(side: "player" | "foe", tint: number, category: MoveCategory): Promise<void>;
   hit(side: "player" | "foe", strong: boolean): Promise<void>;
   faint(side: "player" | "foe"): Promise<void>;
   status(side: "player" | "foe", tint: number): Promise<void>;
-  throwBall(shakes: number, caught: boolean): Promise<void>;
+  throwBall(shakes: number, caught: boolean, item?: ItemId): Promise<void>;
   end(): void;
 };
 

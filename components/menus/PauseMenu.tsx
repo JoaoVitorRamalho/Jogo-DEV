@@ -4,6 +4,7 @@ import { useState } from "react";
 import { BagPanel } from "@/components/menus/BagPanel";
 import { DexPanel } from "@/components/menus/DexPanel";
 import { PartyPanel } from "@/components/menus/PartyPanel";
+import { PcPanel } from "@/components/menus/PcPanel";
 import { QuestPanel } from "@/components/menus/QuestPanel";
 import { useMenu } from "@/components/menus/useMenu";
 import { ask, useUi } from "@/game/core/ui";
@@ -25,6 +26,7 @@ export function PauseMenu() {
   const entries: Entry[] = [];
   if (live?.flags.got_pokedex) entries.push({ id: "dex", label: "Pokédex" });
   if (live && live.party.length > 0) entries.push({ id: "party", label: "Pokémon" });
+  if (live && live.party.length > 0) entries.push({ id: "pc", label: "PC" });
   entries.push({ id: "bag", label: "Mochila" });
   entries.push({ id: "quests", label: "Diário" });
   entries.push({ id: "card", label: live?.appearance.name || "Treinador" });
@@ -65,6 +67,7 @@ export function PauseMenu() {
 
   if (!panel || !live) return null;
   if (panel === "party") return <PartyPanel onClose={() => useUi.getState().setPanel("pause")} />;
+  if (panel === "pc") return <PcPanel onClose={close} />;
   if (panel === "bag") return <BagPanel onClose={() => useUi.getState().setPanel("pause")} />;
   if (panel === "dex") return <DexPanel onClose={() => useUi.getState().setPanel("pause")} />;
   if (panel === "quests") return <QuestPanel onClose={() => useUi.getState().setPanel("pause")} />;

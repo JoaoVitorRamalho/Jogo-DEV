@@ -70,7 +70,7 @@ export function testSave(appearance?: Appearance): GameState {
   state.y = 61;
   state.dir = "up";
   for (const flag of CHAPTER1_FLAGS) state.flags[flag] = true;
-  state.party = TEAM.map(([id, level], index) => createMon(id, level, rng, { perfect: true, metAt: index === 0 ? "Vila Brisamar" : "Rota 2" }));
+  state.party = TEAM.map(([id, level], index) => createMon(id, level, rng, { perfect: true, battleBond: id === "greninja", metAt: index === 0 ? "Vila Brisamar" : "Rota 2" }));
   state.box = BOX.map(([id, level]) => createMon(id, level, rng, { perfect: true, metAt: "Rota 2" }));
   state.bag = { ...BAG };
   state.money = 50000;

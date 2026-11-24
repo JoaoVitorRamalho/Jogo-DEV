@@ -6,9 +6,10 @@ import { subscribeInput } from "@/lib/input/engine";
 import type { Action, InputFrame } from "@/lib/input/types";
 import type { Direction } from "@/game/character/appearance";
 import { DAY_LOOK, OUTDOOR_MAPS, type TimeOfDay, timeOfDay } from "@/game/core/daytime";
-import { useUi, worldBusy } from "@/game/core/ui";
+import { lock, useUi, worldBusy } from "@/game/core/ui";
 import { type WorldApi, bridge } from "@/game/phaser/bridge";
 import { Pet } from "@/game/phaser/pet";
+import { TRAINER_SIGHT_RANGE, hasTrainerSight } from "@/game/phaser/sight";
 import { useSettings } from "@/lib/settings/store";
 import { say } from "@/game/core/ui";
 import { TALL_GRASS_GID, TALL_GRASS_TOP_FRAME, TILE, TILE_SPRITE_FRAME, VIEW_H, VIEW_W } from "@/game/phaser/constants";
@@ -100,9 +101,6 @@ class Actor {
 }
 
 type Npc = Actor & { id: string; home: { x: number; y: number }; wander: number; wanderTimer: number; scripted: boolean; sight: number };
-
-/** Quantos tiles um treinador enxerga à frente (o mapa pode trocar com a propriedade `sight`). */
-const SIGHT_RANGE = 4;
 
 export class WorldScene extends Phaser.Scene {
   mapKey = "";
@@ -243,7 +241,7 @@ export class WorldScene extends Phaser.Scene {
       actor.id = object.name;
       actor.home = { x: object.x, y: object.y };
       actor.wander = Number(object.props.wander ?? 0);
-      actor.sight = Number(object.props.sight ?? SIGHT_RANGE);
+      actor.sight = Math.max(0, Math.min(TRAINER_SIGHT_RANGE, Number(object.props.sight ?? TRAINER_SIGHT_RANGE)));
       actor.wanderTimer = 1 + Math.random() * 2;
       actor.scripted = false;
       actor.place(object.x, object.y, actor.dir);
@@ -285,14 +283,15 @@ export class WorldScene extends Phaser.Scene {
   async runScript(run: () => Promise<unknown> | undefined): Promise<void> {
     this.scripts += 1;
     try {
-      await run();
+      await lock(async () => run());
     } catch (error) {
       console.error(error);
       if (process.env.NODE_ENV !== "production") {
         (window as unknown as { __lastScriptError?: string }).__lastScriptError = String((error as Error)?.stack ?? error);
       }
     } finally {
-      this.scripts -= 1;
+      this.scripts = Math.max(0, this.scripts - 1);
+      this.pending = {};
       this.quietUntil = this.time.now + 160;
     }
   }
@@ -468,6 +467,15 @@ export class WorldScene extends Phaser.Scene {
 
   updatePlayer(time: number, dt: number): void {
     const p = this.player;
+    // Bloqueia também um passo manual já em andamento. Passos da cena têm
+    // um resolve próprio e precisam continuar para o roteiro poder terminar.
+    if (this.busy() && !p.resolve) {
+      this.take();
+      this.quietUntil = time + 150;
+      p.frame(0);
+      p.sprite.setDepth(p.depth());
+      return;
+    }
     if (p.moving) {
       if (p.advance(dt)) {
         const resolve = p.resolve;
@@ -523,7 +531,10 @@ export class WorldScene extends Phaser.Scene {
       }
       return;
     }
-    const speed = this.held?.run ? RUN : WALK;
+    const flags = useGame.getState().live?.flags;
+    // Flags de despedida preservam a liberação em saves antigos sem ch1_scarf.
+    const hasScarf = flags?.ch1_scarf || flags?.said_goodbye || flags?.chapter1_complete;
+    const speed = hasScarf && this.held?.run ? RUN : WALK;
     const follower = this.followerId ? this.npcs.get(this.followerId) : undefined;
     if (follower?.sprite.visible && follower.tx === p.tx + dx && follower.ty === p.ty + dy) {
       // Andou contra quem segue: trocam de lugar em vez de empilhar.
@@ -611,13 +622,7 @@ export class WorldScene extends Phaser.Scene {
     for (const npc of this.npcs.values()) {
       if (!npc.sprite.visible || npc.moving || npc.scripted || npc.sight <= 0) continue;
       if (!hooks.watcher(npc.id)) continue;
-      const [dx, dy] = DELTA[npc.dir];
-      for (let i = 1; i <= npc.sight; i += 1) {
-        const x = npc.tx + dx * i;
-        const y = npc.ty + dy * i;
-        if (x === p.tx && y === p.ty) return npc;
-        if (this.isBlocked(x, y, npc)) break;
-      }
+      if (hasTrainerSight({ x: npc.tx, y: npc.ty, dir: npc.dir }, { x: p.tx, y: p.ty }, (x, y) => this.isBlocked(x, y, npc), npc.sight)) return npc;
     }
     return null;
   }
@@ -876,26 +881,29 @@ export class WorldScene extends Phaser.Scene {
         const npc = this.npcs.get(id);
         return npc ? { x: npc.tx, y: npc.ty } : null;
       },
-      moveNpc: async (id, steps) => {
+      moveNpc: (id, steps) => lock(async () => {
         const npc = this.npcs.get(id);
         if (!npc) return;
         npc.scripted = true;
-        for (const step of steps) {
-          const [dx, dy] = DELTA[step];
-          if (this.isBlocked(npc.tx + dx, npc.ty + dy, npc)) {
-            npc.dir = step;
-            npc.frame(0);
-            await new Promise((r) => this.time.delayedCall(200, r));
-            continue;
+        try {
+          for (const step of steps) {
+            const [dx, dy] = DELTA[step];
+            if (this.isBlocked(npc.tx + dx, npc.ty + dy, npc)) {
+              npc.dir = step;
+              npc.frame(0);
+              await new Promise((r) => this.time.delayedCall(200, r));
+              continue;
+            }
+            await new Promise<void>((resolve) => {
+              npc.resolve = resolve;
+              npc.begin(step, WALK);
+            });
           }
-          await new Promise<void>((resolve) => {
-            npc.resolve = resolve;
-            npc.begin(step, WALK);
-          });
+        } finally {
+          npc.frame(0);
+          npc.scripted = false;
         }
-        npc.frame(0);
-        npc.scripted = false;
-      },
+      }),
       faceNpc: (id, dir) => {
         const npc = this.npcs.get(id);
         if (!npc) return;

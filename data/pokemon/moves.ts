@@ -6,8 +6,10 @@ export type StatusId = "burn" | "poison" | "paralysis" | "sleep" | "freeze";
 export type MoveCategory = "physical" | "special" | "status";
 
 export type MoveEffect =
+  | { kind: "weather"; weather: "sun" | "rain" | "sand" }
+  | { kind: "confuse"; chance: number }
   | { kind: "stage"; target: "self" | "foe"; stat: StageStat; stages: number; chance?: number }
-  | { kind: "status"; status: StatusId; chance: number }
+  | { kind: "status"; status: StatusId; chance: number; perHit?: boolean }
   | { kind: "flinch"; chance: number }
   | { kind: "fixed"; damage: number };
 
@@ -28,6 +30,29 @@ export type MoveDef = {
 };
 
 const list: MoveDef[] = [
+  { id: "howl", name: "Uivo", type: "normal", category: "status", power: 0, accuracy: null, pp: 40, effects: [{ kind: "stage", target: "self", stat: "atk", stages: 1 }], description: "Um uivo que aumenta o Ataque do usuário." },
+  { id: "scary_face", name: "Cara Assustadora", type: "normal", category: "status", power: 0, accuracy: 100, pp: 10, effects: [{ kind: "stage", target: "foe", stat: "spe", stages: -2 }], description: "Assusta o alvo e reduz muito sua Velocidade." },
+  { id: "snarl", name: "Rosnado Sombrio", type: "dark", category: "special", power: 55, accuracy: 95, pp: 15, effects: [{ kind: "stage", target: "foe", stat: "spa", stages: -1 }], description: "Um grito que reduz o Ataque Especial do alvo." },
+  { id: "twineedle", name: "Agulha Dupla", type: "bug", category: "physical", power: 25, accuracy: 100, pp: 20, hits: 2, effects: [{ kind: "status", status: "poison", chance: 0.2, perHit: true }], description: "Atinge duas vezes; cada acerto pode envenenar o alvo." },
+  { id: "poison_jab", name: "Golpe Venenoso", type: "poison", category: "physical", power: 80, accuracy: 100, pp: 20, effects: [{ kind: "status", status: "poison", chance: 0.3 }], description: "Perfura o alvo com um golpe que pode envenenar." },
+  { id: "thunder_shock", name: "Choque do Trovão", type: "electric", category: "special", power: 40, accuracy: 100, pp: 30, effects: [{ kind: "status", status: "paralysis", chance: 0.1 }], description: "Um choque elétrico que pode paralisar o alvo." },
+  { id: "thunderbolt", name: "Raio do Trovão", type: "electric", category: "special", power: 90, accuracy: 100, pp: 15, effects: [{ kind: "status", status: "paralysis", chance: 0.1 }], description: "Uma descarga elétrica forte que pode paralisar o alvo." },
+  { id: "sunny_day", name: "Dia Ensolarado", type: "fire", category: "status", power: 0, accuracy: null, pp: 5, effects: [{ kind: "weather", weather: "sun" }], description: "Invoca sol forte por cinco turnos." },
+  { id: "rain_dance", name: "Dança da Chuva", type: "water", category: "status", power: 0, accuracy: null, pp: 5, effects: [{ kind: "weather", weather: "rain" }], description: "Invoca chuva por cinco turnos." },
+  { id: "sandstorm", name: "Tempestade de Areia", type: "rock", category: "status", power: 0, accuracy: null, pp: 10, effects: [{ kind: "weather", weather: "sand" }], description: "Invoca uma tempestade de areia por cinco turnos." },
+  { id: "sweet_kiss", name: "Beijo Doce", type: "fairy", category: "status", power: 0, accuracy: 75, pp: 10, effects: [{ kind: "confuse", chance: 1 }], description: "Deixa o alvo confuso." },
+  { id: "supersonic", name: "Supersônico", type: "normal", category: "status", power: 0, accuracy: 55, pp: 20, effects: [{ kind: "confuse", chance: 1 }], description: "Ondas sonoras que confundem o alvo." },
+  { id: "defense_curl", name: "Enrolar Defesa", type: "normal", category: "status", power: 0, accuracy: null, pp: 40, effects: [{ kind: "stage", target: "self", stat: "def", stages: 1 }], description: "Enrola o corpo para subir a Defesa." },
+  { id: "headbutt", name: "Cabeçada", type: "normal", category: "physical", power: 70, accuracy: 100, pp: 15, effects: [{ kind: "flinch", chance: 0.3 }], description: "Uma cabeçada que pode fazer o alvo hesitar." },
+  { id: "hyper_fang", name: "Hiperpresa", type: "normal", category: "physical", power: 80, accuracy: 90, pp: 15, effects: [{ kind: "flinch", chance: 0.1 }], description: "Morde com presas fortes." },
+  { id: "charm", name: "Charme", type: "fairy", category: "status", power: 0, accuracy: 100, pp: 20, effects: [{ kind: "stage", target: "foe", stat: "atk", stages: -2 }], description: "Reduz muito o Ataque do alvo." },
+  { id: "spark", name: "Faísca", type: "electric", category: "physical", power: 65, accuracy: 100, pp: 20, effects: [{ kind: "status", status: "paralysis", chance: 0.3 }], description: "Uma investida elétrica que pode paralisar." },
+  { id: "nuzzle", name: "Afago Elétrico", type: "electric", category: "physical", power: 20, accuracy: 100, pp: 20, effects: [{ kind: "status", status: "paralysis", chance: 1 }], description: "Encosta as bochechas carregadas e paralisa." },
+  { id: "swift", name: "Rapidez", type: "normal", category: "special", power: 60, accuracy: null, pp: 20, description: "Dispara estrelas que não erram." },
+  { id: "thunder_wave", name: "Onda de Choque", type: "electric", category: "status", power: 0, accuracy: 90, pp: 20, effects: [{ kind: "status", status: "paralysis", chance: 1 }], description: "Uma corrente fraca que paralisa o alvo." },
+  { id: "discharge", name: "Descarga", type: "electric", category: "special", power: 80, accuracy: 100, pp: 15, effects: [{ kind: "status", status: "paralysis", chance: 0.3 }], description: "Solta eletricidade pelo corpo inteiro." },
+  { id: "agility", name: "Agilidade", type: "psychic", category: "status", power: 0, accuracy: null, pp: 30, effects: [{ kind: "stage", target: "self", stat: "spe", stages: 2 }], description: "Sobe muito a Velocidade." },
+  { id: "air_slash", name: "Corte de Ar", type: "flying", category: "special", power: 75, accuracy: 95, pp: 15, effects: [{ kind: "flinch", chance: 0.3 }], description: "Uma lâmina de vento que pode fazer hesitar." },
   { id: "tackle", name: "Investida", type: "normal", category: "physical", power: 40, accuracy: 100, pp: 35, description: "Avança com o corpo todo." },
   { id: "scratch", name: "Arranhão", type: "normal", category: "physical", power: 40, accuracy: 100, pp: 35, description: "Garras afiadas raspam o alvo." },
   { id: "pound", name: "Pancada", type: "normal", category: "physical", power: 40, accuracy: 100, pp: 35, description: "Um golpe com a pata ou a cauda." },

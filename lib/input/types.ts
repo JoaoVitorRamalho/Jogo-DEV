@@ -49,7 +49,7 @@ export const DEFAULT_KEYBOARD: KeyboardMap = {
   confirm: ["KeyZ", ""],
   cancel: ["KeyX", "Escape"],
   menu: ["Enter", ""],
-  run: ["ShiftLeft", "ShiftRight"],
+  run: ["KeyX", "ShiftLeft"],
 };
 
 export const DEFAULT_PAD: PadMap = {

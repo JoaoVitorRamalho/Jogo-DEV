@@ -1,0 +1,290 @@
+{
+  "howl": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "scary_face": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "snarl": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "twineedle": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "poison_jab": {
+    "contact": true,
+    "recoil": 0.0
+  },
+  "thunder_shock": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "thunderbolt": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "sunny_day": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "rain_dance": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "sandstorm": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "sweet_kiss": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "supersonic": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "defense_curl": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "headbutt": {
+    "contact": true,
+    "recoil": 0.0
+  },
+  "hyper_fang": {
+    "contact": true,
+    "recoil": 0.0
+  },
+  "charm": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "spark": {
+    "contact": true,
+    "recoil": 0.0
+  },
+  "nuzzle": {
+    "contact": true,
+    "recoil": 0.0
+  },
+  "swift": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "thunder_wave": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "discharge": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "agility": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "air_slash": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "tackle": {
+    "contact": true,
+    "recoil": 0.0
+  },
+  "scratch": {
+    "contact": true,
+    "recoil": 0.0
+  },
+  "pound": {
+    "contact": true,
+    "recoil": 0.0
+  },
+  "quick_attack": {
+    "contact": true,
+    "recoil": 0.0
+  },
+  "growl": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "leer": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "harden": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "sand_attack": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "ember": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "peck": {
+    "contact": true,
+    "recoil": 0.0
+  },
+  "double_kick": {
+    "contact": true,
+    "recoil": 0.0
+  },
+  "vine_whip": {
+    "contact": true,
+    "recoil": 0.0
+  },
+  "razor_leaf": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "poison_powder": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "sleep_powder": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "bubble": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "water_gun": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "water_pulse": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "string_shot": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "poison_sting": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "bug_bite": {
+    "contact": true,
+    "recoil": 0.0
+  },
+  "wing_attack": {
+    "contact": true,
+    "recoil": 0.0
+  },
+  "bite": {
+    "contact": true,
+    "recoil": 0.0
+  },
+  "dragon_rage": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "dragon_breath": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "confusion": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "psybeam": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "shadow_claw": {
+    "contact": true,
+    "recoil": 0.0
+  },
+  "flame_wheel": {
+    "contact": true,
+    "recoil": 0.0
+  },
+  "take_down": {
+    "contact": true,
+    "recoil": 0.25
+  },
+  "slash": {
+    "contact": true,
+    "recoil": 0.0
+  },
+  "seed_bomb": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "giga_drain": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "earthquake": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "flamethrower": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "blaze_kick": {
+    "contact": true,
+    "recoil": 0.0
+  },
+  "sky_uppercut": {
+    "contact": true,
+    "recoil": 0.0
+  },
+  "close_combat": {
+    "contact": true,
+    "recoil": 0.0
+  },
+  "surf": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "night_slash": {
+    "contact": true,
+    "recoil": 0.0
+  },
+  "dark_pulse": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "crunch": {
+    "contact": true,
+    "recoil": 0.0
+  },
+  "aerial_ace": {
+    "contact": true,
+    "recoil": 0.0
+  },
+  "gust": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "bug_buzz": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "dragon_claw": {
+    "contact": true,
+    "recoil": 0.0
+  },
+  "heat_wave": {
+    "contact": false,
+    "recoil": 0.0
+  },
+  "flare_blitz": {
+    "contact": true,
+    "recoil": 0.33
+  },
+  "water_shuriken": {
+    "contact": false,
+    "recoil": 0.0
+  }
+}

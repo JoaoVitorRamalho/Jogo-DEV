@@ -13,7 +13,7 @@ export type BattleRequest = { config: BattleConfig; resolve: (outcome: Outcome) 
 export type EvolutionRequest = { from: string; to: string; resolve: () => void };
 export type DemoMon = { name: string; level: number; hp: number; max: number; status?: string };
 export type DemoHud = { title: string; foe: DemoMon | null; mine: DemoMon | null };
-export type Panel = null | "pause" | "party" | "bag" | "dex" | "quests" | "save" | "card" | "options";
+export type Panel = null | "pause" | "party" | "pc" | "bag" | "dex" | "quests" | "save" | "card" | "options";
 
 type Ui = {
   lastLine: Line | null;
@@ -82,21 +82,23 @@ export function ask(options: string[], prompt?: Line, cancel: number | null = nu
  * tela de luta entra. A trilha da área volta (de onde parou) quando a luta acaba.
  */
 export async function battle(config: BattleConfig): Promise<Outcome> {
-  const previous = getContextTrack();
-  setContextTrack("battle");
-  playSfx("encounter");
-  try {
-    await bridge.world?.battleIntro(config.kind);
-  } catch (error) {
-    console.warn("Transição da batalha falhou; a luta abre direto.", error);
-  }
-  try {
-    return await new Promise<Outcome>((resolve) => {
-      useUi.setState({ battle: { config, resolve } });
-    });
-  } finally {
-    setContextTrack(previous);
-  }
+  return lock(async () => {
+    const previous = getContextTrack();
+    setContextTrack("battle");
+    playSfx("encounter");
+    try {
+      await bridge.world?.battleIntro(config.kind);
+    } catch (error) {
+      console.warn("Transição da batalha falhou; a luta abre direto.", error);
+    }
+    try {
+      return await new Promise<Outcome>((resolve) => {
+        useUi.setState({ battle: { config, resolve } });
+      });
+    } finally {
+      setContextTrack(previous);
+    }
+  });
 }
 
 export async function lock<T>(run: () => Promise<T>): Promise<T> {

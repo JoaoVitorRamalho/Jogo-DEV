@@ -14,6 +14,8 @@ import { BattleDemo } from "@/game/story/demo";
 import { type StoryHooks, story } from "@/game/story/hooks";
 import { spotted, watching } from "@/game/story/watchers";
 import { playSfx } from "@/lib/audio/engine";
+import { formatKey } from "@/lib/input/labels";
+import { useSettings } from "@/lib/settings/store";
 
 const STARTERS = ["torchic", "bulbasaur", "froakie"] as const;
 type StarterId = (typeof STARTERS)[number];
@@ -33,14 +35,6 @@ function escorting(): "clinic" | "lake" | "home" | null {
   if (flag("escort_home")) return "home";
   return null;
 }
-
-/** Faixas de visão: entrar nelas chama a batalha obrigatória do treinador da rota. */
-const SIGHT: Record<string, [string, string]> = {
-  sight_teo: ["youngster_caio", "youngster"],
-  sight_mel: ["picnic_mel", "picnic_mel"],
-  sight_rui: ["hiker_rui", "r2_rui"],
-  sight_tais: ["scout_tais", "r2_tais"],
-};
 
 function motherOn(map: string): string | null {
   if (map === "house_1f") return "mother";
@@ -92,7 +86,7 @@ async function wakeUp(): Promise<void> {
   await talk(undefined, "Região de Asteria.", "Vila Brisamar — uma manhã tranquila.");
   await think("Já está tão tarde assim?");
   await goal("Desça para encontrar sua mãe.");
-  useUi.getState().showToast("Setas ou WASD · Shift corre · Z interage · Enter abre o menu");
+  useUi.getState().showToast("Setas ou WASD · Z interage · Enter abre o menu");
 }
 
 async function morningTalk(): Promise<void> {
@@ -493,6 +487,8 @@ async function goodbye(): Promise<void> {
     setFlag("ch1_scarf");
     playSfx("discover");
     await talk(undefined, `${hero()} recebeu o Lenço da Mãe.`);
+    const runKey = formatKey(useSettings.getState().keyboard.run.find(Boolean) || "KeyX");
+    await talk(undefined, `Agora você pode correr! Segure ${runKey} enquanto anda.`);
   }
   setFlag("said_goodbye");
   await goal("Saia de casa e siga para o norte.");
@@ -762,11 +758,6 @@ const hooks: StoryHooks = {
   },
   event: async (id) => {
     ensure();
-    if (id.startsWith("sight_")) {
-      const [trainer, npc] = SIGHT[id] ?? [];
-      if (trainer && flag("license") && !flag(`beat_${trainer}`)) await spottedBy(trainer, npc);
-      return false;
-    }
     if (id === "north_gate") {
       if (!flag("ch1_morning")) {
         await think("A mãe está lá embaixo.");

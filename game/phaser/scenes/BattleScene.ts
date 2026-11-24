@@ -321,6 +321,35 @@ export class BattleScene extends Phaser.Scene {
         image.setScale(fit);
         this.startIdle(image);
       },
+      transform: async (side, key) => {
+        const original = this.sprite(side);
+        if (!original) return;
+        this.stopIdle(original);
+        const x = original.x;
+        const y = original.y - original.displayHeight * 0.45;
+        const fit = original.getData("fit") as number;
+        const aura = this.add.circle(x, y, 12, 0xba8cff, 0.4).setDepth(18);
+        const rings = [0, 1, 2].map((i) => this.add.circle(x, y, 14 + i * 5).setStrokeStyle(2, i % 2 ? 0xffffff : 0x9eefff).setDepth(19));
+        playSfx("statUp");
+        original.setTintFill(0xffffff);
+        await Promise.all([
+          this.tween({ targets: original, scaleX: fit * 1.1, scaleY: fit * 1.1, duration: 220, yoyo: true }),
+          this.tween({ targets: aura, radius: 32, alpha: 0.8, duration: 440 }),
+          ...rings.map((ring, i) => this.tween({ targets: ring, radius: 42 + i * 8, alpha: 0, duration: 440 })),
+        ]);
+        this.cameras.main.flash(180, 235, 210, 255);
+        this.cameras.main.shake(120, 0.004);
+        this.burst(x, y, 0xd9b7ff);
+        playSfx("discover");
+        aura.destroy();
+        for (const ring of rings) ring.destroy();
+        const transformed = this.place(side, key).setTintFill(0xffffff);
+        const nextFit = transformed.getData("fit") as number;
+        await this.tween({ targets: transformed, scaleX: nextFit * 1.08, scaleY: nextFit * 1.08, duration: 180, yoyo: true });
+        transformed.clearTint();
+        transformed.setScale(nextFit);
+        this.startIdle(transformed);
+      },
       withdraw: async (side) => {
         const image = this.sprite(side);
         if (!image) return;
@@ -368,11 +397,13 @@ export class BattleScene extends Phaser.Scene {
         await this.wait(260);
         image.clearTint();
       },
-      throwBall: async (shakes, caught) => {
+      throwBall: async (shakes, caught, item = "pokeball") => {
+        const art = this.sharp(item === "greatball" ? "item_greatball" : "item_ball", 0.8 * viewZoom(this));
+        const ballUnit = 1 / art.k;
         const foe = this.foe;
         if (foe) this.stopIdle(foe);
         const fit = (foe?.getData("fit") as number | undefined) ?? 1;
-        const ball = this.add.image(40, 120, this.ballKey).setDepth(30).setScale(0.8 * this.ballUnit);
+        const ball = this.add.image(40, 120, art.key).setDepth(30).setScale(0.8 * ballUnit);
         await this.tween({
           targets: { t: 0 },
           t: 1,
@@ -383,7 +414,7 @@ export class BattleScene extends Phaser.Scene {
             ball.x = Phaser.Math.Linear(40, FOE.x, t);
             ball.y = Phaser.Math.Linear(120, FOE.y - 30, t) - Math.sin(t * Math.PI) * 34;
             ball.angle = Math.sin(t * Math.PI * 3) * 14 * (1 - t);
-            ball.setScale((0.8 - t * 0.2) * this.ballUnit);
+            ball.setScale((0.8 - t * 0.2) * ballUnit);
           },
         } as Phaser.Types.Tweens.TweenBuilderConfig);
         ball.angle = 0;
