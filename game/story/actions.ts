@@ -1,5 +1,6 @@
 import { encountersFor } from "@/data/encounters";
 import { ITEMS, type ItemId } from "@/data/items";
+import { NPCS } from "@/data/npcs";
 import { species } from "@/data/pokemon/species";
 import { TRAINERS, rollTrainerTeam } from "@/data/trainers";
 import type { BattleConfig, Outcome } from "@/game/battle/engine";
@@ -90,6 +91,14 @@ export async function blackout(): Promise<void> {
     healParty(s);
     s.money = Math.floor(s.money / 2);
   });
+  // Capítulo 3: depois de usar o Centro de Cura de Verdelume, é para lá que se volta.
+  // JOÃO: as falas da enfermeira de Verdelume aqui são provisórias.
+  if (flag("ch3_center")) {
+    await world().warp("verdelume_center", 4, 5, "up");
+    await talk(undefined, `${hero()} correu até o Centro de Cura...`);
+    await talk(NPCS.v_nurse.name, "Pronto, todos recuperados.", "Volte quando precisar.");
+    return;
+  }
   if (flag("ch2_center")) {
     await world().warp("ferruria_center", 4, 5, "up");
     await talk(undefined, `${hero()} correu até o Centro de Cura...`);

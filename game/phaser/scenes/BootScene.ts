@@ -33,6 +33,7 @@ export class BootScene extends Phaser.Scene {
     buildUiTextures(this);
     // Tilesets ampliados (ou não) conforme "Gráficos" nas Opções; extra_sheet são os tiles soltos.
     addArt(this, "extra_sheet", 16, 16, true, undefined, "extra");
+    addArt(this, "kenney_sheet", 16, 16, true, undefined, "kenney_town");
     for (const key of TILESET_KEYS) addArt(this, key, 16, 16, false);
     const state = useGame.getState().live;
     if (!state) return;

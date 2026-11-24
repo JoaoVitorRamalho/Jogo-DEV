@@ -13,7 +13,8 @@ Você escreve **roteiro, diálogos, flags e quests**. O **visual** já está enc
 | O quê | Arquivo |
 |-------|---------|
 | Capítulo 1 (jogável) | `game/story/chapter1.ts` |
-| Capítulo 2+ (criar) | `game/story/chapter2.ts` + `installChapter2()` no bootstrap |
+| Capítulo 2 | `game/story/chapter2.ts` (ligado pelos hooks de `chapter1.ts`) |
+| Capítulo 3 (palco pronto, falta a história) | `game/story/chapter3.ts`, passo a passo em [`CAP3-JOAO.md`](CAP3-JOAO.md) |
 | NPCs no mapa | Diálogo em `chapterN.ts`; aparência em `data/npcs.ts` |
 | Placas / objetos | `SIGNS` e handler `sign` em `chapterN.ts` |
 | Missão no menu | `data/quests.ts` |

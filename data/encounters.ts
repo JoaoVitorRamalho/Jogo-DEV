@@ -75,6 +75,26 @@ export const ENCOUNTERS: Record<string, EncounterTable> = {
       { species: "gible", min: 13, max: 15, weight: 5 },
     ],
   },
+  // Capítulo 3. JOÃO: tabela provisória (os pesos somam 100; o teste confere).
+  route3: {
+    rate: 0.11,
+    background: "grass",
+    grass: [
+      { species: "pidgey", min: 10, max: 13, weight: 14 },
+      { species: "starly", min: 10, max: 13, weight: 12 },
+      { species: "poochyena", min: 11, max: 14, weight: 14 },
+      { species: "bidoof", min: 10, max: 13, weight: 10 },
+      { species: "pachirisu", min: 11, max: 13, weight: 10 },
+      { species: "pikachu", min: 11, max: 13, weight: 6 },
+      { species: "mightyena", min: 14, max: 15, weight: 4 },
+      { species: "staravia", min: 14, max: 15, weight: 5 },
+      { species: "pidgeotto", min: 14, max: 15, weight: 5 },
+      { species: "bibarel", min: 14, max: 15, weight: 5 },
+      { species: "metapod", min: 10, max: 12, weight: 5 },
+      { species: "kakuna", min: 10, max: 12, weight: 5 },
+      { species: "caterpie", min: 10, max: 12, weight: 5 },
+    ],
+  },
 };
 
 /** O bosque da Rota 2 só oferece evoluções mais fortes depois de ser liberado. */

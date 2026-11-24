@@ -2,12 +2,16 @@ import { describe, expect, it } from "vitest";
 import route1 from "@/public/assets/maps/route1.json";
 import route2 from "@/public/assets/maps/route2.json";
 import forest from "@/public/assets/maps/forest.json";
+import route3 from "@/public/assets/maps/route3.json";
+import verdelume from "@/public/assets/maps/verdelume.json";
 
 type Point = { x: number; y: number };
 const cases = [
   { name: "Rota 1", map: route1, start: { x: 11, y: 43 }, end: { x: 11, y: 2 } },
   { name: "Rota 2", map: route2, start: { x: 17, y: 61 }, end: { x: 17, y: 2 } },
   { name: "Floresta de Aster", map: forest, start: { x: 10, y: 20 }, end: { x: 10, y: 1 } },
+  { name: "Rota 3", map: route3, start: { x: 17, y: 50 }, end: { x: 17, y: 1 } },
+  { name: "Cidade Verdelume", map: verdelume, start: { x: 21, y: 33 }, end: { x: 7, y: 10 } },
 ];
 
 describe.each(cases)("integridade de $name", ({ map, start, end }) => {

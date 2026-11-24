@@ -173,6 +173,87 @@ export const TRAINERS: Record<string, TrainerDef> = {
     defeat: ["Perdemos essa, Pikachu... Na próxima a gente consegue!"],
     after: ["Na próxima eu ganho. Pode escrever."],
   },
+
+  // ---------- capítulo 3: Rota 3 e Dojo de Verdelume ----------
+  // JOÃO: equipes, prêmio e falas são provisórios (só para dar para jogar de ponta a ponta).
+  // Pode trocar tudo; o teste data/trainers.test.ts avisa se uma espécie ou nível não existir.
+  r3_nara: {
+    id: "r3_nara",
+    name: "Campista Nara",
+    team: [
+      { species: "pidgeotto", level: 14, alternatives: ["staravia"] },
+      { species: "bidoof", level: 13, alternatives: ["pachirisu"] },
+    ],
+    reward: 420,
+    intro: ["Opa! Treinador novo na Rota 3?", "Vamos ver se você chega inteiro em Verdelume."],
+    defeat: ["Tá bom, tá bom... você chega."],
+    after: ["Dizem que em Verdelume tem um Dojo. Prepare um time que aguenta pancada."],
+  },
+  r3_bel: {
+    id: "r3_bel",
+    name: "Andarilha Bel",
+    team: [
+      { species: "poochyena", level: 13, alternatives: ["bidoof"] },
+      { species: "mightyena", level: 15 },
+    ],
+    reward: 450,
+    intro: ["Ei! Você passou na minha frente.", "Aqui a regra é simples: cruzou o olhar, tem batalha."],
+    defeat: ["Hm. Você é dos bons."],
+    after: ["Ando por esta rota faz anos. Nunca vi tanto caminhão da Thomas por aqui."],
+  },
+  r3_teo: {
+    id: "r3_teo",
+    name: "Corredor Téo",
+    team: [
+      { species: "pikachu", level: 14, alternatives: ["pachirisu"] },
+      { species: "staravia", level: 15, alternatives: ["pidgeotto"] },
+    ],
+    reward: 480,
+    intro: ["Treino de velocidade! Bora ver quem é mais rápido!"],
+    defeat: ["Você foi mais rápido... dessa vez."],
+    after: ["Verdelume fica logo ali em cima. Corre!"],
+  },
+  v_gym_igor: {
+    id: "v_gym_igor",
+    name: "Faixa-Branca Igor",
+    team: [
+      { species: "bidoof", level: 15 },
+      { species: "combusken", level: 16 },
+    ],
+    reward: 500,
+    background: "gym",
+    intro: ["Primeiro tatame. Mostre a sua postura!"],
+    defeat: ["Uff. A cerca do próximo tatame já abriu."],
+    after: ["Postura primeiro, golpe depois."],
+  },
+  v_gym_ana: {
+    id: "v_gym_ana",
+    name: "Faixa-Amarela Ana",
+    team: [
+      { species: "pikachu", level: 16 },
+      { species: "combusken", level: 16 },
+    ],
+    reward: 550,
+    background: "gym",
+    intro: ["Segundo tatame. Daqui para frente ninguém pega leve!"],
+    defeat: ["Pode passar. O Líder está esperando."],
+    after: ["Respira fundo antes da última luta."],
+  },
+  // JOÃO: o líder ainda não tem nome; troque o "name" e as falas. Tipo do ginásio: Lutador.
+  leader_verdelume: {
+    id: "leader_verdelume",
+    name: "Líder do Dojo",
+    team: [
+      { species: "mightyena", level: 18 },
+      { species: "bibarel", level: 18 },
+      { species: "combusken", level: 20 },
+    ],
+    reward: 1200,
+    background: "gym",
+    intro: ["Bem-vindo ao Dojo de Verdelume.", "Aqui a gente treina corpo e cabeça. Valendo a Insígnia Punho!"],
+    defeat: ["...Belo combate. Você mereceu."],
+    after: ["Treine todo dia. A força vem da rotina."],
+  },
 };
 
 /** Varia os treinadores comuns; membros sem alternativas ficam garantidos. */

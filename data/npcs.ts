@@ -1,6 +1,6 @@
 import { type Appearance, defaultAppearance } from "@/game/character/appearance";
 
-export type TileSprite = "ball" | "web" | "lever_off" | "lever_on";
+export type TileSprite = "ball" | "web" | "lever_off" | "lever_on" | "fence";
 export type NpcLook = { name: string; appearance?: Appearance; sprite?: TileSprite };
 
 const gaelLook: Appearance = { ...defaultAppearance("male"), hairStyle: "spiky", hairColor: "black", top: "jacket", topColor: "red", bottom: "pants", bottomColor: "navy", headwear: "cap", headwearColor: "white", extra: "none", skin: "amber", shoesColor: "white" };
@@ -263,4 +263,109 @@ export const NPCS: Record<string, NpcLook> = {
     name: "Pedrinho",
     appearance: { ...male, hairStyle: "short", hairColor: "chestnut", top: "tshirt", topColor: "sky", bottom: "shorts", bottomColor: "navy", extra: "none", skin: "amber" },
   },
+
+  // ---------- capítulo 3: Rota 3 e Verdelume ----------
+  // JOÃO: nomes e roupas são provisórios, troque à vontade. O id (a chave) é o que liga o mapa
+  // à fala em game/story/chapter3.ts; para trocar o id, troque também no scripts/build_maps.py.
+  thomas_promoter: {
+    name: "Promotora Thomas",
+    appearance: { ...female, hairStyle: "ponytail", hairColor: "blonde", top: "jacket", topColor: "navy", bottom: "skirt", bottomColor: "navy", headwear: "cap", headwearColor: "navy", extra: "none", skin: "light", shoesColor: "white" },
+  },
+  r3_worker: { name: "Operário", appearance: { ...worker, skin: "olive", hairColor: "chestnut" } },
+  r3_fisher: {
+    name: "Pescador",
+    appearance: { ...male, hairStyle: "short", hairColor: "gray", top: "longsleeve", topColor: "teal", bottom: "pants", bottomColor: "tan", headwear: "hat", headwearColor: "tan", extra: "none", skin: "bronze", shoes: "boots", shoesColor: "brown" },
+  },
+  r3_trainer_1: {
+    name: "Campista Nara",
+    appearance: { ...female, hairStyle: "bob", hairColor: "chestnut", top: "tshirt", topColor: "orange", bottom: "shorts", bottomColor: "brown", headwear: "hat", headwearColor: "orange", extra: "backpack", extraColor: "orange", skin: "amber" },
+  },
+  r3_trainer_2: {
+    name: "Andarilha Bel",
+    appearance: { ...female, hairStyle: "twintails", hairColor: "raven", top: "hoodie", topColor: "charcoal", bottom: "pants", bottomColor: "black", headwear: "none", extra: "backpack", extraColor: "red", skin: "brown" },
+  },
+  r3_trainer_3: {
+    name: "Corredor Téo",
+    appearance: { ...male, hairStyle: "spiky", hairColor: "blonde", top: "tank", topColor: "yellow", bottom: "shorts", bottomColor: "navy", headwear: "none", extra: "none", skin: "light", shoesColor: "red" },
+  },
+  r3_hiker: {
+    name: "Alpinista",
+    appearance: { ...male, hairStyle: "buzz", hairColor: "black", top: "jacket", topColor: "brown", bottom: "pants", bottomColor: "forest", headwear: "beanie", headwearColor: "red", extra: "backpack", extraColor: "forest", skin: "taupe", shoes: "boots", shoesColor: "brown" },
+  },
+  item_r3_west: { name: "Item", sprite: "ball" },
+  item_r3_east: { name: "Item", sprite: "ball" },
+  v_gate_a: { name: "Vigia", appearance: { ...worker, topColor: "navy", headwearColor: "navy", skin: "brown" } },
+  v_gate_b: { name: "Vigia", appearance: { ...worker, topColor: "navy", headwearColor: "navy", skin: "light", hairColor: "blonde" } },
+  v_local: {
+    name: "Moradora",
+    appearance: { ...female, hairStyle: "long", hairColor: "light_brown", top: "dress", topColor: "pink", bottom: "skirt", bottomColor: "pink", headwear: "none", extra: "none", skin: "olive" },
+  },
+  v_kid: {
+    name: "Menino",
+    appearance: { ...male, hairStyle: "fringe", hairColor: "ginger", top: "tshirt", topColor: "red", bottom: "shorts", bottomColor: "navy", headwear: "cap", headwearColor: "red", extra: "none", skin: "light" },
+  },
+  v_elder: {
+    name: "Seu Bento",
+    appearance: { ...male, hairStyle: "short", hairColor: "white", top: "longsleeve", topColor: "maroon", bottom: "pants", bottomColor: "charcoal", headwear: "none", extra: "glasses", skin: "brown" },
+  },
+  gael_verdelume: { name: "Gael", appearance: gaelLook },
+  v_recruiter: {
+    name: "Recrutador Thomas",
+    appearance: { ...male, hairStyle: "short", hairColor: "black", top: "jacket", topColor: "navy", bottom: "pants", bottomColor: "navy", headwear: "cap", headwearColor: "navy", extra: "glasses", skin: "amber", shoesColor: "black" },
+  },
+  v_coach: {
+    name: "Técnica Vera",
+    appearance: { ...female, hairStyle: "ponytail", hairColor: "black", top: "tank", topColor: "red", bottom: "pants", bottomColor: "charcoal", headwear: "cap", headwearColor: "red", extra: "none", skin: "bronze", shoesColor: "white" },
+  },
+  v_trainee_a: {
+    name: "Aprendiz",
+    appearance: { ...male, hairStyle: "buzz", hairColor: "dark_brown", top: "tshirt", topColor: "white", bottom: "shorts", bottomColor: "red", headwear: "none", extra: "none", skin: "taupe" },
+  },
+  v_trainee_b: {
+    name: "Aprendiz",
+    appearance: { ...female, hairStyle: "bun", hairColor: "black", top: "tshirt", topColor: "white", bottom: "shorts", bottomColor: "red", headwear: "none", extra: "none", skin: "amber" },
+  },
+  item_v_field: { name: "Item", sprite: "ball" },
+  v_nurse: {
+    name: "Enfermeira Lis",
+    appearance: { ...female, hairStyle: "ponytail", hairColor: "pink", top: "dress", topColor: "white", bottom: "skirt", bottomColor: "white", headwear: "none", extra: "none", skin: "olive", shoesColor: "white" },
+  },
+  v_center_visitor: {
+    name: "Viajante",
+    appearance: { ...male, hairStyle: "long", hairColor: "chestnut", top: "hoodie", topColor: "green", bottom: "pants", bottomColor: "tan", headwear: "none", extra: "backpack", extraColor: "tan", skin: "light" },
+  },
+  v_shop: {
+    name: "Dona Lurdes",
+    appearance: { ...female, hairStyle: "bun", hairColor: "gray", top: "longsleeve", topColor: "forest", bottom: "skirt", bottomColor: "brown", headwear: "none", extra: "glasses", skin: "taupe" },
+  },
+  v_mart_customer: {
+    name: "Cliente",
+    appearance: { ...male, hairStyle: "afro", hairColor: "black", top: "tshirt", topColor: "purple", bottom: "pants", bottomColor: "navy", headwear: "none", extra: "none", skin: "brown" },
+  },
+  v_family_a: {
+    name: "Moradora",
+    appearance: { ...female, hairStyle: "short", hairColor: "redhead", top: "longsleeve", topColor: "sky", bottom: "pants", bottomColor: "navy", headwear: "none", extra: "none", skin: "light" },
+  },
+  v_family_b: {
+    name: "Menina",
+    appearance: { ...female, hairStyle: "twintails", hairColor: "redhead", top: "dress", topColor: "yellow", bottom: "skirt", bottomColor: "yellow", headwear: "none", extra: "none", skin: "light" },
+  },
+  v_leader: {
+    name: "Líder do Dojo",
+    appearance: { ...male, hairStyle: "spiky", hairColor: "black", top: "jacket", topColor: "white", bottom: "pants", bottomColor: "white", headwear: "none", extra: "scarf", extraColor: "black", skin: "bronze", shoes: "sandals", shoesColor: "brown" },
+  },
+  v_gym_guide: {
+    name: "Guia do Dojo",
+    appearance: { ...male, hairStyle: "short", hairColor: "gray", top: "tshirt", topColor: "white", bottom: "pants", bottomColor: "charcoal", headwear: "cap", headwearColor: "red", extra: "none", skin: "olive" },
+  },
+  v_gym_trainer_1: {
+    name: "Faixa-Branca Igor",
+    appearance: { ...male, hairStyle: "buzz", hairColor: "dark_brown", top: "jacket", topColor: "white", bottom: "pants", bottomColor: "white", headwear: "none", extra: "scarf", extraColor: "white", skin: "amber", shoes: "sandals", shoesColor: "brown" },
+  },
+  v_gym_trainer_2: {
+    name: "Faixa-Amarela Ana",
+    appearance: { ...female, hairStyle: "ponytail", hairColor: "dark_brown", top: "jacket", topColor: "white", bottom: "pants", bottomColor: "white", headwear: "none", extra: "scarf", extraColor: "yellow", skin: "brown", shoes: "sandals", shoesColor: "brown" },
+  },
+  v_bar_1: { name: "Cerca", sprite: "fence" },
+  v_bar_2: { name: "Cerca", sprite: "fence" },
 };

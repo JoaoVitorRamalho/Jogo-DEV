@@ -35,6 +35,19 @@ export const QUESTS: QuestDef[] = [
       { flag: "chapter2_complete", text: "Investigue a obra na saída norte de Ferrúria." },
     ],
   },
+  // JOÃO: título e textos provisórios do capítulo 3. Cada passo some quando a flag dele liga.
+  {
+    id: "act2_verdelume",
+    title: "Verdelume",
+    act: 2,
+    steps: [
+      { flag: "ch3_road_open", text: "Fale com os operários na saída norte de Ferrúria." },
+      { flag: "ch3_arrived", text: "Siga pela Rota 3 até a Cidade Verdelume." },
+      { flag: "ch3_field", text: "Visite o Campo de treinamento, a sudeste de Verdelume." },
+      { flag: "beat_leader_verdelume", text: "Vença os faixas do Dojo e enfrente o Líder." },
+      { flag: "chapter3_complete", text: "Termine o capítulo." },
+    ],
+  },
 ];
 
 export function questProgress(quest: QuestDef, flags: Record<string, unknown>): { done: number; current: QuestStep | null } {

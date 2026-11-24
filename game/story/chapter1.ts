@@ -10,6 +10,7 @@ import { createMon } from "@/game/pokemon/mon";
 import { addMon, giveItem, useGame } from "@/game/state/store";
 import { autosave, flag, giveOnce, healAtHome, hero, line, setFlag, spottedBy, state, talk, think, trainerBattle, wildEncounter, yesNo } from "@/game/story/actions";
 import { CH2_SIGN_RUN, CH2_SIGNS, CH2_TALK, CH2_VISIBLE, ch2CanWarp, ch2Enter } from "@/game/story/chapter2";
+import { CH3_SIGN_RUN, CH3_SIGNS, CH3_VISIBLE, ch3, ch3CanWarp, ch3Enter, ch3Talk } from "@/game/story/chapter3";
 import { BattleDemo } from "@/game/story/demo";
 import { type StoryHooks, story } from "@/game/story/hooks";
 import { spotted, watching } from "@/game/story/watchers";
@@ -743,11 +744,11 @@ async function television(): Promise<void> {
 const hooks: StoryHooks = {
   npcVisible: (id) => {
     ensure();
-    return CH2_VISIBLE[id]?.() ?? NPC_VISIBLE[id]?.() ?? true;
+    return CH3_VISIBLE[id]?.() ?? CH2_VISIBLE[id]?.() ?? NPC_VISIBLE[id]?.() ?? true;
   },
   talk: async (id) => {
     ensure();
-    const run = (flag("chapter1_complete") || !NPC_TALK[id] ? CH2_TALK[id] : undefined) ?? NPC_TALK[id];
+    const run = ch3Talk(id, Boolean(NPC_TALK[id] || CH2_TALK[id])) ?? (flag("chapter1_complete") || !NPC_TALK[id] ? CH2_TALK[id] : undefined) ?? NPC_TALK[id];
     if (run) await run();
   },
   sign: async (id) => {
@@ -759,8 +760,9 @@ const hooks: StoryHooks = {
     if (id === "exam_folder") return examFolder();
     if (id === "bedroom_pc") return television();
     if (id === "bedroom_bed") return sleepInBed();
+    if (CH3_SIGN_RUN[id]) return CH3_SIGN_RUN[id]();
     if (CH2_SIGN_RUN[id]) return CH2_SIGN_RUN[id]();
-    const text = (flag("chapter1_complete") ? CH2_SIGNS[id] : undefined) ?? SIGNS[id] ?? CH2_SIGNS[id];
+    const text = (ch3() ? CH3_SIGNS[id] : undefined) ?? (flag("chapter1_complete") ? CH2_SIGNS[id] : undefined) ?? SIGNS[id] ?? CH2_SIGNS[id] ?? CH3_SIGNS[id];
     if (text) await talk(undefined, ...text.map((lineText) => lineText.replaceAll("{nome}", hero())));
   },
   event: async (id) => {
@@ -854,9 +856,12 @@ const hooks: StoryHooks = {
       await goal("Entre em casa e converse com a sua mãe.");
     }
     await ch2Enter(key);
+    await ch3Enter(key);
   },
   canWarp: async (from, to) => {
     ensure();
+    const ch3Warp = await ch3CanWarp(from, to);
+    if (ch3Warp !== null) return ch3Warp;
     const ch2 = await ch2CanWarp(from, to);
     if (ch2 !== null) return ch2;
     if (from === "house_1f" && to === "brisamar" && !flag("ch1_morning")) {

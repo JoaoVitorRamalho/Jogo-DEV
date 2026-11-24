@@ -1080,6 +1080,9 @@ def build_ferruria() -> Map:
         m.solid(c, r)
 
     m.warp(21, 35, "route2", 17, 1, "down", w=2)
+    # Saída norte (capítulo 3): os operários ficam em cima da rua até a obra liberar a Rota 3.
+    m.warp(21, 0, "route3", 17, 50, "up", w=2)
+    m.spawn("from_route3", 21, 1, "down")
     m.warp(gym_door[0], gym_door[1], "ferruria_gym", 7, 16, "up", door=True)
     m.warp(center_door[0], center_door[1], "ferruria_center", 5, 7, "up", door=True)
     m.warp(mart_door[0], mart_door[1], "ferruria_mart", 4, 6, "up", door=True)
@@ -1231,6 +1234,264 @@ def build_ferruria_lab() -> Map:
     return m
 
 
+# ---------- capítulo 3: Rota 3 e Verdelume ----------
+# Só o palco: falas, cenas e flags ficam em game/story/chapter3.ts (guia em docs/CAP3-JOAO.md).
+
+
+def kenney_prop(m: Map, tile: int, cells, layer: str = "buildings", solid: bool = True) -> None:
+    """Objeto de um tile do Kenney (alvo, tronco, poço, vaso, arbusto) em cada célula."""
+    for c, r in cells:
+        m.set(layer, c, r, KT(tile))
+        if solid:
+            m.solid(c, r)
+
+
+def dojo(m: Map, c: int, r: int) -> tuple[int, int]:
+    """Dojo de Verdelume: prédio Kenney 7 × 4 de pedra e telhado vermelho, porta no meio.
+
+    Mesma regra da casa: linhas r+1..r+4, telhado de cima na camada "above"."""
+    rows = [
+        [52, 53, 53, 53, 53, 53, 54],
+        [64, 65, 65, 65, 65, 65, 66],
+        [76, 88, 77, 88, 77, 88, 79],
+        [76, 77, 77, 89, 77, 77, 79],
+    ]
+    for dy, row in enumerate(rows):
+        for dx, tile in enumerate(row):
+            m.set("above" if dy == 0 else "buildings", c + dx, r + 1 + dy, KT(tile))
+            if (dx, dy) != (3, 3):
+                m.solid(c + dx, r + 1 + dy)
+    return c + 3, r + 4
+
+
+def build_route3() -> Map:
+    """Rota 3: sai do norte de Ferrúria e sobe até Verdelume.
+
+    Sul: obra do Grupo Thomas com o posto patrocinado. Meio: lago a oeste, campo de mato
+    e mirante a leste. Norte: a subida para Verdelume."""
+    m = Map("Rota 3", 36, 52, music="streets")
+    grass_fill(m)
+    route = line_cells([(17, 51), (17, 40), (25, 40), (25, 26), (11, 26), (11, 12), (17, 12), (17, 0)])
+    spur_lake = line_cells([(17, 46), (10, 46), (10, 36)])
+    spur_view = line_cells([(25, 33), (31, 33), (31, 18)])
+    walk = route | spur_lake | spur_view
+    open_cells = set(walk)
+    for area in (
+        rect(12, 42, 12, 10),  # obra do Grupo Thomas na entrada
+        rect(2, 32, 12, 18),  # lago e mato do oeste
+        rect(14, 28, 10, 12),  # campo do meio
+        rect(27, 16, 8, 20),  # mirante do leste
+        rect(6, 10, 14, 16),  # mato do norte
+        rect(14, 0, 8, 10),  # subida para Verdelume
+    ):
+        open_cells |= area
+    woods(m, open_cells)
+    path(m, walk)
+    water(m, 4, 36, 5, 5)
+    tall(m, rect(2, 43, 8, 6), walk)
+    tall(m, rect(14, 29, 6, 9), walk)
+    tall(m, rect(27, 20, 4, 10), walk)
+    tall(m, rect(6, 14, 4, 10) | rect(14, 15, 5, 8), walk)
+    flowers(m, [(13, 45), (22, 42), (12, 50), (21, 30), (23, 36), (5, 33), (12, 40), (28, 17), (34, 30), (7, 11), (19, 16), (15, 2), (20, 9), (33, 34)])
+
+    # Obra do Grupo Thomas: posto patrocinado (barraca), cerca e troncos empilhados.
+    m.stamp(19, 43, 18, 22, 5, 6, above_rows=3)
+    fence_h(m, 12, 43, 4)
+    kenney_prop(m, 106, [(13, 49), (14, 49), (13, 50)])
+
+    post(m, "sign_route3", 16, 50)
+    post(m, "sign_r3_thomas", 19, 49)
+    post(m, "sign_r3_view", 29, 17)
+    post(m, "sign_r3_north", 19, 3)
+    m.warp(17, 51, "ferruria", 21, 1, "down", w=2)
+    m.warp(17, 0, "verdelume", 21, 34, "up", w=2)
+    m.spawn("from_ferruria", 17, 50, "up")
+    m.spawn("from_verdelume", 17, 1, "down")
+    m.npc("thomas_promoter", 21, 49, "down")
+    m.npc("r3_worker", 15, 44, "down")
+    m.npc("r3_fisher", 9, 38, "left")
+    m.npc("r3_hiker", 8, 11, "down", wander=1)
+    m.npc("r3_trainer_1", 22, 38, "right")
+    m.npc("r3_trainer_2", 14, 24, "left")
+    m.npc("r3_trainer_3", 20, 6, "left")
+    m.npc("item_r3_west", 3, 33)
+    m.npc("item_r3_east", 33, 17)
+    return m
+
+
+def build_verdelume() -> Map:
+    """Cidade Verdelume: Dojo (ginásio Lutador), Campo de treinamento patrocinado pelo
+    Grupo Thomas e a saída norte fechada até o capítulo 4."""
+    m = Map("Cidade Verdelume", 44, 36, music="town")
+    grass_fill(m)
+    tree_band(m, 0, 0, 44, 3)
+    tree_band(m, 0, 3, 3, 31)
+    tree_band(m, 41, 3, 3, 31)
+    tree_band(m, 0, 34, 44, 2)
+    street = line_cells([(21, 35), (21, 0)])
+    plaza = rect(15, 13, 14, 8)
+    for c, r in street | plaza:
+        for layer in ("buildings", "above"):
+            m.set(layer, c, r, 0)
+        m.solid(c, r, False)
+    for c, r in plaza:
+        m.set("ground", c, r, FLAGSTONE[r % 2][c % 2])
+
+    gym_door = dojo(m, 4, 5)
+    m.stamp(13, 5, 0, 2, 5, 5, tileset=EXB, above_rows=1, open_cells=((2, 4),))  # centro de cura
+    m.stamp(25, 5, 10, 2, 5, 5, tileset=EXB, above_rows=1, open_cells=((2, 4),))  # loja
+    center_door, mart_door = (15, 9), (27, 9)
+    homes = {"verdelume_house": (33, 5), "v_house_locked": (5, 13), "v_house_locked_2": (10, 13), "v_house_locked_3": (31, 13),
+             "v_house_locked_4": (36, 13), "v_house_locked_5": (5, 25), "v_house_locked_6": (11, 25)}
+    doors = {key: house(m, c, r) for key, (c, r) in homes.items()}
+
+    # Campo de treinamento: cerca com entrada no meio, arbustos a oeste, arena de terra com alvos.
+    fence_h(m, 26, 25, 6)
+    fence_h(m, 34, 25, 7)
+    kenney_prop(m, 5, [(25, r) for r in range(25, 34)])
+    arena = rect(27, 27, 12, 6)
+    field_gate = line_cells([(32, 24), (32, 26)])
+
+    main = street | line_cells([(4, 11), (38, 11)]) | line_cells([(5, 22), (38, 22)]) | arena | field_gate
+    for door in (gym_door, center_door, mart_door, doors["verdelume_house"]):
+        main |= line_cells([(door[0], door[1] + 1), (door[0], 11)], width=1)
+    for key, (c, r) in doors.items():
+        if r == 17:
+            main |= line_cells([(c, r + 1), (c, 22)], width=1)
+        elif r == 29:
+            main |= line_cells([(c, r + 1), (c, 31)], width=1)
+    main |= line_cells([(7, 31), (21, 31)], width=1)
+    path(m, main - plaza)
+
+    kenney_prop(m, 95, [(29, 28), (36, 28)])  # alvos
+    kenney_prop(m, 106, [(39, 27), (40, 27), (40, 28)])  # troncos
+    kenney_prop(m, 104, [(25, 16)])  # poço da praça
+    kenney_prop(m, 107, [(17, 19), (27, 19)])  # vasos
+    kenney_prop(m, 29, [(3, 9), (40, 33), (24, 33)], layer="detail", solid=False)  # cogumelos
+    flowers(m, [(4, 4), (12, 4), (19, 4), (24, 4), (31, 4), (39, 4), (3, 20), (19, 26), (24, 27), (17, 28),
+                (18, 29), (24, 30), (3, 32), (40, 20), (29, 19), (39, 12)])
+
+    m.warp(21, 35, "route3", 17, 1, "down", w=2)
+    m.warp(gym_door[0], gym_door[1], "verdelume_gym", 7, 16, "up", door=True)
+    m.warp(center_door[0], center_door[1], "verdelume_center", 5, 7, "up", door=True)
+    m.warp(mart_door[0], mart_door[1], "verdelume_mart", 4, 6, "up", door=True)
+    hx, hy = doors["verdelume_house"]
+    m.warp(hx, hy, "verdelume_house", 4, 6, "up", door=True)
+    m.spawn("from_route3", 21, 33, "up")
+    m.spawn("from_gym", gym_door[0], gym_door[1] + 1, "down")
+    m.spawn("from_center", center_door[0], center_door[1] + 1, "down")
+    m.spawn("from_mart", mart_door[0], mart_door[1] + 1, "down")
+    m.spawn("from_house", hx, hy + 1, "down")
+
+    post(m, "sign_verdelume", 23, 32)
+    post(m, "sign_v_gym", gym_door[0] - 1, gym_door[1] + 1)
+    post(m, "sign_v_center", center_door[0] - 1, center_door[1] + 1)
+    post(m, "sign_v_mart", mart_door[0] - 1, mart_door[1] + 1)
+    post(m, "sign_v_field", 31, 24)
+    post(m, "sign_v_north", 23, 3)
+    for key, (dx, dy) in doors.items():
+        if key != "verdelume_house":
+            m.sign(key, dx, dy)
+
+    m.npc("v_gate_a", 21, 2, "down")
+    m.npc("v_gate_b", 22, 2, "down")
+    m.npc("v_local", 18, 24, "down", wander=2)
+    m.npc("v_kid", 19, 17, "down", wander=2)
+    m.npc("v_elder", 16, 15, "right")
+    m.npc("gael_verdelume", 23, 18, "down")
+    m.npc("v_recruiter", 34, 24, "left")
+    m.npc("v_coach", 34, 27, "left")
+    m.npc("v_trainee_a", 29, 30, "up")
+    m.npc("v_trainee_b", 36, 30, "up")
+    m.npc("item_v_field", 27, 33)
+    return m
+
+
+def build_verdelume_center() -> Map:
+    m = Map("Centro de Cura de Verdelume", 12, 9, music="town")
+    interior_box(m, lab=True, floor=LABFLOOR)
+    m.stamp(3, 3, 0, 12, 3, 2, tileset=IN)  # balcão
+    m.set("buildings", 6, 2, HEALER)
+    m.solid(6, 2)
+    m.set("buildings", 10, 2, PC)
+    m.solid(10, 2)
+    m.stamp(1, 2, 8, 12, 1, 2, tileset=IN, above_rows=1)
+    m.stamp(10, 6, 8, 12, 1, 2, tileset=IN, above_rows=1)
+    m.set("detail", 4, 5, HEALMAT)
+    m.set("detail", 5, 8, MAT)
+    m.set("detail", 6, 8, MAT)
+    m.warp(5, 8, "verdelume", 15, 10, "down", w=2, door=True)
+    m.spawn("from_outside", 5, 7, "up")
+    m.npc("v_nurse", 4, 2, "down")
+    for c in (3, 4, 5):
+        m.obj("signs", "v_center_desk", c, 4)
+    m.obj("signs", "center_pc", 10, 2)
+    m.npc("v_center_visitor", 8, 5, "left", wander=1)
+    return m
+
+
+def build_verdelume_mart() -> Map:
+    m = Map("Loja de Verdelume", 10, 8, music="town")
+    interior_box(m, lab=True, floor=LABFLOOR)
+    m.stamp(1, 3, 0, 12, 3, 2, tileset=IN)  # balcão
+    m.stamp(5, 2, 3, 12, 3, 2, tileset=IN)  # prateleiras
+    m.stamp(5, 5, 3, 12, 3, 2, tileset=IN)
+    m.stamp(9, 1, 8, 12, 1, 2, tileset=IN, above_rows=1)
+    m.set("detail", 4, 7, MAT)
+    m.set("detail", 5, 7, MAT)
+    m.warp(4, 7, "verdelume", 27, 10, "down", w=2, door=True)
+    m.spawn("from_outside", 4, 6, "up")
+    m.npc("v_shop", 2, 2, "down")
+    for c in (1, 2, 3):
+        m.obj("signs", "v_mart_desk", c, 4)
+    m.npc("v_mart_customer", 8, 4, "left", wander=1)
+    return m
+
+
+def build_verdelume_house() -> Map:
+    m = Map("Casa em Verdelume", 10, 8, music="town")
+    interior_box(m)
+    m.stamp(1, 2, 3, 12, 3, 2, tileset=IN)
+    m.stamp(5, 3, 13, 1, 3, 3, tileset=IN)
+    m.stamp(8, 1, 8, 12, 1, 2, tileset=IN, above_rows=1)
+    m.set("detail", 4, 7, MAT)
+    m.set("detail", 5, 7, MAT)
+    m.warp(4, 7, "verdelume", 35, 10, "down", w=2, door=True)
+    m.spawn("from_outside", 4, 6, "up")
+    m.npc("v_family_a", 3, 5, "right")
+    m.npc("v_family_b", 8, 5, "left", wander=1)
+    return m
+
+
+def build_verdelume_gym() -> Map:
+    """Dojo de Verdelume (ginásio Lutador): três tatames separados por cerca.
+
+    O vão de cada cerca é um NPC "cerca" (v_bar_1, v_bar_2) que some quando o faixa daquele
+    tatame perde; a regra fica em CH3_VISIBLE, então dá para mudar a ordem sem mexer no mapa."""
+    m = Map("Dojo de Verdelume", 15, 18, music="streets")
+    interior_box(m, floor=WOOD)
+    for r, gap in ((12, 7), (7, 7)):
+        for c in range(m.cols):
+            if c == gap:
+                continue
+            m.set("buildings", c, r, KT(82 if c == gap - 1 else 80 if c == gap + 1 else 81))
+            m.solid(c, r)
+    for c in (4, 10):
+        m.set("buildings", c, 3, STATUE)
+        m.solid(c, 3)
+    m.set("detail", 7, 17, MAT)
+    m.set("detail", 8, 17, MAT)
+    m.warp(7, 17, "verdelume", 7, 10, "down", w=2, door=True)
+    m.spawn("from_outside", 7, 16, "up")
+    m.npc("v_leader", 7, 3, "down")
+    m.npc("v_gym_guide", 5, 16, "right")
+    m.npc("v_gym_trainer_1", 10, 14, "left")
+    m.npc("v_gym_trainer_2", 4, 9, "right")
+    m.npc("v_bar_1", 7, 12)
+    m.npc("v_bar_2", 7, 7)
+    return m
+
+
 def render_preview(m: Map) -> None:
     sheets = {}
     for ts in _tilesets_for(m):
@@ -1263,6 +1524,7 @@ def render_preview(m: Map) -> None:
 AUTUMN = {
     "forest": lambda c, r: ((c // 2) * 7 + (r // 2) * 13) % 10 < 3,
     "route2": lambda c, r: ((c // 2) * 11 + (r // 2) * 5) % 13 < 2,
+    "route3": lambda c, r: ((c // 2) * 5 + (r // 2) * 9) % 11 < 2,
 }
 
 
@@ -1286,8 +1548,14 @@ def main() -> None:
         "ferruria_gym": build_ferruria_gym(),
         "ferruria_mart": build_ferruria_mart(),
         "ferruria_house": build_ferruria_house(),
+        "route3": build_route3(),
+        "verdelume": build_verdelume(),
+        "verdelume_center": build_verdelume_center(),
+        "verdelume_mart": build_verdelume_mart(),
+        "verdelume_gym": build_verdelume_gym(),
+        "verdelume_house": build_verdelume_house(),
     }
-    for key in ("brisamar", "route1", "clearing", "forest", "route2", "ferruria"):
+    for key in ("brisamar", "route1", "clearing", "forest", "route2", "ferruria", "route3", "verdelume"):
         kenney_skin(built[key], autumn=AUTUMN.get(key, lambda c, r: False))
     lab = build_art_lab()
     if lab is not None:

@@ -1,3 +1,4 @@
+import { world } from "@/game/phaser/bridge";
 import { flag, hasHealthyMon, spottedBy } from "@/game/story/actions";
 
 /**
@@ -16,6 +17,12 @@ const WATCHERS: Record<string, string> = {
   ferruria_bug: "bug_davi",
   gym_trainer_1: "gym_lia",
   gym_trainer_2: "gym_tome",
+  // Capítulo 3
+  r3_trainer_1: "r3_nara",
+  r3_trainer_2: "r3_bel",
+  r3_trainer_3: "r3_teo",
+  v_gym_trainer_1: "v_gym_igor",
+  v_gym_trainer_2: "v_gym_ana",
 };
 
 /** Esse NPC ainda luta com quem passar na frente dele? */
@@ -27,5 +34,8 @@ export function watching(npc: string): boolean {
 /** Ele viu o jogador: exclamação, vem andando e a batalha começa. */
 export async function spotted(npc: string): Promise<void> {
   const trainer = WATCHERS[npc];
-  if (trainer) await spottedBy(trainer, npc);
+  if (!trainer) return;
+  await spottedBy(trainer, npc);
+  // A vitória pode abrir caminho (a cerca do Dojo de Verdelume some quando o faixa perde).
+  world().refreshNpcs();
 }
