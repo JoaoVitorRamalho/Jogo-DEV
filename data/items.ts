@@ -48,7 +48,7 @@ const list: ItemDef[] = [
   { id: "charizardite_x", name: "Charizardita X", pocket: "mega", price: 0, icon: "charizardite_x", mega: true, description: "Mega Evolução X de Charizard." },
   { id: "charizardite_y", name: "Charizardita Y", pocket: "mega", price: 0, icon: "charizardite_y", mega: true, description: "Mega Evolução Y de Charizard." },
   { id: "blazikenite", name: "Blazikenita", pocket: "mega", price: 0, icon: "blazikenite", mega: true, description: "Faz Blaziken mega evoluir em batalha." },
-  { id: "garchompite", name: "Garchompite", pocket: "mega", price: 0, icon: "garchompite", mega: true, description: "Faz Garchomp mega evoluir em batalha." },
+  { id: "garchompite", name: "Garchompita", pocket: "mega", price: 0, icon: "garchompite", mega: true, description: "Faz Garchomp mega evoluir em batalha." },
   {
     id: "greninja_ash",
     name: "Cristal Ash",

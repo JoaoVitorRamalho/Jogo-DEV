@@ -292,6 +292,14 @@ export const CH2_TALK: Record<string, () => Promise<void>> = {
   item_r2_candy: async () => {
     if (await giveOnce("r2_item_candy", "rare_candy", 1)) world().refreshNpcs();
   },
+  // Pedras mega espalhadas: a do Garchomp no bosque onde o Gible aparece, a do Blaziken no
+  // canto de Ferrúria, perto do lago.
+  item_r2_garchompite: async () => {
+    if (await giveOnce("r2_item_garchompite", "garchompite", 1)) world().refreshNpcs();
+  },
+  item_ferruria_blazikenite: async () => {
+    if (await giveOnce("ferruria_item_blazikenite", "blazikenite", 1)) world().refreshNpcs();
+  },
   ferruria_local: async () => {
     if (!ch2()) return talk("Morador", "Primeira vez em Ferrúria? O laboratório da professora Celina é o da direita, na rua de cima.");
     await talk("Morador", badge() ? "Você ganhou da Cora?! A cidade inteira está falando disso." : "Ferrúria cresceu muito. Tem loja nova, Centro de Cura novo... e agora essa obra no norte.");
@@ -362,6 +370,8 @@ export const CH2_VISIBLE: Record<string, () => boolean> = {
   item_r2_super: () => !flag("r2_item_super"),
   item_r2_ball: () => !flag("r2_item_ball"),
   item_r2_candy: () => !flag("r2_item_candy"),
+  item_r2_garchompite: () => !flag("r2_item_garchompite"),
+  item_ferruria_blazikenite: () => !flag("ferruria_item_blazikenite"),
   web_a_1: WEB_A,
   web_a_2: WEB_A,
   web_b_1: WEB_B,

@@ -11,10 +11,15 @@ const scales = new Map<string, number>();
 
 type Leader = { tx: number; ty: number; dir: Direction; moving: boolean; duration: number };
 
+/** Duração da amassadinha ao parar e da virada de lado, em segundos. */
+const LAND = 0.16;
+const TURN = 0.12;
+
 /**
  * Primeiro Pokémon da equipe andando atrás do líder (herói ou quem está seguindo o herói).
- * Não ocupa tile: segue a trilha do líder, pula a cada passo, vira para o lado em que anda
- * (costas subindo, frente descendo, espelhado para a direita) e respira parado.
+ * Não ocupa tile: segue a trilha do líder com um gingado (a cada passo sobe um tico e inclina
+ * para um lado, no seguinte para o outro), assenta ao parar, vira para o lado em que anda
+ * (costas subindo, frente descendo, espelhado para a direita) abrindo do meio, e respira parado.
  */
 export class Pet {
   sprite: Phaser.GameObjects.Image;
@@ -37,6 +42,10 @@ export class Pet {
   enabled = true;
   zoom = 1;
   scale = 1;
+  /** Lado do gingado: troca a cada passo. */
+  side = 1;
+  land = 0;
+  turn = 0;
 
   constructor(private scene: Phaser.Scene) {
     this.zoom = viewZoom(scene);
@@ -129,6 +138,7 @@ export class Pet {
   face(dir: Direction): void {
     this.dir = dir;
     if (!this.speciesKey) return;
+    const before = `${this.sprite.texture.key}|${this.sprite.flipX}`;
     const back = dir === "up";
     const key = this.texture(this.speciesKey, back, this.px) ?? this.texture(this.speciesKey, false, this.px);
     if (key) {
@@ -137,6 +147,7 @@ export class Pet {
     }
     // Sprites oficiais olham para a esquerda.
     this.sprite.setFlipX(dir === "right");
+    if (this.sprite.visible && before !== `${this.sprite.texture.key}|${this.sprite.flipX}`) this.turn = TURN;
   }
 
   pixel(tx: number, ty: number): { x: number; y: number } {
@@ -194,20 +205,43 @@ export class Pet {
       return;
     }
     let lift = 0;
-    let squash = 1;
+    let sx = 1;
+    let sy = 1;
+    let angle = 0;
     if (this.moving) {
-      lift = Math.sin(Math.PI * Math.min(1, this.t)) * 3;
+      // Gingado: sobe 2 px e inclina para o lado da vez, esticando um pouco na subida. Anda, em
+      // vez de quicar como uma bola.
+      const arc = Math.sin(Math.PI * Math.min(1, this.t));
+      lift = arc * 2;
+      angle = arc * 7 * this.side;
+      sy = 1 + arc * 0.05;
+      sx = 1 - arc * 0.03;
+    } else if (this.land > 0) {
+      // Assenta ao parar: amassa um tico e volta.
+      this.land = Math.max(0, this.land - dt);
+      const k = Math.sin((this.land / LAND) * Math.PI);
+      sy = 1 - k * 0.07;
+      sx = 1 + k * 0.05;
     } else {
       // Respira devagar: em alta resolução dá para encolher um tico, sem pular pixel.
-      squash = 1 - (Math.sin(this.clock * 2.6) * 0.5 + 0.5) * 0.035;
+      sy = 1 - (Math.sin(this.clock * 2.6) * 0.5 + 0.5) * 0.035;
+    }
+    if (this.turn > 0) {
+      // Virou de lado: o desenho novo abre do meio, em vez de trocar num estalo.
+      this.turn = Math.max(0, this.turn - dt);
+      sx *= 1 - (this.turn / TURN) * 0.7;
     }
     if (this.hop > 0) {
       this.hop = Math.max(0, this.hop - dt);
       lift += Math.abs(Math.sin(this.hop * Math.PI * 4)) * 5;
     }
-    this.sprite.setVisible(true).setPosition(base.x, base.y - snap(lift, this.zoom)).setScale(this.scale, this.scale * squash);
+    this.sprite
+      .setVisible(true)
+      .setPosition(base.x, base.y - snap(lift, this.zoom))
+      .setScale(this.scale * sx, this.scale * sy)
+      .setAngle(angle);
     this.shadow.setVisible(true).setPosition(base.x, base.y - 1).setScale(Math.max(0.7, 1 - lift / 12), 1);
-    this.shadow.setSize(Math.max(8, Math.min(16, this.sprite.displayWidth * 0.7)), 4);
+    this.shadow.setSize(Math.max(8, Math.min(22, this.sprite.displayWidth * 0.7)), 4);
     const depth = depthOf(base.y);
     this.shadow.setDepth(depth - 0.2);
     this.sprite.setDepth(depth);
@@ -218,6 +252,7 @@ export class Pet {
     const dy = ty - this.ty;
     const dir: Direction = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : dy > 0 ? "down" : "up";
     if (dir !== this.dir) this.face(dir);
+    this.side = -this.side;
     const p = this.pixel(this.tx, this.ty);
     this.fromX = p.x;
     this.fromY = p.y;
@@ -235,6 +270,7 @@ export class Pet {
     const k = Math.min(1, this.t);
     if (k >= 1) {
       this.moving = false;
+      this.land = LAND;
       return p;
     }
     return { x: Math.round(this.fromX + (p.x - this.fromX) * k), y: Math.round(this.fromY + (p.y - this.fromY) * k) };

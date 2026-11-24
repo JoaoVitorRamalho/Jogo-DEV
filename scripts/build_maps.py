@@ -656,6 +656,7 @@ def build_forest() -> Map:
     m.npc("lost_kid", 8, 5, "down")
     m.npc("cora_forest", 9, 6, "down")  # capítulo 2: a líder investiga a clareira
     m.npc("thomas_researcher", 14, 5, "down")
+    m.npc("item_forest_venusaurite", 2, 9)  # pedra mega no canto do capim
     m.sign("sign_forest_in", 8, 18)
     m.set("buildings", 8, 18, OW(35, 2))
     return m
@@ -729,6 +730,7 @@ def build_route2() -> Map:
     m.npc("item_r2_super", 4, 31)
     m.npc("item_r2_ball", 20, 40)
     m.npc("item_r2_candy", 30, 3)
+    m.npc("item_r2_garchompite", 22, 2)  # pedra mega no bosque do Gible
     return m
 
 
@@ -796,6 +798,7 @@ def build_ferruria() -> Map:
     post(m, "sign_mart", mart_door[0] - 1, mart_door[1] + 1)
     post(m, "sign_works", 23, 3)
     post(m, "sign_lake", 28, 30)
+    m.npc("item_ferruria_blazikenite", 40, 33)  # pedra mega no canto perto do lago
     for key, (dx, dy) in doors.items():
         if key != "ferruria_house":
             m.sign(key, dx, dy)

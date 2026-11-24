@@ -120,6 +120,7 @@ export const NPCS: Record<string, NpcLook> = {
     appearance: { ...male, hairStyle: "short", hairColor: "chestnut", top: "jacket", topColor: "forest", bottom: "pants", bottomColor: "brown", headwear: "hat", headwearColor: "forest", extra: "backpack", extraColor: "tan", skin: "olive", shoes: "boots", shoesColor: "brown" },
   },
   item_potion: { name: "Item", sprite: "ball" },
+  item_forest_venusaurite: { name: "Item", sprite: "ball" },
   lab_ball_torchic: { name: "Pokébola", sprite: "ball" },
   lab_ball_bulbasaur: { name: "Pokébola", sprite: "ball" },
   lab_ball_froakie: { name: "Pokébola", sprite: "ball" },
@@ -216,6 +217,8 @@ export const NPCS: Record<string, NpcLook> = {
   item_r2_super: { name: "Item", sprite: "ball" },
   item_r2_ball: { name: "Item", sprite: "ball" },
   item_r2_candy: { name: "Item", sprite: "ball" },
+  item_r2_garchompite: { name: "Item", sprite: "ball" },
+  item_ferruria_blazikenite: { name: "Item", sprite: "ball" },
   ferruria_kid: {
     name: "Menina Bia",
     appearance: { ...female, hairStyle: "twintails", hairColor: "black", top: "dress", topColor: "pink", bottom: "skirt", bottomColor: "pink", extra: "none", skin: "brown" },

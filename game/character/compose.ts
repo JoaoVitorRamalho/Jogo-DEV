@@ -449,6 +449,16 @@ function paintHair(f: Frame, a: Appearance): void {
     else outside("back", 0, 9, 2);
   }
 
+  // A mecha que sai da cabeça (cabelo comprido, maria-chiquinha) passa por cima do contorno do
+  // rosto onde encosta em cabelo dos dois lados. Sem isso ficava uma linha preta no meio e a
+  // mecha parecia solta, como se faltasse um pedaço do cabelo.
+  const bridges: number[] = [];
+  for (const key of hair) {
+    const x = key % FRAME_W;
+    const y = Math.floor(key / FRAME_W);
+    if (f.at(x + 1, y) === "outline" && !hair.has(key + 1) && x + 2 < FRAME_W && hair.has(key + 2)) bridges.push(key + 1);
+  }
+  for (const key of bridges) hair.add(key);
   for (const key of hair) {
     const x = key % FRAME_W;
     const y = Math.floor(key / FRAME_W);

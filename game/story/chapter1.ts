@@ -667,6 +667,10 @@ const NPC_TALK: Record<string, () => Promise<void>> = {
   item_potion: async () => {
     if (await giveOnce("route1_potion", "potion", 1)) world().refreshNpcs();
   },
+  // Pedra mega no canto do capim da floresta: só serve quando o Bulbasaur virar Venusaur.
+  item_forest_venusaurite: async () => {
+    if (await giveOnce("forest_item_venusaurite", "venusaurite", 1)) world().refreshNpcs();
+  },
   ren_gate: async () => talk("Gael", "O laboratório fica mais para baixo, perto da praça."),
   ren_lab: async () => talk("Gael", "A clareira é no fundo do laboratório."),
   ren_route1: async () => talk("Gael", "Eu fico por aqui. Você segue. A gente se vê depois."),
@@ -685,6 +689,7 @@ const NPC_VISIBLE: Record<string, () => boolean> = {
   mother_clinic: () => flag("escort_clinic") || (flag("clinic_done") && flag("escort_home")),
   mother_lake: () => false,
   item_potion: () => !flag("route1_potion"),
+  item_forest_venusaurite: () => !flag("forest_item_venusaurite"),
   lab_ball_torchic: () => flag("capture_demo") && state().starter !== "torchic",
   lab_ball_bulbasaur: () => flag("capture_demo") && state().starter !== "bulbasaur",
   lab_ball_froakie: () => flag("capture_demo") && state().starter !== "froakie",

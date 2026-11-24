@@ -14,6 +14,7 @@ import { useSettings } from "@/lib/settings/store";
 import { say } from "@/game/core/ui";
 import { TALL_GRASS_GID, TALL_GRASS_TOP_FRAME, TILE, TILE_SPRITE_FRAME, VIEW_H, VIEW_W } from "@/game/phaser/constants";
 import { rebuildArt, tileGap } from "@/game/phaser/smooth";
+import { addFountains } from "@/game/phaser/fountain";
 import { buildPlayerTexture } from "@/game/phaser/textures";
 import { fitCamera, viewOrigin } from "@/game/phaser/view";
 import { useGame } from "@/game/state/store";
@@ -215,6 +216,7 @@ export class WorldScene extends Phaser.Scene {
         this.layers[name] = layer;
       }
     }
+    addFountains(this, this.tilemap);
     const collision = this.tilemap.getLayer("collision");
     this.blocked = [];
     for (let y = 0; y < this.tilemap.height; y += 1) {
