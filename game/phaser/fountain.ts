@@ -12,9 +12,9 @@ import { TILE } from "@/game/phaser/constants";
 
 const FOUNTAIN_TILE = 9 * 40 + 22;
 /** As texturas são desenhadas 4× maiores e reduzidas na tela: a gota fica redonda, sem serrilha. */
-const HI = 4;
+export const HI = 4;
 
-function canvasTexture(scene: Phaser.Scene, key: string, w: number, h: number, draw: (g: CanvasRenderingContext2D) => void): void {
+export function canvasTexture(scene: Phaser.Scene, key: string, w: number, h: number, draw: (g: CanvasRenderingContext2D) => void): void {
   if (scene.textures.exists(key)) return;
   const texture = scene.textures.createCanvas(key, w, h);
   const g = texture?.getContext();
@@ -24,7 +24,7 @@ function canvasTexture(scene: Phaser.Scene, key: string, w: number, h: number, d
   texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
 }
 
-function makeTextures(scene: Phaser.Scene): void {
+export function makeTextures(scene: Phaser.Scene): void {
   canvasTexture(scene, "fx_drop", 2 * HI, 2 * HI, (g) => {
     g.fillStyle = "#ffffff";
     g.beginPath();
@@ -69,7 +69,7 @@ function waterSpot(x0: number, y0: number): { x: number; y: number } {
   return { x: x0 + 24, y: y0 + 34 };
 }
 
-function ripple(scene: Phaser.Scene, x: number, y: number, size: number): void {
+export function ripple(scene: Phaser.Scene, x: number, y: number, size: number): void {
   const ring = scene.add.image(x, y, "fx_ring").setDepth(3).setAlpha(0.7).setScale(size * 0.35);
   scene.tweens.add({
     targets: ring,
@@ -81,7 +81,7 @@ function ripple(scene: Phaser.Scene, x: number, y: number, size: number): void {
   });
 }
 
-function glint(scene: Phaser.Scene, x: number, y: number): void {
+export function glint(scene: Phaser.Scene, x: number, y: number): void {
   const star = scene.add.image(x, y, "fx_glint").setDepth(4).setScale(0).setBlendMode(Phaser.BlendModes.ADD).setTint(0xe8fbff);
   scene.tweens.add({
     targets: star,

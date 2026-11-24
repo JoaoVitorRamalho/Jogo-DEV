@@ -2,7 +2,8 @@
  * Ampliação de pixel art sem a escadinha: Scale2x (EPX) duas vezes, 4× no total. Cada pixel vira
  * 2 × 2 e, onde duas bordas da mesma cor se encontram na diagonal, o canto é preenchido. A
  * diagonal sai lisa e o desenho continua o mesmo, sem borrar como a ampliação comum.
- * Trabalha célula por célula (tile ou quadro), para um tile nunca puxar cor do vizinho na folha.
+ * As folhas são ampliadas célula por célula (tile ou quadro), para um tile nunca puxar cor do
+ * vizinho na folha; o mapa montado é ampliado com `bakeTiles`, que olha o vizinho de verdade.
  */
 
 export const SCALE = 4;
@@ -94,4 +95,113 @@ export function upscaleCells(src: Uint32Array, width: number, height: number, ce
     }
   }
   return { data: out, width: outW, height: outH };
+}
+
+/**
+ * Quantos pixels do vizinho (no tamanho original) o Scale2x feito duas vezes enxerga. O resultado
+ * ampliado de um tile só depende do próprio tile e desta faixa em volta.
+ */
+const APRON = 2;
+
+export type Baked = Scaled & {
+  /** Blocos por linha na folha. */
+  cols: number;
+  /** Quantos blocos diferentes o mapa tem. */
+  count: number;
+  /** Bloco de cada tile do mapa, linha por linha; -1 = tile vazio ou deixado de fora. */
+  cells: Int32Array;
+};
+
+function sameRegion(a: Uint32Array, b: Uint32Array): boolean {
+  for (let i = 0; i < a.length; i += 1) if (a[i] !== b[i]) return false;
+  return true;
+}
+
+/**
+ * Amplia um mapa já montado (todas as camadas juntas, no tamanho original), tile por tile, mas
+ * olhando os vizinhos. Na ampliação por célula o desenho que passa de um tile para o outro (a
+ * sombra no capim, a franja da borda do caminho) é cortado reto na divisa e vira triângulo e
+ * serrilha. Aqui cada tile é ampliado com a faixa do vizinho em volta e sai igual a ampliar o
+ * mapa inteiro de uma vez. A borda `pad` de cada bloco também vem do vizinho de verdade, então o
+ * filtro linear emenda um tile no outro sem linha.
+ *
+ * Tiles com a mesma vizinhança viram um bloco só: a folha cresce com a variedade do mapa, não
+ * com o tamanho dele. `skip` deixa tiles de fora (os animados continuam pelo caminho antigo).
+ */
+export function bakeTiles(
+  src: Uint32Array,
+  width: number,
+  height: number,
+  tile: number,
+  pad: number,
+  skip?: (cx: number, cy: number) => boolean,
+): Baked {
+  if (pad > APRON) throw new Error(`bakeTiles: pad ${pad} maior que a faixa vista (${APRON})`);
+  const mapW = Math.floor(width / tile);
+  const mapH = Math.floor(height / tile);
+  const side = tile + APRON * 2;
+  const cells = new Int32Array(mapW * mapH).fill(-1);
+  const byHash = new Map<string, number[]>();
+  const regions: Uint32Array[] = [];
+  const region = new Uint32Array(side * side);
+
+  for (let cy = 0; cy < mapH; cy += 1) {
+    for (let cx = 0; cx < mapW; cx += 1) {
+      if (skip?.(cx, cy)) continue;
+      let solid = false;
+      for (let y = 0; y < tile && !solid; y += 1) {
+        const row = (cy * tile + y) * width + cx * tile;
+        for (let x = 0; x < tile; x += 1) {
+          if (src[row + x] >>> 24 >= 24) {
+            solid = true;
+            break;
+          }
+        }
+      }
+      if (!solid) continue;
+      // Recorte do tile com a faixa do vizinho; fora do mapa repete a borda, como antes.
+      let h1 = 0x811c9dc5;
+      let h2 = 0x2545f491;
+      for (let y = 0; y < side; y += 1) {
+        const sy = Math.min(height - 1, Math.max(0, cy * tile + y - APRON));
+        for (let x = 0; x < side; x += 1) {
+          const sx = Math.min(width - 1, Math.max(0, cx * tile + x - APRON));
+          const v = src[sy * width + sx];
+          region[y * side + x] = v;
+          h1 = Math.imul(h1 ^ v, 0x01000193);
+          h2 = Math.imul(h2 ^ v, 0x5bd1e995) ^ (h2 >>> 15);
+        }
+      }
+      const hash = `${h1 >>> 0}:${h2 >>> 0}`;
+      const same = byHash.get(hash);
+      let id = same?.find((k) => sameRegion(regions[k], region));
+      if (id === undefined) {
+        id = regions.length;
+        regions.push(region.slice());
+        if (same) same.push(id);
+        else byHash.set(hash, [id]);
+      }
+      cells[cy * mapW + cx] = id;
+    }
+  }
+
+  const count = regions.length;
+  const block = tile * SCALE + pad * 2;
+  const cols = Math.max(1, Math.ceil(Math.sqrt(count)));
+  const rows = Math.max(1, Math.ceil(count / cols));
+  const outW = cols * block;
+  const outH = rows * block;
+  const out = new Uint32Array(outW * outH);
+  const bigSide = side * SCALE;
+  const from = APRON * SCALE - pad;
+  regions.forEach((cut, id) => {
+    const big = scale2x(scale2x(cut, side, side), side * 2, side * 2);
+    const ox = (id % cols) * block;
+    const oy = Math.floor(id / cols) * block;
+    for (let y = 0; y < block; y += 1) {
+      const start = (from + y) * bigSide + from;
+      out.set(big.subarray(start, start + block), (oy + y) * outW + ox);
+    }
+  });
+  return { data: out, width: outW, height: outH, cols, count, cells };
 }

@@ -11,7 +11,7 @@ import { useSettings } from "@/lib/settings/store";
 
 type Art = { image: CanvasImageSource & { width: number; height: number }; cellW: number; cellH: number; frames: boolean };
 
-const PAD = 2;
+export const PAD = 2;
 const store = new WeakMap<Phaser.Game, Map<string, Art>>();
 
 function arts(scene: Phaser.Scene): Map<string, Art> {
@@ -23,11 +23,11 @@ function arts(scene: Phaser.Scene): Map<string, Art> {
   return map;
 }
 
-function smoothOn(scene: Phaser.Scene): boolean {
+export function smoothOn(scene: Phaser.Scene): boolean {
   return scene.sys.game.renderer.type === Phaser.WEBGL && useSettings.getState().smooth;
 }
 
-function canvasOf(width: number, height: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
+export function canvasOf(width: number, height: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
@@ -56,10 +56,21 @@ function build(scene: Phaser.Scene, key: string, art: Art): void {
   context.putImageData(new ImageData(new Uint8ClampedArray(big.data.buffer as ArrayBuffer), big.width, big.height), 0, 0);
   const texture = scene.textures.addCanvas(key, canvas);
   if (!texture) return;
+  const { margin } = shrink(texture, big.width, big.height);
+  if (art.frames) {
+    const stepX = art.cellW + margin * 2;
+    const stepY = art.cellH + margin * 2;
+    for (let i = 0; i < cols * rows; i += 1) texture.add(i, 0, margin + (i % cols) * stepX, margin + Math.floor(i / cols) * stepY, art.cellW, art.cellH);
+  }
+}
 
-  // Tamanho "virtual": 1/4 do real. Os quadros e os tiles são medidos nele.
-  const vw = big.width / SCALE;
-  const vh = big.height / SCALE;
+/**
+ * Tamanho "virtual" de uma textura ampliada: 1/4 do real, e os quadros e os tiles são medidos
+ * nele. Cada célula da folha tem `PAD` pixels de borda; devolve a margem e o espaço entre tiles.
+ */
+export function shrink(texture: Phaser.Textures.Texture, width: number, height: number): { margin: number; spacing: number } {
+  const vw = width / SCALE;
+  const vh = height / SCALE;
   const source = texture.source[0];
   source.width = vw;
   source.height = vh;
@@ -69,13 +80,15 @@ function build(scene: Phaser.Scene, key: string, art: Art): void {
   }
   texture.get("__BASE").setSize(vw, vh);
   const margin = PAD / SCALE;
-  (texture.customData as Record<string, unknown>).smooth = { margin, spacing: margin * 2 };
-  if (art.frames) {
-    const stepX = art.cellW + margin * 2;
-    const stepY = art.cellH + margin * 2;
-    for (let i = 0; i < cols * rows; i += 1) texture.add(i, 0, margin + (i % cols) * stepX, margin + Math.floor(i / cols) * stepY, art.cellW, art.cellH);
-  }
+  const gap = { margin, spacing: margin * 2 };
+  (texture.customData as Record<string, unknown>).smooth = gap;
   texture.setFilter(Phaser.Textures.FilterMode.LINEAR);
+  return gap;
+}
+
+/** A folha original (sem ampliar) de uma arte registrada. */
+export function sourceArt(scene: Phaser.Scene, key: string): Art["image"] | null {
+  return arts(scene).get(key)?.image ?? null;
 }
 
 /**

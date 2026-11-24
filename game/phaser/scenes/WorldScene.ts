@@ -15,6 +15,9 @@ import { say } from "@/game/core/ui";
 import { TALL_GRASS_GID, TALL_GRASS_TOP_FRAME, TILE, TILE_SPRITE_FRAME, VIEW_H, VIEW_W } from "@/game/phaser/constants";
 import { rebuildArt, tileGap } from "@/game/phaser/smooth";
 import { addFountains } from "@/game/phaser/fountain";
+import { addLeaves, addWaterLife, grassBurst } from "@/game/phaser/life";
+import { grassSway } from "@/game/core/mapLife";
+import { bakeMap, type MapBake } from "@/game/phaser/bake";
 import { buildPlayerTexture } from "@/game/phaser/textures";
 import { fitCamera, viewOrigin } from "@/game/phaser/view";
 import { useGame } from "@/game/state/store";
@@ -115,8 +118,14 @@ export class WorldScene extends Phaser.Scene {
   npcs = new Map<string, Npc>();
   player!: Actor;
   grassTop!: Phaser.GameObjects.Image;
+  /** Tile de capim onde o pé entrou por último (y * largura + x; -1 = fora do capim) e quando. */
+  grassAt = -1;
+  grassSince = 0;
   bubble!: Phaser.GameObjects.Image;
   animated: { tile: Phaser.Tilemaps.Tile; frames: number[]; duration: number }[] = [];
+  /** Todos os quadros de tiles animados do mapa: ficam fora do mapa assado do modo Suave. */
+  liveGids = new Set<number>();
+  bake: MapBake | null = null;
   animClock = 0;
   pending: Partial<Record<Action, boolean>> = {};
   held: Record<Action, boolean> | null = null;
@@ -137,13 +146,16 @@ export class WorldScene extends Phaser.Scene {
     this.ready = false;
     this.npcs.clear();
     this.animated = [];
+    this.liveGids = new Set();
+    this.bake = null;
+    this.grassAt = -1;
     this.pending = {};
     this.scripts = 0;
     this.buildMap();
     const texture = this.textures.exists("player") ? "player" : "__MISSING";
     this.player = new Actor(this.add.sprite(0, 0, texture, 0).setOrigin(0.5, 1), data.x, data.y, data.dir, true);
     this.player.place(data.x, data.y, data.dir);
-    this.grassTop = this.add.image(0, 0, "extra_sheet", TALL_GRASS_TOP_FRAME).setOrigin(0, 0).setVisible(false);
+    this.grassTop = this.add.image(0, 0, "extra_sheet", TALL_GRASS_TOP_FRAME).setOrigin(0.5, 1).setVisible(false);
     this.bubble = this.add.image(0, 0, "bubble_dots").setOrigin(0.5, 1).setDepth(200000).setVisible(false);
     this.buildNpcs();
     this.pet = new Pet(this);
@@ -185,6 +197,13 @@ export class WorldScene extends Phaser.Scene {
       Object.assign(tileset, { tileMargin: margin, tileSpacing: spacing });
       tileset.setImage(this.textures.get(tileset.name));
     }
+    this.rebake();
+  }
+
+  /** Modo Suave: refaz o mapa ampliado olhando os vizinhos (ou volta aos tiles, no Pixel). */
+  rebake(): void {
+    this.bake?.destroy();
+    this.bake = bakeMap(this, this.tilemap, this.layers, this.liveGids);
   }
 
   teardown(): void {
@@ -217,6 +236,8 @@ export class WorldScene extends Phaser.Scene {
       }
     }
     addFountains(this, this.tilemap);
+    addWaterLife(this, this.tilemap);
+    addLeaves(this, this.mapKey);
     const collision = this.tilemap.getLayer("collision");
     this.blocked = [];
     for (let y = 0; y < this.tilemap.height; y += 1) {
@@ -244,6 +265,7 @@ export class WorldScene extends Phaser.Scene {
         const base = tileset.firstgid + Number(local);
         const frames = info.animation.map((frame) => tileset.firstgid + frame.tileid);
         const duration = info.animation[0].duration;
+        for (const frame of [base, ...frames]) this.liveGids.add(frame);
         for (const layer of Object.values(this.layers)) {
           layer.forEachTile((tile) => {
             if (tile.index === base) this.animated.push({ tile, frames, duration });
@@ -251,6 +273,7 @@ export class WorldScene extends Phaser.Scene {
         }
       }
     }
+    this.rebake();
   }
 
   npcObjects: MapObject[] = [];
@@ -870,8 +893,17 @@ export class WorldScene extends Phaser.Scene {
     const gx = p.moving && p.t < 0.4 ? p.tx - DELTA[p.dir][0] : p.tx;
     const gy = p.moving && p.t < 0.4 ? p.ty - DELTA[p.dir][1] : p.ty;
     const inGrass = this.onGrass(p.tx, p.ty) && (!p.moving || p.t >= 0.4);
+    // Pé entrando num tile de capim: o capim por cima das pernas balança e solta pedacinhos.
+    const at = inGrass ? p.ty * this.tilemap.width + p.tx : -1;
+    if (at !== this.grassAt) {
+      this.grassAt = at;
+      this.grassSince = this.time.now;
+      if (at >= 0 && p.moving) grassBurst(this, p.tx, p.ty, p.depth() + 0.2);
+    }
+    const sway = inGrass ? grassSway(this.time.now - this.grassSince) : { sx: 1, sy: 1 };
     this.grassTop.setVisible(inGrass || this.onGrass(gx, gy));
-    this.grassTop.setPosition((inGrass ? p.tx : gx) * TILE, (inGrass ? p.ty : gy) * TILE);
+    this.grassTop.setPosition((inGrass ? p.tx : gx) * TILE + TILE / 2, (inGrass ? p.ty : gy) * TILE + TILE);
+    this.grassTop.setScale(sway.sx, sway.sy);
     this.grassTop.setDepth(p.depth() + 0.1);
     if (!p.moving && !this.busy()) {
       const { npc, sign } = this.interactTarget();
