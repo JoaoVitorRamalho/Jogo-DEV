@@ -529,6 +529,8 @@ const SIGNS: Record<string, string[]> = {
   sign_ferruria: ["Cidade Ferrúria.", "O laboratório da professora Celina fica perto da praça."],
   sign_gym: ["Ginásio de Ferrúria — tipo Inseto.", "O desafio fica para depois. Hoje não."],
   sign_village: ["Vila Brisamar.", "Onde o vento do mar começa."],
+  goto_art_lab: ["Mostra de arte CC0 (Kenney + GitHub).", "Entre para ver como a vila pode ficar."],
+  art_lab_sign: ["Laboratório visual.", "Tiles Kenney Tiny Town — experimento."],
   bedroom_shelf: ["Nunca terminei de ler."],
   bedroom_bag: ["Faz tempo que não uso isso."],
   bedroom_window: ["Ela já deve estar de pé."],

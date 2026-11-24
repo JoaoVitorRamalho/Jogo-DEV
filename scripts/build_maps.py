@@ -20,6 +20,28 @@ TILESETS = [
 ]
 
 
+def _kenney_tileset() -> dict | None:
+    png = ASSETS / "tilesets" / "kenney_tiny_town.png"
+    if not png.is_file():
+        return None
+    img = Image.open(png)
+    return {
+        "name": "kenney_town",
+        "image": "../tilesets/kenney_tiny_town.png",
+        "w": img.width,
+        "h": img.height,
+        "first": 1,
+    }
+
+
+def _tilesets_for(m: "Map") -> list[dict]:
+    if m.name == "art_lab":
+        kt = _kenney_tileset()
+        if kt:
+            return [kt]
+    return TILESETS
+
+
 def OW(c: int, r: int) -> int:
     return 1 + r * 40 + c
 
@@ -148,7 +170,7 @@ class Map:
 
     def to_tiled(self) -> dict:
         tilesets = []
-        for ts in TILESETS:
+        for ts in _tilesets_for(self):
             cols = ts["w"] // T
             entry = {
                 "firstgid": ts["first"],
@@ -304,6 +326,122 @@ def house(m: Map, c: int, r: int, lab: bool = False) -> tuple[int, int]:
     return c + 2, r + 4
 
 
+def build_art_lab() -> Map | None:
+    """Vila piloto com o Kenney Tiny Town (CC0), para comparar com o tileset de hoje."""
+    if _kenney_tileset() is None:
+        return None
+
+    def K(i: int) -> int:
+        return 1 + i  # tile_XXXX.png do Kenney = índice XXXX
+
+    cols, rows = 28, 20
+    m = Map("art_lab", cols, rows, fill=K(0), music="town")
+    gate = range(13, 15)
+
+    def blob(cells: set[tuple[int, int]], first, layer: str, edge_full: bool) -> None:
+        """Pinta uma mancha 3 × 3 (quinas, bordas e miolo) pelo vizinho de cada célula.
+
+        `first` é o tile da quina de cima à esquerda, ou uma função da célula que o devolve."""
+        def has(c: int, r: int) -> bool:
+            return (c, r) in cells or (edge_full and not m.inside(c, r))
+        for c, r in cells:
+            n, s, w, e = has(c, r - 1), has(c, r + 1), has(c - 1, r), has(c + 1, r)
+            col = 0 if not w else 2 if not e else 1
+            row = 0 if not n else 2 if not s else 1
+            base = first(c, r) if callable(first) else first
+            m.set(layer, c, r, K(base + row * 12 + col))
+
+    # Grama com tufo e flor espalhados sem padrão visível.
+    for r in range(rows):
+        for c in range(cols):
+            h = (c * 73 + r * 151 + c * r * 7) % 100
+            if h < 5:
+                m.set("ground", c, r, K(2))
+            elif h < 17:
+                m.set("ground", c, r, K(1))
+
+    # Mata em volta, com a saída aberta embaixo e uns pés de outono.
+    forest = set()
+    for r in range(rows):
+        for c in range(cols):
+            border = r < 3 or c < 3 or c >= cols - 3 or (r >= rows - 2 and c not in gate)
+            if border:
+                forest.add((c, r))
+    autumn = {(c, r) for c, r in forest if 18 <= c <= 24 and r < 3}
+    blob(forest, lambda c, r: 9 if (c, r) in autumn else 6, "buildings", True)
+    for c, r in forest:
+        m.solid(c, r)
+
+    # Caminhos de terra: rua de cima a baixo, avenida das casas e a praça.
+    dirt = set()
+    for r in range(8, rows):
+        for c in gate:
+            dirt.add((c, r))
+    for r in (8, 9):
+        for c in range(4, 24):
+            dirt.add((c, r))
+    for r in range(10, 14):
+        for c in range(10, 18):
+            dirt.add((c, r))
+    blob(dirt, 12, "ground", False)
+
+    def house(c: int, r: int, roof: str, wide: bool = False, chimney: bool = False) -> None:
+        top, low = (52, 64) if roof == "red" else (48, 60)
+        width = 4 if wide else 3
+        mids = [1] * (width - 2)
+        roof_top = [top] + [top + d for d in mids] + [top + 2]
+        roof_low = [low] + [low + d for d in mids] + [low + 2]
+        if chimney:
+            roof_top[1] = 55 if roof == "red" else 51
+        if roof == "red":
+            wall = [72, 86, 87, 73] if wide else [84, 85, 84]
+        else:
+            wall = [88, 89, 89, 88] if wide else [88, 89, 88]
+        for dx in range(width):
+            m.set("above", c + dx, r, K(roof_top[dx]))
+            m.set("buildings", c + dx, r + 1, K(roof_low[dx]))
+            m.set("buildings", c + dx, r + 2, K(wall[dx]))
+            m.solid(c + dx, r + 1)
+            m.solid(c + dx, r + 2)
+
+    house(5, 5, "red", chimney=True)
+    house(12, 4, "red", wide=True)
+    house(19, 5, "gray")
+    house(4, 11, "gray", chimney=True)
+    house(20, 11, "red")
+
+    # Cerca com horta de flores à direita da praça.
+    for c in range(19, 24):
+        m.set("buildings", c, 15, K(81))
+        m.solid(c, 15)
+    m.set("buildings", 19, 15, K(80))
+    m.set("buildings", 23, 15, K(82))
+    for c in range(19, 24):
+        m.set("detail", c, 16, K(2))
+
+    def prop(c: int, r: int, i: int) -> None:
+        m.set("buildings", c, r, K(i))
+        m.solid(c, r)
+
+    prop(13, 11, 104)  # poço no meio da praça
+    prop(9, 15, 94)    # colmeia
+    prop(8, 15, 107)   # pote
+    prop(7, 16, 106)   # tora
+    prop(16, 15, 95)   # alvo de treino
+    prop(24, 10, 29)   # cogumelos na beira da mata
+    prop(15, 17, 83)   # placa da entrada
+    m.sign("art_lab_sign", 15, 17)
+    for c in gate:
+        m.warp(c, rows - 1, "brisamar", 12, 15, "up")
+    m.spawn("default", 13, rows - 2, "up")
+    # A colisão marca com um tile do "extra", que este mapa não carrega: o Phaser quebra ao ler
+    # gid sem folha. Aqui ela usa o primeiro tile do Kenney (a camada é invisível).
+    grid = m.layers["collision"]
+    for r in range(rows):
+        grid[r] = [K(0) if gid else 0 for gid in grid[r]]
+    return m
+
+
 def build_brisamar() -> Map:
     m = Map("Vila Brisamar", 40, 32, music="town")
     grass_fill(m)
@@ -354,6 +492,11 @@ def build_brisamar() -> Map:
         for dx in range(5):
             m.set("ground", 17 + dx, 16 + dy, FLAGSTONE[(16 + dy) % 2][(17 + dx) % 2])
     m.stamp(18, 15, 22, 9, 3, 3, above_rows=0)
+    if _kenney_tileset():
+        # A placa é sólida: fica ao lado da passagem, não em cima dela.
+        m.sign("goto_art_lab", 11, 16)
+        m.set("buildings", 11, 16, OW(35, 2))
+        m.warp(12, 16, "art_lab", 13, 18, "up")
 
     m.stamp(5, 18, 18, 22, 5, 6, above_rows=3, open_cells=())
     for dx in range(5):
@@ -933,7 +1076,7 @@ def build_ferruria_lab() -> Map:
 
 def render_preview(m: Map) -> None:
     sheets = {}
-    for ts in TILESETS:
+    for ts in _tilesets_for(m):
         sheets[ts["name"]] = (ts["first"], ts["w"] // T, Image.open(ASSETS / ts["image"].replace("../", "")).convert("RGBA"))
     img = Image.new("RGBA", (m.cols * T, m.rows * T), (18, 16, 24, 255))
     for layer in ("ground", "detail", "buildings", "above"):
@@ -979,6 +1122,9 @@ def main() -> None:
         "ferruria_mart": build_ferruria_mart(),
         "ferruria_house": build_ferruria_house(),
     }
+    lab = build_art_lab()
+    if lab is not None:
+        built["art_lab"] = lab
     for key, m in built.items():
         m.key = key
         (MAPS / f"{key}.json").write_text(json.dumps(m.to_tiled()), encoding="utf-8")

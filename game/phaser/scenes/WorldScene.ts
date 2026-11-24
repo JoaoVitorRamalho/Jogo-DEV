@@ -12,7 +12,7 @@ import { Pet } from "@/game/phaser/pet";
 import { TRAINER_SIGHT_RANGE, hasTrainerSight } from "@/game/phaser/sight";
 import { useSettings } from "@/lib/settings/store";
 import { say } from "@/game/core/ui";
-import { TALL_GRASS_GID, TALL_GRASS_TOP_FRAME, TILE, TILE_SPRITE_FRAME, VIEW_H, VIEW_W } from "@/game/phaser/constants";
+import { TALL_GRASS_GID, TALL_GRASS_TOP_FRAME, TILE, TILE_SPRITE_FRAME, TILESET_KEYS, VIEW_H, VIEW_W } from "@/game/phaser/constants";
 import { rebuildArt, tileGap } from "@/game/phaser/smooth";
 import { addFountains } from "@/game/phaser/fountain";
 import { addLeaves, addWaterLife, grassBurst } from "@/game/phaser/life";
@@ -221,11 +221,10 @@ export class WorldScene extends Phaser.Scene {
 
   buildMap(): void {
     this.tilemap = this.make.tilemap({ key: `map_${this.mapKey}` });
-    const sets = [
-      this.tilemap.addTilesetImage("overworld", "overworld", 16, 16, ...tileGap(this, "overworld")),
-      this.tilemap.addTilesetImage("inner", "inner", 16, 16, ...tileGap(this, "inner")),
-      this.tilemap.addTilesetImage("extra", "extra", 16, 16, ...tileGap(this, "extra")),
-    ].filter((set): set is Phaser.Tilemaps.Tileset => Boolean(set));
+    // Cada mapa liga só as folhas que usa (a vila piloto usa só a do Kenney).
+    const sets = TILESET_KEYS.filter((key) => this.tilemap.getTilesetIndex(key) !== null)
+      .map((key) => this.tilemap.addTilesetImage(key, key, 16, 16, ...tileGap(this, key)))
+      .filter((set): set is Phaser.Tilemaps.Tileset => Boolean(set));
     const depths: Record<string, number> = { ground: 0, detail: 1, buildings: 2, above: 100000 };
     this.layers = {};
     for (const name of Object.keys(depths)) {

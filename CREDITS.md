@@ -16,6 +16,7 @@
 
 - **ArMM1998** — tileset nature CC0 (via `.tmp-art`)
 - Tiles extras gerados em `scripts/build_assets.py`
+- **Kenney** — Tiny Town (CC0), em `public/assets/tilesets/kenney_tiny_town.png`; usado na vila piloto `art_lab`
 
 ## Personagens (overworld)
 
