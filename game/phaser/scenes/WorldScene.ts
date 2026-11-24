@@ -13,6 +13,7 @@ import { TRAINER_SIGHT_RANGE, hasTrainerSight } from "@/game/phaser/sight";
 import { useSettings } from "@/lib/settings/store";
 import { say } from "@/game/core/ui";
 import { TALL_GRASS_GID, TALL_GRASS_TOP_FRAME, TILE, TILE_SPRITE_FRAME, VIEW_H, VIEW_W } from "@/game/phaser/constants";
+import { rebuildArt, tileGap } from "@/game/phaser/smooth";
 import { buildPlayerTexture } from "@/game/phaser/textures";
 import { fitCamera, viewOrigin } from "@/game/phaser/view";
 import { useGame } from "@/game/state/store";
@@ -151,6 +152,9 @@ export class WorldScene extends Phaser.Scene {
     this.setupLighting();
     fitCamera(this, (zoom) => this.onZoom(zoom));
     this.unsubscribe = subscribeInput((frame) => this.collect(frame));
+    this.unsubscribeLook = useSettings.subscribe((now, before) => {
+      if (now.smooth !== before.smooth) this.refreshArt();
+    });
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.teardown());
     bridge.world = this.api();
     const music = this.mapProp("music");
@@ -164,9 +168,29 @@ export class WorldScene extends Phaser.Scene {
     this.runScript(() => story.hooks?.enterMap(this.mapKey) ?? Promise.resolve());
   }
 
+  unsubscribeLook: (() => void) | null = null;
+
+  /** "Gráficos" mudou nas Opções: refaz as folhas e troca na hora o que está na tela. */
+  refreshArt(): void {
+    const using: [Phaser.GameObjects.Sprite | Phaser.GameObjects.Image, string, string | number][] = [];
+    for (const child of this.children.list) {
+      if (child instanceof Phaser.GameObjects.Sprite || child instanceof Phaser.GameObjects.Image) using.push([child, child.texture.key, child.frame.name]);
+    }
+    const keys = rebuildArt(this);
+    for (const [sprite, key, frame] of using) if (keys.has(key)) sprite.setTexture(key, frame);
+    for (const tileset of this.tilemap.tilesets) {
+      if (!keys.has(tileset.name)) continue;
+      const [margin, spacing] = tileGap(this, tileset.name);
+      Object.assign(tileset, { tileMargin: margin, tileSpacing: spacing });
+      tileset.setImage(this.textures.get(tileset.name));
+    }
+  }
+
   teardown(): void {
     this.unsubscribe?.();
     this.unsubscribe = null;
+    this.unsubscribeLook?.();
+    this.unsubscribeLook = null;
     if (bridge.world && bridge.world.mapKey() === this.mapKey) bridge.world = null;
   }
 
@@ -178,9 +202,9 @@ export class WorldScene extends Phaser.Scene {
   buildMap(): void {
     this.tilemap = this.make.tilemap({ key: `map_${this.mapKey}` });
     const sets = [
-      this.tilemap.addTilesetImage("overworld", "overworld"),
-      this.tilemap.addTilesetImage("inner", "inner"),
-      this.tilemap.addTilesetImage("extra", "extra"),
+      this.tilemap.addTilesetImage("overworld", "overworld", 16, 16, ...tileGap(this, "overworld")),
+      this.tilemap.addTilesetImage("inner", "inner", 16, 16, ...tileGap(this, "inner")),
+      this.tilemap.addTilesetImage("extra", "extra", 16, 16, ...tileGap(this, "extra")),
     ].filter((set): set is Phaser.Tilemaps.Tileset => Boolean(set));
     const depths: Record<string, number> = { ground: 0, detail: 1, buildings: 2, above: 100000 };
     this.layers = {};

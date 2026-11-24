@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { MonSprite } from "@/components/hud/MonSprite";
 import { useMenu } from "@/components/menus/useMenu";
-import { DEX_ORDER, species } from "@/data/pokemon/species";
+import { DEX_ORDER, dexEntries, species } from "@/data/pokemon/species";
+import { megaFormsFor } from "@/data/pokemon/mega";
 import { ABILITIES, abilitySlots } from "@/data/pokemon/abilities";
 import { TYPE_COLOR, TYPE_NAME } from "@/data/pokemon/types";
 import { useGame } from "@/game/state/store";
@@ -20,7 +21,7 @@ export function DexPanel({ onClose }: { onClose: () => void }) {
   return (
     <div className="gba-panel dex-panel">
       <h2>
-        Pokédex <small>Vistos {dex.seen.length} · Capturados {dex.caught.length}</small>
+        Pokédex <small>Vistos {entries.length} · Capturados {dexEntries(dex.caught).length}</small>
       </h2>
       {detail && current ? (
         <div className="dex-detail">
@@ -38,6 +39,16 @@ export function DexPanel({ onClose }: { onClose: () => void }) {
               ))}
             </span>
             <p>{caught ? species(current).description : "Capture este Pokémon para registrar mais dados."}</p>
+            {caught && megaFormsFor(current).length ? (
+              <span className="dex-forms">
+                {megaFormsFor(current).map((form) => (
+                  <span key={form.id}>
+                    <MonSprite id={form.id} size={20} />
+                    {form.name}
+                  </span>
+                ))}
+              </span>
+            ) : null}
             {caught ? <small>Habilidades: {abilitySlots(current).map((slot) => `${ABILITIES[slot.id].name}${slot.hidden ? " (oculta)" : ""}`).join(" · ")}</small> : null}
           </div>
         </div>

@@ -8,6 +8,7 @@ import { CITIES } from "@/data/cities";
 import { TYPE_COLOR } from "@/data/pokemon/types";
 import { useGame, type GameState } from "@/game/state/store";
 import { testSave } from "@/game/state/testSave";
+import { dexEntries } from "@/data/pokemon/species";
 import { playSfx, setContextTrack } from "@/lib/audio/engine";
 import { useSession } from "@/lib/game/session";
 import { createRepeater, useInputFrame } from "@/lib/input/engine";
@@ -71,7 +72,7 @@ function SaveCard({ slot, onPick }: { slot: GameState; onPick: () => void }) {
       </ul>
       <div className="ts-save-foot">
         <span>
-          Pokédex <b>{slot.dex.caught.length}</b> / {slot.dex.seen.length}
+          Pokédex <b>{dexEntries(slot.dex.caught).length}</b> / {dexEntries(slot.dex.seen).length}
         </span>
         <span className="ts-save-time" aria-label="Tempo de jogo">
           {formatTime(slot.playTime)}
@@ -113,6 +114,8 @@ export function TitleMenu() {
   function onBackground(event: MouseEvent<HTMLDivElement>) {
     if (event.target !== event.currentTarget) return;
     const hit = poke(event.clientX, event.clientY);
+    // Mew achado: só a festa, sem abrir menu
+    if (hit === "mew") return;
     if (hit === "logo" && stage !== "test") {
       const now = performance.now();
       taps.current = [...taps.current.filter((at) => now - at < 4000), now];

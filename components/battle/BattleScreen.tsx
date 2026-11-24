@@ -365,7 +365,10 @@ function BattleRun({ request }: { request: BattleRequest }) {
     count: actionLabels.length,
     columns: 2,
     enabled: mode === "action",
-    onSelect: (index) => {
+    onSelect: chooseAction,
+  });
+  // Toque e clique também escolhem (antes só o teclado e o controle).
+  function chooseAction(index: number) {
       const label = actionLabels[index];
       if (label === "Lutar") { setPendingMega(null); setMode("moves"); }
       else if (label === transformLabel) {
@@ -381,8 +384,7 @@ function BattleRun({ request }: { request: BattleRequest }) {
       } else if (label === "Mochila") setMode("bag");
       else if (label === "Pokémon") setMode("party");
       else if (label === "Fugir") void takeTurn({ type: "run" });
-    },
-  });
+  }
   function chooseMove(index: number) {
     if (!active) return;
     if (active.moves[index].pp <= 0) {
@@ -491,7 +493,7 @@ function BattleRun({ request }: { request: BattleRequest }) {
       {mode === "party" || mode === "target" ? (
         <div className="gba-panel battle-party">
           <h2>{mode === "target" ? `Usar ${pendingItem ? ITEMS[pendingItem].name : ""} em qual?` : forced ? "Escolha o próximo Pokémon" : "Trocar de Pokémon"}</h2>
-          {st ? <PartyList party={st.player.party} index={mode === "target" ? targetMenu.index : partyMenu.index} active={st.player.active} /> : null}
+          {st ? <PartyList party={st.player.party} index={mode === "target" ? targetMenu.index : partyMenu.index} active={st.player.active} onPick={(i) => (mode === "target" ? targetMenu : partyMenu).pick(i)} /> : null}
           <p className="panel-foot">{forced ? "Z escolhe" : "Z escolhe · X volta"}</p>
         </div>
       ) : null}
@@ -507,7 +509,7 @@ function BattleRun({ request }: { request: BattleRequest }) {
           <ul className="item-list">
             {usable.length === 0 ? <li className="empty">{bagPocket === 1 ? "Você não tem Pokébolas." : "Nenhum item de cura."}</li> : null}
             {usable.slice(bagPageStart, bagPageStart + BAG_PAGE_SIZE).map(([id, count], offset) => (
-              <li key={id} className={bagPageStart + offset === bagMenu.index ? "active" : ""}>
+              <li key={id} className={bagPageStart + offset === bagMenu.index ? "active" : ""} onClick={() => bagMenu.pick(bagPageStart + offset)}>
                 <span className="gba-cursor">{bagPageStart + offset === bagMenu.index ? "▶" : ""}</span>
                 <ItemIcon id={id} />
                 {ITEMS[id].name}
@@ -525,7 +527,7 @@ function BattleRun({ request }: { request: BattleRequest }) {
           <>
             <div className="move-grid">
               {active.moves.map((slot, index) => (
-                <button key={slot.id} type="button" className={index === moveMenu.index ? "active" : ""} onClick={() => chooseMove(index)}>
+                <button key={slot.id} type="button" className={index === moveMenu.index ? "active" : ""} onClick={() => moveMenu.pick(index)}>
                   <span className="gba-cursor">{index === moveMenu.index ? "▶" : ""}</span>
                   {move(slot.id).name}
                 </button>
@@ -552,7 +554,7 @@ function BattleRun({ request }: { request: BattleRequest }) {
             {mode === "action" ? (
               <div className="action-grid">
                 {actionLabels.map((label, index) => (
-                  <button key={label} type="button" className={index === actionMenu.index ? "active" : ""}>
+                  <button key={label} type="button" className={index === actionMenu.index ? "active" : ""} onClick={() => actionMenu.pick(index)}>
                     <span className="gba-cursor">{index === actionMenu.index ? "▶" : ""}</span>
                     {label}
                   </button>

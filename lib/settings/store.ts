@@ -29,6 +29,8 @@ type Settings = {
   trackId: string;
   textSpeed: number;
   follower: boolean;
+  /** Mapa e personagens ampliados com contorno liso (false = quadradinho original). */
+  smooth: boolean;
   setKeyboard: (keyboard: KeyboardMap) => void;
   setPad: (pad: PadMap) => void;
   setDeadzone: (deadzone: number) => void;
@@ -39,6 +41,7 @@ type Settings = {
   setTrackId: (trackId: string) => void;
   setTextSpeed: (textSpeed: number) => void;
   setFollower: (follower: boolean) => void;
+  setSmooth: (smooth: boolean) => void;
   resetControls: () => void;
 };
 
@@ -59,6 +62,7 @@ export const useSettings = create<Settings>()(
       trackId: "auto",
       textSpeed: 1,
       follower: true,
+      smooth: true,
       setKeyboard: (keyboard) => set({ keyboard }),
       setPad: (pad) => set({ pad }),
       setDeadzone: (deadzone) => set({ deadzone: clamp(deadzone, 0.05, 0.5) }),
@@ -69,6 +73,7 @@ export const useSettings = create<Settings>()(
       setTrackId: (trackId) => set({ trackId }),
       setTextSpeed: (textSpeed) => set({ textSpeed: clamp(Math.round(textSpeed), 0, TEXT_SPEEDS.length - 1) }),
       setFollower: (follower) => set({ follower }),
+      setSmooth: (smooth) => set({ smooth }),
       resetControls: () =>
         set({
           keyboard: DEFAULT_KEYBOARD,

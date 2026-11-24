@@ -33,6 +33,10 @@ export function MenuScene({ screen, children }: { screen: string; children: Reac
       const hit = scene.current?.poke(x, y) ?? null;
       const sound = hit ? SOUND[hit] : undefined;
       if (hit === "partner" && lead) playCry(lead);
+      else if (hit === "mew") {
+        playSfx("discover");
+        window.setTimeout(() => playCry("mew"), 380);
+      }
       else if (sound) playSfx(sound);
       return hit;
     },

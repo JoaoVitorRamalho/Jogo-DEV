@@ -195,6 +195,11 @@ export function OptionsMenu({ onClose }: { onClose?: () => void }) {
     playSfx("cursor");
   }
 
+  function toggleSmooth() {
+    settings.setSmooth(!settings.smooth);
+    playSfx("confirm");
+  }
+
   function toggleFollower() {
     settings.setFollower(!settings.follower);
     playSfx(settings.follower ? "cancel" : "confirm");
@@ -252,6 +257,7 @@ export function OptionsMenu({ onClose }: { onClose?: () => void }) {
           : tab === "video"
             ? [
                 { desc: "Suba até o segundo quadrado aparecer de leve e o primeiro quase sumir.", nudge: (delta) => settings.setBrightness(settings.brightness + delta * 0.05) },
+                { desc: "Suave alisa o contorno do mapa e dos personagens. Pixel mostra os quadradinhos do original.", nudge: toggleSmooth, press: toggleSmooth },
                 ...(full.can ? [{ desc: "Esconde as barras do navegador.", nudge: toggleFullscreen, press: toggleFullscreen }] : []),
               ]
             : [{ desc: "Quem fez a arte, a música e o som do jogo." }];
@@ -456,7 +462,8 @@ export function OptionsMenu({ onClose }: { onClose?: () => void }) {
                   </i>
                 ))}
               </div>
-              {full.can ? line(2, "", "Tela cheia", <Cycle value={full.on ? "Sim" : "Não"} onStep={toggleFullscreen} />) : null}
+              {line(2, "", "Gráficos", <Cycle value={settings.smooth ? "Suave" : "Pixel"} onStep={toggleSmooth} />)}
+              {full.can ? line(3, "", "Tela cheia", <Cycle value={full.on ? "Sim" : "Não"} onStep={toggleFullscreen} />) : null}
             </>
           ) : null}
 

@@ -9,6 +9,7 @@ import { QuestPanel } from "@/components/menus/QuestPanel";
 import { useMenu } from "@/components/menus/useMenu";
 import { ask, useUi } from "@/game/core/ui";
 import { useGame } from "@/game/state/store";
+import { dexEntries } from "@/data/pokemon/species";
 import { useSession } from "@/lib/game/session";
 
 type Entry = { id: string; label: string };
@@ -99,7 +100,7 @@ function TrainerCard({ onClose }: { onClose: () => void }) {
         <dd>₽{live.money}</dd>
         <dt>Pokédex</dt>
         <dd>
-          {live.dex.caught.length} capturados · {live.dex.seen.length} vistos
+          {dexEntries(live.dex.caught).length} capturados · {dexEntries(live.dex.seen).length} vistos
         </dd>
         <dt>Insígnias</dt>
         <dd>{live.badges.length} / 8</dd>

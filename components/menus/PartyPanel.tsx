@@ -17,16 +17,18 @@ export function PartyList({
   index,
   active,
   marked,
+  onPick,
 }: {
   party: Mon[];
   index: number;
   active?: number;
   marked?: number | null;
+  onPick?: (index: number) => void;
 }) {
   return (
     <ul className="party-list">
       {party.map((mon, i) => (
-        <li key={mon.uid} className={[i === index ? "active" : "", i === marked ? "marked" : "", mon.hp <= 0 ? "fainted" : ""].join(" ")}>
+        <li key={mon.uid} className={[i === index ? "active" : "", i === marked ? "marked" : "", mon.hp <= 0 ? "fainted" : ""].join(" ")} onClick={onPick ? () => onPick(i) : undefined}>
           <MonSprite id={mon.species} size={24} />
           <div className="party-info">
             <strong>

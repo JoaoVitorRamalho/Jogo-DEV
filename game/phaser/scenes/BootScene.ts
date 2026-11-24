@@ -1,5 +1,6 @@
 import * as Phaser from "phaser";
 import { MAP_KEYS, MON_SPRITES } from "@/game/phaser/constants";
+import { addArt } from "@/game/phaser/smooth";
 import { buildNpcTextures, buildPlayerTexture, buildUiTextures } from "@/game/phaser/textures";
 import { useGame } from "@/game/state/store";
 
@@ -12,7 +13,6 @@ export class BootScene extends Phaser.Scene {
     this.load.image("overworld", "/assets/tilesets/overworld.png");
     this.load.image("inner", "/assets/tilesets/inner.png");
     this.load.image("extra", "/assets/tilesets/extra.png");
-    this.load.spritesheet("extra_sheet", "/assets/tilesets/extra.png", { frameWidth: 16, frameHeight: 16 });
     for (const key of MAP_KEYS) this.load.tilemapTiledJSON(`map_${key}`, `/assets/maps/${key}.json`);
     for (const sprite of MON_SPRITES) {
       this.load.image(`mon_${sprite}`, `/assets/sprites/pokemon/${sprite}.png`);
@@ -29,6 +29,9 @@ export class BootScene extends Phaser.Scene {
 
   async create(): Promise<void> {
     buildUiTextures(this);
+    // Tilesets ampliados (ou não) conforme "Gráficos" nas Opções; extra_sheet são os tiles soltos.
+    addArt(this, "extra_sheet", 16, 16, true, undefined, "extra");
+    for (const key of ["overworld", "inner", "extra"]) addArt(this, key, 16, 16, false);
     const state = useGame.getState().live;
     if (!state) return;
     await Promise.all([buildPlayerTexture(this, state.appearance), buildNpcTextures(this)]);

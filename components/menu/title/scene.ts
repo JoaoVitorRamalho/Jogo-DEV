@@ -12,7 +12,7 @@ import { BIG, SMALL } from "./glyphs";
 export type TitleStage = "press" | "menu" | "overwrite" | "test" | "options" | "creator";
 
 /** O que um clique acertou na cena (cada um tem uma reação escondida). */
-export type SceneHit = "partner" | "hero" | "logo" | "lighthouse" | "sky" | "sea" | "land" | null;
+export type SceneHit = "partner" | "hero" | "logo" | "lighthouse" | "sky" | "sea" | "land" | "mew" | null;
 
 export type TitleScene = {
   setHero(sheet: HTMLCanvasElement | null): void;
@@ -216,7 +216,15 @@ const HEART = pack(hex("#ff5f86"));
 const HEART_HI = pack(hex("#ffd0dc"));
 const OUTLINE = pack(SHADE);
 const RIM = hex("#ffb98a");
+const MEW_PINK = pack(hex("#ffa8d8"));
+const MEW_HOT = pack(hex("#fff2fa"));
+/** Segredo do título: o brilho rosa passa a cada 151 s de tela parada (o nº do Mew). */
+const MEW_EVERY = 151;
+const MEW_GLINT = 9;
+const MEW_SHOW = 6.4;
+const MEW_KEY = "jornada-mew";
 const SKYRIM = hex("#9a6ab0");
+const GLOW_RIM = hex("#fff0fa");
 
 // ---------- layout ----------
 
@@ -346,7 +354,9 @@ function buildSubtitle(): Art {
 // ---------- sprites: luz de contra ----------
 
 /** Escurece para o roxo do entardecer e acende a borda virada para o sol. */
-function grade(src: Uint8ClampedArray, w: number, h: number, sunRight: boolean): Sprite {
+/** Pinta o sprite com a luz da cena; `glow` é quem brilha por conta própria (o Mew), quase sem sombra. */
+function grade(src: Uint8ClampedArray, w: number, h: number, sunRight: boolean, glow = false): Sprite {
+  const rim = glow ? GLOW_RIM : RIM;
   const alpha = (x: number, y: number) => (x >= 0 && y >= 0 && x < w && y < h ? src[(y * w + x) * 4 + 3] : 0);
   const px = new Uint32Array(w * h);
   let bottom = 0;
@@ -356,10 +366,10 @@ function grade(src: Uint8ClampedArray, w: number, h: number, sunRight: boolean):
       if (alpha(x, y) < 128) continue;
       const i = (y * w + x) * 4;
       let c: RGB = [src[i], src[i + 1], src[i + 2]];
-      c = mixRGB(c, SHADE, 0.48);
-      if (alpha(x, y - 1) < 128 || alpha(x + side, y) < 128) c = mixRGB(c, RIM, 0.72);
-      else if (alpha(x - side, y) < 128) c = mixRGB(c, SKYRIM, 0.35);
-      else if (alpha(x, y - 2) < 128 || alpha(x + side * 2, y) < 128) c = mixRGB(c, RIM, 0.22);
+      c = mixRGB(c, SHADE, glow ? 0.08 : 0.48);
+      if (alpha(x, y - 1) < 128 || alpha(x + side, y) < 128) c = mixRGB(c, rim, glow ? 0.5 : 0.72);
+      else if (alpha(x - side, y) < 128) c = mixRGB(c, SKYRIM, glow ? 0.15 : 0.35);
+      else if (alpha(x, y - 2) < 128 || alpha(x + side * 2, y) < 128) c = mixRGB(c, rim, 0.22);
       px[y * w + x] = pack(c);
       bottom = y;
     }
@@ -427,6 +437,28 @@ export function createTitleScene(
   let last = 0;
   let resizeRaf = 0;
   const born = performance.now();
+  // Mew: brilho que cruza o céu, o voo depois do toque e a estrela rosa de quem já viu
+  let mew: Sprite | null = null;
+  let mewFlip: Sprite | null = null;
+  let mewAt = -100;
+  let mewFrom = { x: 0, y: 0 };
+  let mewGlint: { x: number; y: number } | null = null;
+  let mewCycleDone = -1;
+  let mewSeen = false;
+  let mewTrail: { x: number; y: number; t: number }[] = [];
+  try {
+    mewSeen = window.localStorage.getItem(MEW_KEY) === "1";
+  } catch {
+    mewSeen = false;
+  }
+  if (!opts.reduced) {
+    const mewImg = new Image();
+    mewImg.onload = () => {
+      mew = buildPartner(mewImg, "mew", 24);
+      mewFlip = mew ? mirror(mew) : null;
+    };
+    mewImg.src = "/assets/sprites/pokemon/mew.png";
+  }
   const logo = buildLogo();
   const subtitle = buildSubtitle();
 
@@ -804,7 +836,7 @@ export function createTitleScene(
     return grade(data, 16, 32, L.sunX > L.heroX);
   }
 
-  function buildPartner(img: HTMLImageElement, species: string): Sprite | null {
+  function buildPartner(img: HTMLImageElement, species: string, height?: number): Sprite | null {
     const probe = document.createElement("canvas");
     probe.width = img.width;
     probe.height = img.height;
@@ -828,7 +860,7 @@ export function createTitleScene(
     const w = x1 - x0 + 1;
     const h = y1 - y0 + 1;
     // O mesmo tamanho do mapa: altura da tabela com teto de largura.
-    const size = petSize(species);
+    const size = height ? { height, width: height * 1.6 } : petSize(species);
     const fit = Math.min(size.height / h, size.width / w);
     const th = Math.max(1, Math.round(h * fit));
     const tw = Math.max(1, Math.round(w * fit));
@@ -842,7 +874,13 @@ export function createTitleScene(
     og.drawImage(probe, x0, y0, w, h, 0, 0, tw, th);
     const pixels = og.getImageData(0, 0, tw, th).data;
     for (let i = 3; i < pixels.length; i += 4) pixels[i] = pixels[i] > 110 ? 255 : 0;
-    return grade(pixels, tw, th, true);
+    return grade(pixels, tw, th, true, !!height);
+  }
+
+  function mirror(src: Sprite): Sprite {
+    const px = new Uint32Array(src.px.length);
+    for (let r = 0; r < src.h; r += 1) for (let c = 0; c < src.w; c += 1) px[r * src.w + c] = src.px[r * src.w + (src.w - 1 - c)];
+    return { ...src, px };
   }
 
   // ---------- desenho por quadro ----------
@@ -1299,6 +1337,93 @@ export function createTitleScene(
     if (subAlpha > 0) blitArt(subtitle, cx - (subtitle.w >> 1), ly + logo.h + 2, subAlpha);
   }
 
+  /** Onde fica a estrela rosa de quem já achou o Mew. */
+  function mewStar(): { x: number; y: number } {
+    return { x: Math.round(L.W * 0.9), y: Math.max(3, Math.round(L.horizon * 0.09)) };
+  }
+
+  function sparkle(x: number, y: number, a: number, big: boolean): void {
+    const { W, H } = L;
+    const put = (px: number, py: number, c: number, k: number) => {
+      if (px < 0 || py < 0 || px >= W || py >= H) return;
+      const i = py * W + px;
+      buf[i] = blend(buf[i], c, k);
+    };
+    put(x, y, MEW_HOT, a);
+    const arm = big ? 2 : 1;
+    for (let d = 1; d <= arm; d += 1) {
+      const k = a * (d === 1 ? 0.8 : 0.4);
+      put(x + d, y, MEW_PINK, k);
+      put(x - d, y, MEW_PINK, k);
+      put(x, y + d, MEW_PINK, k);
+      put(x, y - d, MEW_PINK, k);
+    }
+  }
+
+  /**
+   * O brilho é um ponto rosa de 1 px que cruza o alto do céu por 9 s, uma vez a cada 151 s
+   * com o título aberto. Tocado a tempo, vira o Mew: ele dá uma volta no logo e some no alto.
+   */
+  function drawMew(t: number): void {
+    const { W, horizon } = L;
+    if (mewSeen) {
+      const star = mewStar();
+      const tw = 0.55 + 0.45 * Math.sin(t * 2.3);
+      sparkle(star.x, star.y, tw, tw > 0.92);
+    }
+    mewGlint = null;
+    const since = t - mewAt;
+    const cycle = Math.floor(t / MEW_EVERY);
+    const p = (t - cycle * MEW_EVERY) / MEW_GLINT;
+    if (mew && cycle >= 1 && p < 1 && since > MEW_SHOW && cycle !== mewCycleDone && (stage === "press" || stage === "menu")) {
+      const x = Math.round(W * (0.08 + 0.84 * p));
+      const y = Math.round(horizon * (0.2 + 0.08 * Math.sin(p * Math.PI * 3)));
+      const on = Math.floor(t * 7) % 3 !== 0;
+      if (on) sparkle(x, y, 1, Math.floor(t * 7) % 6 === 1);
+      mewGlint = { x, y };
+    }
+    if (!mew || !mewFlip || since < 0 || since > MEW_SHOW) return;
+    // estouro rosa no ponto tocado
+    if (since < 0.5) {
+      const r = since * 22;
+      for (let k = 0; k < 10; k += 1) {
+        const ang = (k / 10) * Math.PI * 2;
+        sparkle(Math.round(mewFrom.x + Math.cos(ang) * r), Math.round(mewFrom.y + Math.sin(ang) * r * 0.7), 1 - since / 0.5, false);
+      }
+    }
+    // voo: chega ao logo, dá uma volta nele e dispara para o alto
+    const cx = logoBox ? logoBox.x + logoBox.w / 2 : W / 2;
+    const cy = logoBox ? logoBox.y + logoBox.h / 2 : horizon * 0.4;
+    const rx = logoBox ? logoBox.w / 2 + 14 : 60;
+    const ry = logoBox ? logoBox.h / 2 + 10 : 24;
+    let x: number;
+    let y: number;
+    if (since < 1.2) {
+      const k = 1 - Math.pow(1 - since / 1.2, 2);
+      x = mewFrom.x + (cx - rx - mewFrom.x) * k;
+      y = mewFrom.y + (cy - mewFrom.y) * k;
+    } else if (since < 4.4) {
+      const ang = Math.PI + ((since - 1.2) / 3.2) * Math.PI * 2;
+      x = cx + Math.cos(ang) * rx;
+      y = cy - Math.sin(ang) * ry;
+    } else {
+      const k = (since - 4.4) / (MEW_SHOW - 4.4);
+      x = cx - rx + k * k * W * 0.9;
+      y = cy - k * (cy + 40);
+    }
+    const prev = mewTrail[mewTrail.length - 1];
+    if (!prev || Math.hypot(prev.x - x, prev.y - y) > 3) mewTrail = [...mewTrail.slice(-14), { x, y, t }];
+    for (const dotAt of mewTrail) {
+      const age = t - dotAt.t;
+      if (age < 0.9) sparkle(Math.round(dotAt.x), Math.round(dotAt.y), (1 - age / 0.9) * 0.8, false);
+    }
+    const goingRight = prev ? x >= prev.x : true;
+    const sprite = goingRight ? mewFlip : mew;
+    const bob = Math.round(Math.sin(since * 9) * 1.2);
+    const alpha = Math.min(1, since / 0.35) * (since > MEW_SHOW - 0.3 ? (MEW_SHOW - since) / 0.3 : 1);
+    drawSprite(sprite, Math.round(x - sprite.w / 2), Math.round(y - sprite.h / 2) + bob, -1, alpha);
+  }
+
   function dissolve(a: number): void {
     const { W, H } = L;
     for (let y = 0; y < H; y += 1) for (let x = 0; x < W; x += 1) if (bayer(x, y) >= a) buf[y * W + x] = C.night;
@@ -1324,6 +1449,7 @@ export function createTitleScene(
     drawWishes(t);
     applyVignette();
     drawLogo(t, dt);
+    drawMew(t);
     if (!opts.reduced && t < FADE_IN) dissolve(1 - Math.pow(1 - t / FADE_IN, 2));
     g2d.putImageData(image, 0, 0);
   }
@@ -1372,6 +1498,23 @@ export function createTitleScene(
       if (x < 0 || y < 0 || x >= L.W || y >= L.H) return null;
       const t = (performance.now() - born) / 1000;
       const inside = (b: Box | null, pad: number) => !!b && x >= b.x - pad && x < b.x + b.w + pad && y >= b.y - pad && y < b.y + b.h + pad;
+      const star = mewStar();
+      const glint = mewGlint ?? (mewSeen && t - mewAt > MEW_SHOW ? star : null);
+      if (glint && Math.hypot(x - glint.x, y - glint.y) <= 6) {
+        mewAt = t;
+        mewFrom = { ...glint };
+        mewTrail = [];
+        mewCycleDone = Math.floor(t / MEW_EVERY);
+        if (!mewSeen) {
+          mewSeen = true;
+          try {
+            window.localStorage.setItem(MEW_KEY, "1");
+          } catch {
+            // sem armazenamento: o Mew aparece, só não deixa a estrela
+          }
+        }
+        return "mew";
+      }
       if (cast > 0.5 && inside(partnerBox, 2)) {
         hopAt = t;
         heartAt = t;

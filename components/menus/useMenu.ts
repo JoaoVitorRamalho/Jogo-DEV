@@ -68,5 +68,15 @@ export function useMenu({ count, enabled, columns = 1, onSelect, onCancel, onLef
     enabled,
   );
 
-  return { index: Math.min(index, Math.max(0, count - 1)), setIndex };
+  /** Toque ou clique num item: move o cursor e confirma, como o Z. */
+  const pick = (value: number) => {
+    const h = handlers.current;
+    const ui = useUi.getState();
+    if (!enabled || ui.dialog || ui.choice || ui.evolution || !h.onSelect || value < 0 || value >= h.count) return;
+    setIndex(value);
+    playSfx("confirm");
+    h.onSelect(value);
+  };
+
+  return { index: Math.min(index, Math.max(0, count - 1)), setIndex, pick };
 }

@@ -262,7 +262,14 @@ const megaSpecies: SpeciesDef[] = MEGA_DEFS.map((m) => ({
 const all = [...list, ...megaSpecies];
 
 export const SPECIES: Record<string, SpeciesDef> = Object.fromEntries(all.map((entry) => [entry.id, entry]));
-export const DEX_ORDER: string[] = [...all].sort((a, b) => a.dex - b.dex).map((entry) => entry.id);
+// Megas e a Forma Ash são formas de batalha: aparecem na ficha da espécie, não como número próprio.
+export const DEX_ORDER: string[] = [...list].sort((a, b) => a.dex - b.dex).map((entry) => entry.id);
+const DEX_SET = new Set(DEX_ORDER);
+
+/** Só as entradas que contam na Pokédex (saves antigos guardavam as megas como vistas). */
+export function dexEntries(ids: readonly string[]): string[] {
+  return ids.filter((id) => DEX_SET.has(id));
+}
 
 export function species(id: string): SpeciesDef {
   const found = SPECIES[id];

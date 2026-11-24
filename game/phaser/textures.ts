@@ -2,16 +2,11 @@ import type * as Phaser from "phaser";
 import { NPCS } from "@/data/npcs";
 import type { Appearance } from "@/game/character/appearance";
 import { FRAME_H, FRAME_W, renderSheet } from "@/game/character/compose";
+import { addArt } from "@/game/phaser/smooth";
 
+/** Folha 4 × 4 de um boneco (quadros numerados por linha, como antes), ampliada se a opção pedir. */
 export function addSheet(scene: Phaser.Scene, key: string, canvas: HTMLCanvasElement): void {
-  if (scene.textures.exists(key)) scene.textures.remove(key);
-  const texture = scene.textures.addCanvas(key, canvas);
-  if (!texture) return;
-  for (let row = 0; row < 4; row += 1) {
-    for (let col = 0; col < 4; col += 1) {
-      texture.add(row * 4 + col, 0, col * FRAME_W, row * FRAME_H, FRAME_W, FRAME_H);
-    }
-  }
+  addArt(scene, key, FRAME_W, FRAME_H, true, canvas);
 }
 
 export async function buildPlayerTexture(scene: Phaser.Scene, appearance: Appearance): Promise<void> {
