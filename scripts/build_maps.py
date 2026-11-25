@@ -1657,6 +1657,11 @@ def render_preview(m: Map) -> None:
     img.resize((img.width * 2, img.height * 2), Image.NEAREST).save(PREVIEW / f"{m.key}.png")
 
 
+# Pele do Kenney Tiny Town nos mapas externos (ligada em 24/11). Desligada em 25/11: o Iury
+# preferiu o tileset original. Para ligar de novo, troque para True e rode `npm run maps`.
+# Os enfeites sólidos do Kenney na Rota 3 e em Verdelume (kenney_prop) ficam nos dois casos.
+KENNEY_SKIN = False
+
 # Pés de outono por mapa (o resto da mata é verde).
 AUTUMN = {
     "forest": lambda c, r: ((c // 2) * 7 + (r // 2) * 13) % 10 < 3,
@@ -1694,7 +1699,7 @@ def main() -> None:
         "verdelume_gym": build_verdelume_gym(),
         "verdelume_house": build_verdelume_house(),
     }
-    for key in ("brisamar", "route1", "clearing", "forest", "route2", "ferruria", "route3", "echo_grove", "verdelume"):
+    for key in ("brisamar", "route1", "clearing", "forest", "route2", "ferruria", "route3", "echo_grove", "verdelume") if KENNEY_SKIN else ():
         kenney_skin(built[key], autumn=AUTUMN.get(key, lambda c, r: False), open_path_edges=key == "route2")
     lab = build_art_lab()
     if lab is not None:
