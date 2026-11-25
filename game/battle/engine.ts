@@ -366,11 +366,15 @@ function useMove(state: BattleState, side: Side, moveIndex: number, rng: Rng, ev
   const targetSide = other(side);
   const defender = activeOf(state, targetSide);
   if (attacker.hp <= 0) return;
-  if (!canAct(state, side, rng, events)) return;
   const slot = attacker.moves[moveIndex];
   const usable = slot && slot.pp > 0;
   let def = usable ? move(slot.id) : move("tackle");
-  if (abilityOf(attacker).id === "battle-bond" && battleSpeciesId(attacker) === "greninja_ash" && def.id === "water_shuriken") def = { ...def, power: 20, hits: 3 };
+  if (attacker.status === "freeze" && ["flame_wheel", "flare_blitz"].includes(def.id)) {
+    attacker.status = null;
+    events.push({ type: "status", side, status: null }, { type: "message", text: `${label(state, side)} se descongelou!` });
+  }
+  if (!canAct(state, side, rng, events)) return;
+  if (abilityOf(attacker).id === "battle-bond" && battleSpeciesId(attacker) === "greninja_ash" && def.id === "water_shuriken") def = { ...def, power: 20, hits: 3, hitRange: undefined };
   const selfOnly = def.category === "status" && (def.effects ?? []).every((effect) => (effect.kind === "stage" && effect.target === "self") || effect.kind === "weather");
   if (usable) slot.pp = Math.max(0, slot.pp - (!selfOnly && abilityOf(defender).id === "pressure" ? 2 : 1));
   if (abilityOf(attacker).id === "protean" && (typesOf(attacker).length !== 1 || typesOf(attacker)[0] !== def.type)) {
@@ -432,7 +436,13 @@ function useMove(state: BattleState, side: Side, moveIndex: number, rng: Rng, ev
     return;
   }
 
-  const hits = def.hits ?? 1;
+  let hits = def.hits ?? 1;
+  if (def.hitRange) {
+    const roll = rng();
+    hits = def.hitRange[0] === 2 && def.hitRange[1] === 5
+      ? roll < 0.35 ? 2 : roll < 0.7 ? 3 : roll < 0.85 ? 4 : 5
+      : randInt(rng, def.hitRange[0], def.hitRange[1]);
+  }
   let landed = 0;
   let lastEff = 1;
   let totalDamage = 0;
@@ -483,6 +493,11 @@ function useMove(state: BattleState, side: Side, moveIndex: number, rng: Rng, ev
   if (lastEff > 0 && lastEff < 1) events.push({ type: "message", text: "Não é muito eficaz..." });
   if (hits > 1) events.push({ type: "message", text: `Acertou ${landed} vez(es)!` });
 
+  if (def.drain && totalDamage > 0 && attacker.hp > 0 && attacker.hp < maxHp(attacker)) {
+    attacker.hp = Math.min(maxHp(attacker), attacker.hp + Math.max(1, Math.floor(totalDamage * def.drain)));
+    events.push({ type: "heal", side, hp: attacker.hp, max: maxHp(attacker) });
+    events.push({ type: "message", text: `${label(state, side)} recuperou energia!` });
+  }
   if (traits?.recoil && totalDamage > 0 && attacker.hp > 0) {
     events.push({ type: "message", text: `${label(state, side)} sofreu dano de recuo!` });
     directDamage(state, side, Math.floor(totalDamage * traits.recoil), events);

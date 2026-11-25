@@ -15,6 +15,8 @@ export class BootScene extends Phaser.Scene {
     this.load.image("extra", "/assets/tilesets/extra.png");
     this.load.image("kenney_town", "/assets/tilesets/kenney_tiny_town.png");
     this.load.image("kenney_extra", "/assets/tilesets/kenney_extra.png");
+    this.load.image("cave_entrance", "/assets/tilesets/cave_entrance.png");
+    this.load.image("cave_interior", "/assets/tilesets/cave_interior.png");
     for (const key of MAP_KEYS) this.load.tilemapTiledJSON(`map_${key}`, `/assets/maps/${key}.json`);
     for (const sprite of MON_SPRITES) {
       this.load.image(`mon_${sprite}`, `/assets/sprites/pokemon/${sprite}.png`);

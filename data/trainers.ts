@@ -175,6 +175,27 @@ export const TRAINERS: Record<string, TrainerDef> = {
   },
 
   // ---------- capítulo 3: Rota 3 e Dojo de Verdelume ----------
+  rocket_echo_1: {
+    id: "rocket_echo_1", name: "Recruta", reward: 360, background: "gym",
+    team: [{ species: "poochyena", level: 13 }, { species: "weedle", level: 13 }],
+    intro: ["Essa galeria está ocupada. Dê meia-volta.", "Você ouviu. Ninguém passa sem autorização."],
+    defeat: ["Era só espantar a curiosidade... quem mandou você se meter?"],
+    after: ["Não tenho mais nada para falar com você."],
+  },
+  rocket_echo_2: {
+    id: "rocket_echo_2", name: "Recruta", reward: 420, background: "gym",
+    team: [{ species: "cascoon", level: 14 }, { species: "beedrill", level: 15 }],
+    intro: ["Anos trabalhando quietos. E você escolhe justamente hoje para aparecer.", "O Pokémon que procura está com o encarregado. Vai ter que passar por mim."],
+    defeat: ["A coleta já terminou. Você chegou tarde demais."],
+    after: ["A ordem agora é recuar."],
+  },
+  rocket_echo_lead: {
+    id: "rocket_echo_lead", name: "Encarregado", reward: 650, background: "gym",
+    team: [{ species: "beedrill", level: 16 }, { species: "mightyena", level: 18 }],
+    intro: ["Você atravessou tudo isso por aquele Bidoof?", "A carga já está pronta. Não vou permitir que estrague a retirada."],
+    defeat: ["Chega. O material é o que importa."],
+    after: ["A operação na galeria terminou."],
+  },
   // JOÃO: equipes, prêmio e falas são provisórios (só para dar para jogar de ponta a ponta).
   // Pode trocar tudo; o teste data/trainers.test.ts avisa se uma espécie ou nível não existir.
   r3_nara: {

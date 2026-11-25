@@ -9,6 +9,9 @@ import { useGame } from "@/game/state/store";
 import { CH2_SIGN_RUN } from "@/game/story/chapter2";
 import { CH3_SIGN_RUN, CH3_SIGNS, CH3_TALK, CH3_VISIBLE, ch3CanWarp, ch3Talk } from "@/game/story/chapter3";
 import ferruria from "@/public/assets/maps/ferruria.json";
+import route2 from "@/public/assets/maps/route2.json";
+import echoGrove from "@/public/assets/maps/echo_grove.json";
+import echoCave from "@/public/assets/maps/echo_cave.json";
 import route3 from "@/public/assets/maps/route3.json";
 import verdelume from "@/public/assets/maps/verdelume.json";
 import verdelumeCenter from "@/public/assets/maps/verdelume_center.json";
@@ -20,8 +23,8 @@ type TiledObject = { name: string; x: number; y: number; width: number; height: 
 type TiledMap = { width: number; height: number; layers: { name: string; data?: number[]; objects?: TiledObject[] }[] };
 type Point = { x: number; y: number };
 
-const ALL_MAPS: Record<string, TiledMap> = { ferruria, route3, verdelume, verdelume_center: verdelumeCenter, verdelume_gym: verdelumeGym, verdelume_house: verdelumeHouse, verdelume_mart: verdelumeMart };
-const CH3_MAPS = Object.keys(ALL_MAPS).filter((key) => key !== "ferruria");
+const ALL_MAPS: Record<string, TiledMap> = { ferruria, route2, echo_grove: echoGrove, echo_cave: echoCave, route3, verdelume, verdelume_center: verdelumeCenter, verdelume_gym: verdelumeGym, verdelume_house: verdelumeHouse, verdelume_mart: verdelumeMart };
+const CH3_MAPS = Object.keys(ALL_MAPS).filter((key) => !["ferruria", "route2"].includes(key));
 
 const objects = (map: TiledMap, layer: string) => map.layers.find((entry) => entry.name === layer)?.objects ?? [];
 const prop = (object: TiledObject, name: string) => object.properties?.find((entry) => entry.name === name)?.value;
@@ -59,7 +62,7 @@ describe("capítulo 3: mapas", () => {
     for (const [name, map] of Object.entries(ALL_MAPS)) {
       for (const warp of objects(map, "warps")) {
         const target = String(prop(warp, "target"));
-        if (name === "ferruria" && !CH3_MAPS.includes(target)) continue;
+        if (["ferruria", "route2"].includes(name) && !CH3_MAPS.includes(target)) continue;
         expect(MAP_KEYS as readonly string[], `${name} → ${target}`).toContain(target);
         const destination = ALL_MAPS[target];
         if (!destination) continue;
@@ -95,6 +98,31 @@ describe("capítulo 3: mapas", () => {
     const toRoute = objects(ferruria, "warps").find((warp) => prop(warp, "target") === "route3");
     expect(north && south && toRoute).toBeTruthy();
   });
+
+  it("a trilha do bosque liga a Rota 2 à Rota 3 sem bloquear os pontos de interação", () => {
+    const grovePath = reachable(echoGrove, { x: 4, y: 27 }, objects(echoGrove, "npcs").map((npc) => npc.name));
+    expect(grovePath.has("21,0")).toBe(true);
+    const roadPath = reachable(route3, { x: 3, y: 49 }, objects(route3, "npcs").map((npc) => npc.name));
+    expect(roadPath.has("31,16")).toBe(true);
+    expect(roadPath.has("29,20")).toBe(true);
+  });
+
+  it("os recrutas fecham a passagem da caverna e o cercado abre até Bidoof", () => {
+    const people = objects(echoCave, "npcs").map((npc) => npc.name);
+    const first = reachable(echoCave, { x: 18, y: 31 }, people);
+    expect(first.has("17,25")).toBe(true);
+    expect(first.has("24,15")).toBe(false);
+    const second = reachable(echoCave, { x: 18, y: 31 }, people.filter((id) => id !== "echo_grunt_1"));
+    expect(second.has("24,15")).toBe(true);
+    expect(second.has("18,9")).toBe(false);
+    const boss = reachable(echoCave, { x: 18, y: 31 }, people.filter((id) => !["echo_grunt_1", "echo_grunt_2", "echo_lead"].includes(id)));
+    expect(boss.has("18,9")).toBe(true);
+    expect(boss.has("26,6")).toBe(true);
+    expect(boss.has("18,4")).toBe(false);
+    const rescued = reachable(echoCave, { x: 18, y: 31 }, people.filter((id) => !["echo_grunt_1", "echo_grunt_2", "echo_lead", "echo_cage"].includes(id)));
+    expect(rescued.has("18,4")).toBe(true);
+    expect(rescued.has("18,33")).toBe(true);
+  });
 });
 
 describe("capítulo 3: Dojo de Verdelume", () => {
@@ -127,16 +155,21 @@ describe("capítulo 3: Dojo de Verdelume", () => {
 describe("capítulo 3: regras", () => {
   beforeEach(() => useGame.getState().newGame(defaultAppearance()));
 
-  it("os operários só liberam a estrada no capítulo 3", async () => {
+  it("a estrada principal abre após o resgate e mantém saves antigos em Verdelume", async () => {
     expect(ch3Talk("worker_a", true)).toBeUndefined();
     expect(CH3_VISIBLE.worker_a()).toBe(true);
     expect(await ch3CanWarp("ferruria", "route3")).toBe(false);
     flags({ chapter2_complete: true });
     expect(ch3Talk("worker_a", true)).toBe(CH3_TALK.worker_a);
     flags({ chapter2_complete: true, ch3_road_open: true });
+    expect(CH3_VISIBLE.worker_a()).toBe(true);
+    flags({ chapter2_complete: true, ch3_cave_rescued: true });
     expect(CH3_VISIBLE.worker_a()).toBe(false);
     expect(CH3_VISIBLE.worker_b()).toBe(false);
     expect(await ch3CanWarp("ferruria", "route3")).toBe(true);
+    flags({ chapter2_complete: true, ch3_arrived: true });
+    expect(await ch3CanWarp("ferruria", "route3")).toBe(true);
+    expect(CH3_VISIBLE.worker_a()).toBe(false);
   });
 
   it("NPC novo fala sempre, sem depender do capítulo", () => {
@@ -157,8 +190,8 @@ describe("capítulo 3: regras", () => {
     expect(CH3_VISIBLE.item_r3_west()).toBe(false);
   });
 
-  it("a Rota 3 tem mato alto com espécies válidas e pesos que somam 100", () => {
-    const table = ENCOUNTERS.route3;
+  it.each(["route3", "echo_grove"])("%s tem mato alto com espécies válidas e pesos que somam 100", (map) => {
+    const table = ENCOUNTERS[map];
     expect(table).toBeDefined();
     expect(table.grass.reduce((sum, slot) => sum + slot.weight, 0)).toBe(100);
     for (const slot of table.grass) {

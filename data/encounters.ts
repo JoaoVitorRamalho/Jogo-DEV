@@ -2,6 +2,19 @@ export type EncounterSlot = { species: string; min: number; max: number; weight:
 export type EncounterTable = { rate: number; grass: EncounterSlot[]; background: string };
 
 export const ENCOUNTERS: Record<string, EncounterTable> = {
+  echo_grove: {
+    rate: 0.1, background: "forest",
+    grass: [
+      { species: "poochyena", min: 10, max: 12, weight: 20 },
+      { species: "weedle", min: 8, max: 10, weight: 15 },
+      { species: "kakuna", min: 8, max: 10, weight: 10 },
+      { species: "beedrill", min: 10, max: 12, weight: 10 },
+      { species: "pachirisu", min: 10, max: 12, weight: 15 },
+      { species: "bidoof", min: 9, max: 12, weight: 15 },
+      { species: "butterfree", min: 10, max: 12, weight: 10 },
+      { species: "pidgey", min: 10, max: 12, weight: 5 },
+    ],
+  },
   route1: {
     rate: 0.1,
     background: "grass",

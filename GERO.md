@@ -46,6 +46,12 @@ Detalhes em `data/story/characters.ts`.
 | Giovanni | Antagonista final | União com Giratina no Mundo Distorcido |
 | NPCs de Brisamar | Coro | Davi (mar), Otávio (céu dobrado), Bia, Marta, Célia, Tico, Nuno |
 
+**Equipe vilã (cânone confirmado):** a Equipe Rocket fingiu desaparecer e se reorganizou em
+segredo. Thomas parecerá o chefe principal quando sua participação aparecer; Giovanni está
+vivo e comanda por trás dele. No começo do capítulo 3 surgem recrutas de uniforme escuro,
+uma marca vermelha incompleta e uma operação de extração. O nome Rocket, a ligação com
+Thomas e a sobrevivência de Giovanni devem ser revelados aos poucos, sem exposição antecipada.
+
 ### Pistas já no Cap. 1 (após pacote Pandora)
 
 - **PC do quarto:** patrocínio **Thomas Group** na página da Liga.
@@ -123,10 +129,11 @@ Aparências em `data/npcs.ts`. Ajustar cores LPC no `download_assets.py` se quis
 | Capítulo | Arquivo alvo | Status |
 |----------|--------------|--------|
 | 1 Brisamar | `game/story/chapter1.ts` | Jogável + foreshadow Thomas/Ren/foto |
-| 2 Ferrúria | `game/story/chapter2.ts` (criar) | Planejado — floresta + ginásio inseto |
-| 3+ | `chapterN.ts` + `installChapterN` | Ver `data/campaign.ts` |
+| 2 Ferrúria | `game/story/chapter2.ts` | Jogável — floresta, ginásio Inseto e rival |
+| 3 Ecos sob a Pedra | `game/story/chapter3.ts` | Abertura jogável — bosque, caverna, resgate e chegada a Verdelume; Campo/Dojo com falas provisórias |
+| 4+ | `chapterN.ts` + `installChapterN` | Ver `data/campaign.ts` |
 
-Quest log: `data/quests.ts` — acompanha flags do Cap. 1.
+Quest log: `data/quests.ts` — acompanha as etapas dos capítulos 1–3.
 
 ---
 

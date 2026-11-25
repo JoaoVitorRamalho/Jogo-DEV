@@ -1,7 +1,7 @@
 import { type Appearance, defaultAppearance } from "@/game/character/appearance";
 
 export type TileSprite = "ball" | "web" | "lever_off" | "lever_on" | "fence";
-export type NpcLook = { name: string; appearance?: Appearance; sprite?: TileSprite };
+export type NpcLook = { name: string; appearance?: Appearance; sprite?: TileSprite; species?: string };
 
 const gaelLook: Appearance = { ...defaultAppearance("male"), hairStyle: "spiky", hairColor: "black", top: "jacket", topColor: "red", bottom: "pants", bottomColor: "navy", headwear: "cap", headwearColor: "white", extra: "none", skin: "amber", shoesColor: "white" };
 const worker: Appearance = { ...defaultAppearance("male"), hairStyle: "buzz", hairColor: "dark_brown", top: "jacket", topColor: "charcoal", bottom: "pants", bottomColor: "black", headwear: "cap", headwearColor: "yellow", extra: "none", skin: "bronze", shoes: "boots", shoesColor: "black" };
@@ -11,6 +11,16 @@ const male = defaultAppearance("male");
 const female = defaultAppearance("female");
 
 export const NPCS: Record<string, NpcLook> = {
+  echo_scout: { name: "Guarda Inês", appearance: { ...female, hairStyle: "ponytail", hairColor: "chestnut", top: "jacket", topColor: "forest", bottom: "pants", bottomColor: "brown", headwear: "hat", headwearColor: "tan", shoes: "boots", skin: "brown" } },
+  echo_researcher: { name: "Pesquisadora Nádia", appearance: { ...female, hairStyle: "bob", hairColor: "black", top: "jacket", topColor: "white", bottom: "pants", bottomColor: "navy", extra: "backpack", extraColor: "teal", skin: "olive" } },
+  echo_grunt_1: { name: "Recruta", appearance: { ...male, hairStyle: "short", hairColor: "black", top: "jacket", topColor: "black", bottom: "pants", bottomColor: "charcoal", headwear: "cap", headwearColor: "black", extra: "scarf", extraColor: "maroon", shoes: "boots", skin: "light" } },
+  echo_grunt_2: { name: "Recruta", appearance: { ...female, hairStyle: "ponytail", hairColor: "raven", top: "jacket", topColor: "black", bottom: "pants", bottomColor: "charcoal", headwear: "cap", headwearColor: "black", extra: "scarf", extraColor: "maroon", shoes: "boots", skin: "brown" } },
+  echo_lead: { name: "Encarregado", appearance: { ...male, hairStyle: "short", hairColor: "gray", top: "jacket", topColor: "charcoal", bottom: "pants", bottomColor: "black", extra: "scarf", extraColor: "red", shoes: "boots", skin: "bronze" } },
+  echo_bidoof: { name: "Bidoof", species: "bidoof" },
+  echo_bidoof_home: { name: "Bidoof", species: "bidoof" },
+  echo_cage: { name: "Cercado", sprite: "fence" },
+  item_echo_grove: { name: "Item", sprite: "ball" },
+  item_echo_cave: { name: "Item", sprite: "ball" },
   mother: {
     name: "Mãe",
     appearance: { ...female, hairStyle: "long", hairColor: "chestnut", top: "longsleeve", topColor: "tan", bottom: "skirt", bottomColor: "brown", extra: "none", shoesColor: "brown" },

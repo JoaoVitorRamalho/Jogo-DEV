@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { HpBar, MonSprite } from "@/components/hud/MonSprite";
+import { MoveDetails } from "@/components/hud/MoveDetails";
 import { useMenu } from "@/components/menus/useMenu";
 import { STATUS_NAME, move } from "@/data/pokemon/moves";
 import { species } from "@/data/pokemon/species";
@@ -11,6 +12,7 @@ import { TYPE_COLOR, TYPE_NAME } from "@/data/pokemon/types";
 import { ask, say } from "@/game/core/ui";
 import { type Mon, displayName, expProgress, maxHp, statsOf } from "@/game/pokemon/mon";
 import { giveItem, useGame } from "@/game/state/store";
+import { useInputFrame } from "@/lib/input/engine";
 
 export function PartyList({
   party,
@@ -47,11 +49,20 @@ export function PartyList({
 }
 
 export function MonSummary({ mon }: { mon: Mon }) {
+  const [tab, setTab] = useState<"stats" | "moves">("stats");
+  const moves = useMenu({ count: mon.moves.length, enabled: tab === "moves", onLeft: () => setTab("stats") });
+  useInputFrame((frame) => { if (frame.pressed.right) setTab("moves"); }, tab === "stats");
+  const selected = mon.moves[moves.index];
   const def = species(mon.species);
   const ability = abilityOf(mon);
   const stats = statsOf(mon);
   return (
     <div className="mon-summary">
+      <nav className="summary-tabs" aria-label="Abas do resumo">
+        <button type="button" aria-pressed={tab === "stats"} onClick={() => setTab("stats")}>Dados</button>
+        <button type="button" aria-pressed={tab === "moves"} onClick={() => setTab("moves")}>Golpes</button>
+      </nav>
+      {tab === "stats" ? <div className="summary-data">
       <div className="summary-top">
         <MonSprite id={mon.species} size={48} />
         <div>
@@ -87,14 +98,34 @@ export function MonSummary({ mon }: { mon: Mon }) {
           {mon.moves.map((slot) => {
             const def2 = move(slot.id);
             return (
-              <li key={slot.id}>
+              <li key={slot.id} className={slot === selected ? "summary-move selected" : "summary-move"}>
+                <button type="button" onClick={() => { moves.setIndex(mon.moves.indexOf(slot)); setTab("moves"); }}>
                 <b style={{ background: TYPE_COLOR[def2.type] }} className="type-dot" />
                 {def2.name} <small>{slot.pp}/{def2.pp}</small>
+                </button>
               </li>
             );
           })}
         </ul>
       </div>
+      </div> : (
+        <>
+          <strong className="summary-move-heading">{displayName(mon)} · Nv. {mon.level}</strong>
+          <div className="summary-move-view">
+            <ul>
+              {mon.moves.map((slot, index) => (
+                <li key={slot.id} className={slot === selected ? "summary-move selected" : "summary-move"}>
+                  <button type="button" onClick={() => moves.setIndex(index)} onMouseEnter={() => moves.setIndex(index)} onFocus={() => moves.setIndex(index)}>
+                    <b className="type-dot" style={{ background: TYPE_COLOR[move(slot.id).type] }} />
+                    {move(slot.id).name}
+                  </button>
+                </li>
+              ))}
+            </ul>
+            {selected ? <MoveDetails definition={move(selected.id)} pp={selected.pp} /> : null}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -137,13 +168,13 @@ export function PartyPanel({ onClose }: { onClose: () => void }) {
     onSelect: select,
     onCancel: () => (swapFrom !== null ? setSwapFrom(null) : onClose()),
   });
-  useMenu({ count: 1, enabled: summary !== null, onSelect: () => setSummary(null), onCancel: () => setSummary(null) });
+  useInputFrame((frame) => { if (frame.pressed.cancel || frame.pressed.menu) setSummary(null); }, summary !== null);
 
   return (
     <div className="gba-panel party-panel">
       <h2>{swapFrom !== null ? "Trocar com qual?" : "Pokémon"}</h2>
       {summary !== null && party[summary] ? <MonSummary mon={party[summary]} /> : <PartyList party={party} index={menu.index} marked={swapFrom} />}
-      <p className="panel-foot">Z escolhe · X volta</p>
+      <p className="panel-foot">{summary !== null ? "←→ abas · ↑↓ golpes · X volta" : "Z escolhe · X volta"}</p>
     </div>
   );
 }

@@ -15,6 +15,7 @@ import { say } from "@/game/core/ui";
 import { TALL_GRASS_GID, TALL_GRASS_TOP_FRAME, TILE, TILESET_KEYS, tileSpriteFrame, VIEW_H, VIEW_W } from "@/game/phaser/constants";
 import { rebuildArt, tileGap } from "@/game/phaser/smooth";
 import { addFountains } from "@/game/phaser/fountain";
+import { addCaveAtmosphere } from "@/game/phaser/cave";
 import { addLeaves, addWaterLife, grassBurst } from "@/game/phaser/life";
 import { grassSway } from "@/game/core/mapLife";
 import { bakeMap, type MapBake } from "@/game/phaser/bake";
@@ -237,6 +238,7 @@ export class WorldScene extends Phaser.Scene {
     addFountains(this, this.tilemap);
     addWaterLife(this, this.tilemap);
     addLeaves(this, this.mapKey);
+    if (this.mapKey === "echo_cave") addCaveAtmosphere(this, this.tilemap);
     const collision = this.tilemap.getLayer("collision");
     this.blocked = [];
     for (let y = 0; y < this.tilemap.height; y += 1) {
@@ -283,10 +285,11 @@ export class WorldScene extends Phaser.Scene {
       const tileSprite = look?.sprite;
       const ball = tileSprite === "ball";
       const tile = tileSprite ? tileSpriteFrame(tileSprite) : null;
-      const key = tile ? tile.key : `npc_${object.name}`;
+      const key = look?.species ? `mon_${look.species}` : tile ? tile.key : `npc_${object.name}`;
       if (!tile && !this.textures.exists(key)) continue;
       const sprite = this.add.sprite(0, 0, key, tile ? tile.frame : 0).setOrigin(0.5, ball ? 0.6875 : 1);
-      const actor = new Actor(sprite, object.x, object.y, (object.props.dir as Direction) ?? "down", !tileSprite) as Npc;
+      if (look?.species) sprite.setDisplaySize(28, 28).setOrigin(0.5, 0.85);
+      const actor = new Actor(sprite, object.x, object.y, (object.props.dir as Direction) ?? "down", !tileSprite && !look?.species) as Npc;
       actor.id = object.name;
       actor.home = { x: object.x, y: object.y };
       actor.wander = Number(object.props.wander ?? 0);
@@ -693,6 +696,8 @@ export class WorldScene extends Phaser.Scene {
     const origin = this.viewOrigin();
     this.light?.grade.setPosition(origin.x, origin.y);
     this.light?.vignette.setPosition(origin.x, origin.y);
+    const caveShade = this.children.getByName("cave-shade");
+    if (caveShade instanceof Phaser.GameObjects.Image) caveShade.setPosition(origin.x, origin.y);
     this.pet?.setZoom(zoom);
   }
 

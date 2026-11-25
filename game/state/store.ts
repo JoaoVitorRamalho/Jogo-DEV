@@ -53,12 +53,30 @@ function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
+export type SaveBackup = {
+  id: string;
+  createdAt: number;
+  reason: "test" | "complete" | "new" | "import" | "restore" | "replace";
+  state: GameState;
+};
+
+/** Guarda o save anterior antes de carregar outro mundo, sem alterar seu conteúdo. */
+function archive(slot: GameState | null, backups: SaveBackup[], reason: SaveBackup["reason"]): SaveBackup[] {
+  if (!slot) return backups;
+  const snapshot = JSON.stringify(slot);
+  const previous = backups.find((backup) => JSON.stringify(backup.state) === snapshot);
+  if (previous) return [previous, ...backups.filter((backup) => backup !== previous)];
+  const createdAt = Date.now();
+  return [{ id: `${createdAt}-${Math.random().toString(36).slice(2)}`, createdAt, reason, state: clone(slot) }, ...backups].slice(0, 10);
+}
+
 type Store = {
   slot: GameState | null;
   live: GameState | null;
+  backups: SaveBackup[];
   newGame: (appearance: Appearance) => void;
-  /** Troca o jogo salvo inteiro (save de teste). */
-  loadState: (state: GameState) => void;
+  /** Troca o jogo salvo inteiro, preservando o anterior no histórico. */
+  loadState: (state: GameState, reason?: SaveBackup["reason"]) => void;
   continueGame: () => boolean;
   save: () => void;
   update: (fn: (state: GameState) => void) => void;
@@ -71,12 +89,15 @@ export const useGame = create<Store>()(
     (set, get) => ({
       slot: null,
       live: null,
+      backups: [],
       newGame: (appearance) => {
         const state = freshState(appearance);
         state.savedAt = Date.now();
-        set({ live: state, slot: clone(state) });
+        set({ live: state, slot: clone(state), backups: archive(get().slot, get().backups, "new") });
       },
-      loadState: (state) => set({ slot: clone(state), live: clone(state) }),
+      loadState: (state, reason = "replace") => set({
+        slot: clone(state), live: clone(state), backups: archive(get().slot, get().backups, reason),
+      }),
       continueGame: () => {
         const slot = get().slot;
         if (!slot) return false;
@@ -111,7 +132,7 @@ export const useGame = create<Store>()(
     {
       name: "jornada-save",
       version: 2,
-      partialize: (state) => ({ slot: state.slot }),
+      partialize: (state) => ({ slot: state.slot, backups: state.backups }),
       migrate: (persisted, version) => {
         const data = (persisted ?? {}) as { slot?: Record<string, unknown> | null };
         if (version >= 2 || !data.slot) return { slot: (data.slot as GameState | null) ?? null };

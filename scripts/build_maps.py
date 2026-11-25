@@ -43,6 +43,8 @@ def _kenney_tileset() -> dict | None:
 
 
 KX_FIRST = KT_FIRST + 144  # kenney_extra.png: tiles no traço do Kenney que o pacote não tem
+CAVE_FIRST = KX_FIRST + 32  # cave_entrance.png: paredão rochoso de 8 × 5 casas
+CAVE_INNER_FIRST = CAVE_FIRST + 40  # cave_interior.png: pisos, paredes e formações minerais
 SAND_RAMP = {(234, 165, 108): (243, 216, 152), (207, 130, 84): (222, 186, 120), (254, 201, 156): (252, 236, 190)}
 
 
@@ -81,8 +83,12 @@ def _tilesets_for(m: "Map") -> list[dict]:
     kt = _kenney_tileset()
     if kt and any(KT_FIRST <= gid < KX_FIRST for gid in used):
         sets.append(kt)
-    if any(gid >= KX_FIRST for gid in used):
+    if any(KX_FIRST <= gid < CAVE_FIRST for gid in used):
         sets.append({"name": "kenney_extra", "image": "../tilesets/kenney_extra.png", "w": 16 * T, "h": 2 * T, "first": KX_FIRST})
+    if any(CAVE_FIRST <= gid < CAVE_INNER_FIRST for gid in used):
+        sets.append({"name": "cave_entrance", "image": "../tilesets/cave_entrance.png", "w": 8 * T, "h": 5 * T, "first": CAVE_FIRST})
+    if any(gid >= CAVE_INNER_FIRST for gid in used):
+        sets.append({"name": "cave_interior", "image": "../tilesets/cave_interior.png", "w": 8 * T, "h": 8 * T, "first": CAVE_INNER_FIRST})
     return sets
 
 
@@ -407,7 +413,7 @@ def blob9(m: Map, cells, first, layer_of, edge_full: bool) -> None:
         m.set(layer, c, r, KT(base + row * 12 + col))
 
 
-def kenney_skin(m: Map, autumn=lambda c, r: False) -> None:
+def kenney_skin(m: Map, autumn=lambda c, r: False, open_path_edges: bool = False) -> None:
     """Veste um mapa externo com o Kenney Tiny Town sem mudar colisão, warps, NPCs nem placas.
 
     Troca grama, terra, árvores, flores, cercas e placas pelo tile equivalente. O resto
@@ -442,7 +448,8 @@ def kenney_skin(m: Map, autumn=lambda c, r: False) -> None:
                 if free(*side):
                     dirt.add(side)
                     break
-    blob9(m, dirt, 12, "ground", False)
+    # Nas saídas abertas, a estrada continua além da borda em vez de terminar arredondada.
+    blob9(m, dirt, 12, "ground", open_path_edges)
 
     # Lago no meio da grama ganha uma beira de areia (só visual, não muda a colisão).
     wet0 = {(c, r) for c, r in cells if L["ground"][r][c] in WATER_TILES}
@@ -994,7 +1001,9 @@ def build_route2() -> Map:
     route |= line_cells([(17, 53), (26, 53), (26, 40), (28, 40), (28, 20), (24, 20), (24, 13), (17, 13)])
     route |= line_cells([(17, 13), (17, 0)])
     spur_pond = line_cells([(8, 36), (14, 36)])
-    spur_grove = line_cells([(24, 13), (24, 6), (28, 6)])
+    # A trilha atravessa a parede de árvores até a borda leste do mapa.
+    # A abertura de duas casas fica cercada por copas e troncos dos dois lados.
+    spur_grove = line_cells([(24, 13), (24, 6), (35, 6)])
     open_cells = route | spur_pond | spur_grove
     for area in (
         rect(16, 48, 4, 16), rect(6, 52, 24, 4), rect(4, 30, 8, 24), rect(8, 12, 8, 20),
@@ -1003,6 +1012,10 @@ def build_route2() -> Map:
     ):
         open_cells |= area
     woods(m, open_cells)
+    # As copas junto à abertura também fecham as laterais do corredor.
+    for c in range(32, 36):
+        m.solid(c, 5)
+        m.solid(c, 8)
     path(m, route | spur_pond | spur_grove)
     water(m, 16, 32, 5, 6)
     walk = route | spur_pond | spur_grove
@@ -1017,6 +1030,8 @@ def build_route2() -> Map:
     post(m, "sign_r2_north", 19, 3)
     m.warp(17, 63, "forest", 10, 1, "down", w=2)
     m.warp(17, 0, "ferruria", 21, 34, "up", w=2)
+    # A transição acontece ao atravessar a abertura, no fim do corredor de árvores.
+    m.warp(35, 6, "echo_grove", 4, 27, "up", h=2)
     m.spawn("from_forest", 17, 61, "up")
     m.spawn("from_city", 17, 2, "down")
     m.npc("ranger_r2", 24, 10, "down")
@@ -1264,6 +1279,15 @@ def dojo(m: Map, c: int, r: int) -> tuple[int, int]:
     return c + 3, r + 4
 
 
+def cave_entrance(m: Map, c: int, r: int) -> None:
+    """Paredão contínuo, com arco escuro e soleira livre de duas casas no centro."""
+    m.stamp(c, r, 0, 0, 8, 5, tileset=lambda x, y: CAVE_FIRST + y * 8 + x, solid=False)
+    # A primeira linha acompanha o contorno irregular da crista.
+    for dy, first in enumerate((2, 0, 0, 0, 0)):
+        for dx in range(first, 8):
+            m.solid(c + dx, r + dy, not (dy == 4 and dx in (3, 4)))
+
+
 def build_route3() -> Map:
     """Rota 3: sai do norte de Ferrúria e sobe até Verdelume.
 
@@ -1274,13 +1298,16 @@ def build_route3() -> Map:
     route = line_cells([(17, 51), (17, 40), (25, 40), (25, 26), (11, 26), (11, 12), (17, 12), (17, 0)])
     spur_lake = line_cells([(17, 46), (10, 46), (10, 36)])
     spur_view = line_cells([(25, 33), (31, 33), (31, 18)])
-    walk = route | spur_lake | spur_view
+    spur_grove = line_cells([(10, 46), (10, 49), (2, 49)])
+    spur_cave = line_cells([(31, 18), (31, 16)])
+    walk = route | spur_lake | spur_view | spur_grove | spur_cave
     open_cells = set(walk)
     for area in (
         rect(12, 42, 12, 10),  # obra do Grupo Thomas na entrada
         rect(2, 32, 12, 18),  # lago e mato do oeste
         rect(14, 28, 10, 12),  # campo do meio
-        rect(27, 16, 8, 20),  # mirante do leste
+        rect(27, 14, 8, 22),  # mirante e entrada da caverna
+        rect(28, 12, 8, 5),  # espaço para o paredão; copas não cobrem a fachada
         rect(6, 10, 14, 16),  # mato do norte
         rect(14, 0, 8, 10),  # subida para Verdelume
     ):
@@ -1303,6 +1330,9 @@ def build_route3() -> Map:
     post(m, "sign_r3_thomas", 19, 49)
     post(m, "sign_r3_view", 29, 17)
     post(m, "sign_r3_north", 19, 3)
+    cave_entrance(m, 28, 12)
+    m.warp(31, 16, "echo_cave", 18, 31, "up", w=2)
+    m.warp(2, 49, "echo_grove", 21, 2, "down")
     m.warp(17, 51, "ferruria", 21, 1, "down", w=2)
     m.warp(17, 0, "verdelume", 21, 34, "up", w=2)
     m.spawn("from_ferruria", 17, 50, "up")
@@ -1316,6 +1346,92 @@ def build_route3() -> Map:
     m.npc("r3_trainer_3", 20, 6, "left")
     m.npc("item_r3_west", 3, 33)
     m.npc("item_r3_east", 33, 17)
+    m.npc("echo_researcher", 29, 19, "down")
+    m.npc("echo_bidoof_home", 30, 19, "down")
+    return m
+
+
+def build_echo_grove() -> Map:
+    """Bosque do Orvalho: travessia entre o bosque da Rota 2 e a Rota 3."""
+    m = Map("Bosque do Orvalho", 28, 30, music="streets")
+    grass_fill(m)
+    route = line_cells([(4, 29), (4, 23), (12, 23), (12, 15), (21, 15), (21, 0)])
+    branch = line_cells([(12, 18), (6, 18), (6, 12)])
+    walk = route | branch
+    opened = walk | rect(2, 22, 14, 7) | rect(8, 12, 8, 12) | rect(16, 6, 8, 12) | rect(18, 0, 7, 8) | rect(3, 10, 5, 10)
+    woods(m, opened)
+    path(m, walk)
+    tall(m, rect(8, 24, 4, 3) | rect(9, 12, 3, 5) | rect(18, 7, 3, 5), walk)
+    flowers(m, [(3, 24), (14, 21), (10, 18), (18, 14), (23, 9)])
+    post(m, "sign_echo_grove", 6, 26)
+    post(m, "echo_frost", 19, 12)
+    m.npc("echo_scout", 14, 20, "left")
+    m.npc("item_echo_grove", 5, 12)
+    m.warp(4, 29, "route2", 34, 6, "left", w=2)
+    m.warp(21, 0, "route3", 3, 49, "right", w=2)
+    m.spawn("from_route2", 4, 27, "up")
+    m.spawn("from_route3", 21, 2, "down")
+    return m
+
+
+def build_echo_cave() -> Map:
+    """Galeria do Eco: dois guardas, sala de extração e o cercado do Bidoof."""
+    tile = lambda index: CAVE_INNER_FIRST + index
+    m = Map("Galeria do Eco", 36, 34, fill=tile(8), music="streets")
+    m.rect("collision", 0, 0, m.cols, m.rows, VOID)
+    floor = rect(14, 27, 9, 7) | rect(17, 22, 2, 6) | rect(10, 16, 15, 7) | rect(24, 11, 2, 7) | rect(12, 3, 17, 9) | rect(17, 2, 4, 4)
+    for x, y in floor:
+        seed = (x * 37 + y * 73 + x * y * 11) % 100
+        variant = 6 if seed < 5 else 7 if seed < 10 else (x * 7 + y * 11) % 6
+        m.set("ground", x, y, tile(variant))
+        m.solid(x, y, False)
+    # Maciço escuro e faces rochosas contínuas em volta de cada sala e corredor.
+    for y in range(m.rows):
+        for x in range(m.cols):
+            if (x, y) in floor:
+                continue
+            face = 16 + (x % 2) if (x, y + 1) in floor else 24 + (x % 2) if (x, y - 1) in floor else 20 if (x + 1, y) in floor else 21 if (x - 1, y) in floor else 8 + ((x + y) % 2)
+            m.set("ground", x, y, tile(face))
+    # Cada recruta fecha um gargalo; a pedra ao lado impede contornar a batalha.
+    for x, y in ((18, 24), (25, 14)):
+        m.set("buildings", x, y, tile(32))
+        m.solid(x, y)
+    # Formações nas bordas das salas; os gargalos e acessos da missão ficam livres.
+    for x, y, prop in ((15, 29, 32), (21, 28, 33), (11, 19, 33), (23, 21, 32), (13, 5, 32), (28, 9, 33)):
+        m.set("buildings", x, y, tile(prop))
+        m.solid(x, y)
+    for x, y, prop in ((14, 30, 34), (22, 30, 35), (10, 21, 34), (23, 17, 35), (12, 9, 34), (28, 4, 35)):
+        m.set("detail", x, y, tile(prop))
+    m.npc("echo_grunt_1", 17, 24, "down")
+    m.npc("echo_grunt_2", 24, 14, "down")
+    m.npc("echo_lead", 18, 8, "down")
+    m.event("echo_grunt_1_challenge", 17, 25, 2, 1)
+    m.event("echo_grunt_2_challenge", 24, 15, 2, 1)
+    m.event("echo_lead_challenge", 15, 9, 8, 1)
+    # Cercado: uma única abertura, controlada pelo painel da máquina.
+    for x in range(16, 22):
+        for y in (2, 5):
+            if (x, y) == (18, 5):
+                continue
+            m.set("buildings", x, y, KT(81))
+            m.solid(x, y)
+    for x in (16, 21):
+        for y in (3, 4):
+            m.set("buildings", x, y, KT(81))
+            m.solid(x, y)
+    m.npc("echo_cage", 18, 5)
+    m.npc("echo_bidoof", 18, 3)
+    m.set("buildings", 26, 5, MACHINE)
+    m.sign("echo_console", 26, 5)
+    m.set("buildings", 25, 5, PC)
+    m.solid(25, 5)
+    for x, y in ((11, 17), (12, 17), (27, 7)):
+        m.set("buildings", x, y, tile(38))
+        m.solid(x, y)
+    m.obj("signs", "echo_crates", 12, 17)
+    m.npc("item_echo_cave", 23, 20)
+    m.warp(18, 33, "route3", 31, 17, "down", w=2)
+    m.spawn("from_route3", 18, 31, "up")
     return m
 
 
@@ -1549,14 +1665,16 @@ def main() -> None:
         "ferruria_mart": build_ferruria_mart(),
         "ferruria_house": build_ferruria_house(),
         "route3": build_route3(),
+        "echo_grove": build_echo_grove(),
+        "echo_cave": build_echo_cave(),
         "verdelume": build_verdelume(),
         "verdelume_center": build_verdelume_center(),
         "verdelume_mart": build_verdelume_mart(),
         "verdelume_gym": build_verdelume_gym(),
         "verdelume_house": build_verdelume_house(),
     }
-    for key in ("brisamar", "route1", "clearing", "forest", "route2", "ferruria", "route3", "verdelume"):
-        kenney_skin(built[key], autumn=AUTUMN.get(key, lambda c, r: False))
+    for key in ("brisamar", "route1", "clearing", "forest", "route2", "ferruria", "route3", "echo_grove", "verdelume"):
+        kenney_skin(built[key], autumn=AUTUMN.get(key, lambda c, r: False), open_path_edges=key == "route2")
     lab = build_art_lab()
     if lab is not None:
         built["art_lab"] = lab

@@ -75,7 +75,7 @@ export const CHARACTERS: CharacterDef[] = [
     id: "thomas",
     name: "Thomas (Thomas Group)",
     role: "antagonista",
-    hook: "Patrocinador da Liga e ginásios; ligação com organização criminosa (ato 3).",
+    hook: "Patrocinador da Liga e ginásios; parecerá o chefe da Rocket reorganizada quando sua participação for exposta.",
     firstChapter: "c1_brisamar (pista) / c3_verdelume",
     voice: "Corporativo, simpático na superfície.",
   },
@@ -83,7 +83,7 @@ export const CHARACTERS: CharacterDef[] = [
     id: "giovanni",
     name: "Giovanni",
     role: "antagonista",
-    hook: "Chefe da organização; batalha final com Giratina distorcida.",
+    hook: "Está vivo e comanda a Rocket por trás de Thomas; batalha final com Giratina distorcida.",
     firstChapter: "c12_distorcao",
     voice: "Frio, calculista.",
   },
@@ -98,7 +98,10 @@ export const CHARACTERS: CharacterDef[] = [
 ];
 
 export const ORGANIZATION = {
-  workingName: "Equipe Distorção",
+  workingName: "Nova Equipe Rocket",
+  history: "A Rocket fingiu desaparecer e se reorganizou em segredo. A identidade dos recrutas e a ligação com Thomas são reveladas aos poucos.",
+  apparentLeader: "Thomas",
+  trueLeader: "Giovanni",
   signs: ["Thomas Group", "instalações em Floraviva/Noctária", "páginas arrancadas em Velária"],
   finalBoss: "Giovanni + Giratina",
 } as const;

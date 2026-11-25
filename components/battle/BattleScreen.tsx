@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { spriteOf } from "@/game/phaser/constants";
 import { HpBar } from "@/components/hud/MonSprite";
+import { MoveDetails } from "@/components/hud/MoveDetails";
 import { useTypewriter } from "@/components/hud/useTypewriter";
 import { ItemIcon } from "@/components/menus/BagPanel";
 import { PartyList } from "@/components/menus/PartyPanel";
@@ -10,7 +11,7 @@ import { useMenu } from "@/components/menus/useMenu";
 import { ITEMS, type ItemId, canUseInBattle } from "@/data/items";
 import { STATUS_NAME, type StatusId, move } from "@/data/pokemon/moves";
 import { species } from "@/data/pokemon/species";
-import { TYPE_COLOR, TYPE_NAME } from "@/data/pokemon/types";
+import { TYPE_COLOR } from "@/data/pokemon/types";
 import { battleSpeciesId } from "@/data/pokemon/mega";
 import { type Action, type BattleEvent, type BattleState, type Outcome, type Side, activeOf, availableMegas, runTurn, startBattle } from "@/game/battle/engine";
 import { defaultRng } from "@/game/core/rng";
@@ -522,12 +523,12 @@ function BattleRun({ request }: { request: BattleRequest }) {
         </div>
       ) : null}
 
-      <div className="battle-text">
+      <div className={`battle-text${mode === "moves" ? " is-moves" : ""}`}>
         {mode === "moves" && active ? (
           <>
             <div className="move-grid">
               {active.moves.map((slot, index) => (
-                <button key={slot.id} type="button" className={index === moveMenu.index ? "active" : ""} onClick={() => moveMenu.pick(index)}>
+                <button key={slot.id} type="button" className={index === moveMenu.index ? "active" : ""} onMouseEnter={() => moveMenu.setIndex(index)} onFocus={() => moveMenu.setIndex(index)} onClick={() => moveMenu.pick(index)}>
                   <span className="gba-cursor">{index === moveMenu.index ? "▶" : ""}</span>
                   {move(slot.id).name}
                 </button>
@@ -536,14 +537,12 @@ function BattleRun({ request }: { request: BattleRequest }) {
             <div className="move-info">
               {highlighted ? (
                 <>
-                  <span>
-                    PP {highlighted.pp}/{move(highlighted.id).pp}
-                  </span>
-                  <span style={{ color: TYPE_COLOR[move(highlighted.id).type] }}>{TYPE_NAME[move(highlighted.id).type]}</span>
+                  <MoveDetails definition={move(highlighted.id)} pp={highlighted.pp} description={false} />
                   {pendingMega ? <b className="mega-ready">{pendingMega === "greninja_ash" ? "Forma Ash pronta" : "Mega pronta"}</b> : null}
                 </>
               ) : null}
             </div>
+            {highlighted ? <p className="move-description battle-move-description" aria-live="polite">{move(highlighted.id).description}</p> : null}
           </>
         ) : (
           <>

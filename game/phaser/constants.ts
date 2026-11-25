@@ -5,9 +5,9 @@ export const VIEW_H = 160;
 export const TILE = 16;
 
 /** Folhas de tiles carregadas no boot; o nome é o mesmo no Tiled e na textura. */
-export const TILESET_KEYS = ["overworld", "inner", "extra", "kenney_town", "kenney_extra"] as const;
+export const TILESET_KEYS = ["overworld", "inner", "extra", "kenney_town", "kenney_extra", "cave_entrance", "cave_interior"] as const;
 
-export const MAP_KEYS = ["brisamar", "house_1f", "house_2f", "neighbor", "lab", "clinic", "route1", "clearing", "forest", "route2", "ferruria", "ferruria_lab", "ferruria_center", "ferruria_gym", "ferruria_mart", "ferruria_house", "route3", "verdelume", "verdelume_center", "verdelume_mart", "verdelume_gym", "verdelume_house", "art_lab"] as const;
+export const MAP_KEYS = ["brisamar", "house_1f", "house_2f", "neighbor", "lab", "clinic", "route1", "clearing", "forest", "route2", "ferruria", "ferruria_lab", "ferruria_center", "ferruria_gym", "ferruria_mart", "ferruria_house", "route3", "echo_grove", "echo_cave", "verdelume", "verdelume_center", "verdelume_mart", "verdelume_gym", "verdelume_house", "art_lab"] as const;
 export const MON_SPRITES = [...new Set(Object.values(SPECIES).map((mon) => mon.sprite))];
 
 const LOADED_SPRITES = new Set<string>(MON_SPRITES);

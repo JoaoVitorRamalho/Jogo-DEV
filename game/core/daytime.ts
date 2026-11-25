@@ -10,7 +10,7 @@ export function timeOfDay(flags: Record<string, boolean> | undefined): TimeOfDay
 }
 
 /** Mapas a céu aberto: só eles recebem luz do dia. Interiores e batalhas ficam com a cor normal. */
-export const OUTDOOR_MAPS = new Set(["brisamar", "route1", "clearing", "forest", "route2", "ferruria", "route3", "verdelume", "art_lab"]);
+export const OUTDOOR_MAPS = new Set(["brisamar", "route1", "clearing", "forest", "route2", "ferruria", "route3", "echo_grove", "verdelume", "art_lab"]);
 
 type Look = { grade: number; vignette: number; glow: number; glowTint: number; lamp: number };
 

@@ -1,8 +1,18 @@
-# Capítulo 3 (Rota 3 e Verdelume): o palco está pronto, falta a história
+# Capítulo 3 — Ecos sob a Pedra
 
-João, o capítulo 3 já dá para jogar do começo ao fim: mapas, NPCs, treinadores, mato alto, cura,
-loja, as cercas do Dojo e a Insígnia Punho funcionam. Toda fala é **provisória**, curta e neutra,
-só para o caminho existir. O seu trabalho é trocar texto e, se quiser, mudar a ordem das cenas.
+A abertura já tem roteiro e sequência jogável: Ferrúria → bosque da Rota 2 → Bosque do Orvalho
+(`echo_grove`) → Rota 3 → Galeria do Eco (`echo_cave`) → retorno a Nádia → Verdelume.
+O Campo, o Dojo e o fechamento do capítulo continuam com falas provisórias.
+
+Nádia, pesquisadora ligada a Celina, pede ajuda para recuperar Bidoof. Dois recrutas e um
+encarregado protegem uma operação de extração. Depois das batalhas, o jogador desliga o painel,
+liberta Bidoof e volta ao acampamento. Só então a estrada principal e o caminho para Verdelume
+ficam liberados. Há cura no acampamento e retorno a ele em caso de derrota, depois de utilizá-lo.
+
+**Cânone confirmado pelo João:** a Rocket fingiu desaparecer e se reorganizou. Thomas parecerá
+o chefe quando sua participação for revelada; Giovanni está vivo e comanda nos bastidores.
+Nesta abertura, os uniformizados ainda não dizem o nome da organização. A costura vermelha e
+os caixotes são pistas; não confirmam a ligação de Thomas. Não antecipar Giovanni nos diálogos.
 
 Procure **`JOÃO:`** no código: cada comentário marca um lugar para escrever.
 
@@ -17,11 +27,13 @@ navegador (só funciona em dev):
 
 ```js
 __game.getState().update((s) => { s.flags = { ...s.flags, chapter1_complete: true, chapter2_complete: true }; });
-__world().warp("route3", 17, 49, "up");   // começa na Rota 3
+__world().warp("ferruria", 21, 4, "up");   // começo, perto dos operários
 // outros pontos: __world().warp("verdelume", 21, 33, "up")  |  __world().warp("verdelume_gym", 7, 16, "up")
 ```
 
-Para ver a abertura (os operários liberando a estrada), não pule: ande até a saída norte de Ferrúria.
+Para testar a abertura no save de teste, marque apenas `chapter2_complete: true` e fale com os
+operários da saída norte de Ferrúria. Eles orientam a voltar pelo sul e procurar o guarda da
+Rota 2. Não marque `ch3_arrived`: essa flag preserva a passagem de saves da versão anterior.
 
 ## Onde escrever
 
@@ -40,8 +52,16 @@ Para ver a abertura (os operários liberando a estrada), não pule: ande até a 
 
 | Cena (`chapter3.ts`) | Quando roda | Flag que liga |
 |----------------------|-------------|---------------|
-| `roadOpen` | falar com os operários da saída norte de Ferrúria, depois do cap. 2 | `ch3_started`, `ch3_road_open` |
+| `startOpening` | fim do cap. 2 ou falar com os operários | `ch3_started` |
+| `groveGuard` | falar com o guarda na Rota 2 | `r2_grove_open` |
+| `ch3Enter` | primeira vez no bosque | `ch3_grove_entered` |
 | `ch3Enter` | primeira vez na Rota 3 | `r3_seen` |
+| `researcher` | falar com Nádia no mirante leste | `ch3_cave_help`, `ch3_camp` ao aceitar cura |
+| `caveFight` / `ch3Event` | aproximar-se ou falar com os recrutas | `beat_rocket_echo_1`, `beat_rocket_echo_2` |
+| `caveFight` | enfrentar o encarregado | `beat_rocket_echo_lead` |
+| `stopMachine` | usar o painel após vencer o encarregado | `ch3_machine_off` |
+| `rescueBidoof` | falar com Bidoof no cercado aberto | `ch3_bidoof_safe` |
+| `researcher` | voltar ao acampamento com Bidoof | `ch3_cave_rescued`, `ch3_road_open` |
 | `thomasStand` | falar com a Promotora Thomas no posto da Rota 3 (dá 2 Poções uma vez) | `ch3_thomas_stand` |
 | `arrival` | primeira vez em Verdelume | `ch3_arrived` |
 | `coach` | falar com a Técnica Vera no Campo de treinamento | `ch3_field` |
@@ -82,7 +102,9 @@ As posições ficam em `scripts/build_maps.py` (`build_route3`, `build_verdelume
 - **Trocar o id de um NPC**: troque nos três lugares (`build_maps.py`, `npcs.ts`, `CH3_TALK`).
 
 O teste `game/story/chapter3.test.ts` reclama se um NPC ficar sem visual ou sem fala, se uma
-placa ficar sem texto ou se as cercas do Dojo deixarem de fechar o caminho.
+placa ficar sem texto, se uma passagem ficar bloqueada ou se as cercas do Dojo deixarem de
+fechar o caminho. `chapter3-opening.test.ts` verifica resgate, derrotas, cancelamento do painel,
+recompensa única e compatibilidade do diário com saves antigos.
 
 ## Quando a história fechar
 

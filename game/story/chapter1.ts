@@ -10,7 +10,7 @@ import { createMon } from "@/game/pokemon/mon";
 import { addMon, giveItem, useGame } from "@/game/state/store";
 import { autosave, flag, giveOnce, healAtHome, hero, line, setFlag, spottedBy, state, talk, think, trainerBattle, wildEncounter, yesNo } from "@/game/story/actions";
 import { CH2_SIGN_RUN, CH2_SIGNS, CH2_TALK, CH2_VISIBLE, ch2CanWarp, ch2Enter } from "@/game/story/chapter2";
-import { CH3_SIGN_RUN, CH3_SIGNS, CH3_VISIBLE, ch3, ch3CanWarp, ch3Enter, ch3Talk } from "@/game/story/chapter3";
+import { CH3_SIGN_RUN, CH3_SIGNS, CH3_VISIBLE, ch3, ch3CanWarp, ch3Enter, ch3Event, ch3Talk } from "@/game/story/chapter3";
 import { BattleDemo } from "@/game/story/demo";
 import { type StoryHooks, story } from "@/game/story/hooks";
 import { spotted, watching } from "@/game/story/watchers";
@@ -767,6 +767,8 @@ const hooks: StoryHooks = {
   },
   event: async (id) => {
     ensure();
+    const chapter3Event = await ch3Event(id);
+    if (chapter3Event !== null) return chapter3Event;
     if (id === "north_gate") {
       if (!flag("ch1_morning")) {
         await think("A mãe está lá embaixo.");

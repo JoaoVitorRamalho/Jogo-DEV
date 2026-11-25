@@ -1,6 +1,7 @@
 node_modules
 .next
 .tools
+/saves-recuperados/
 .tmp-lpc
 .tmp-ninja
 *.log

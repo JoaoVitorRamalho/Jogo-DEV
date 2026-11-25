@@ -5,6 +5,7 @@ import { world } from "@/game/phaser/bridge";
 import { giveItem, useGame } from "@/game/state/store";
 import { autosave, flag, giveOnce, healAtHome, hero, line, setFlag, spottedBy, state, talk, think, trainerBattle } from "@/game/story/actions";
 import { playSfx } from "@/lib/audio/engine";
+import { startOpening } from "@/game/story/chapter3";
 
 const BADGE = "casulo";
 const shownGoals = new Set<string>();
@@ -207,6 +208,7 @@ async function workers(): Promise<void> {
   setFlag("chapter2_complete");
   await talk(undefined, "Capítulo 2 concluído — Ninho de Seda.");
   useUi.getState().setHint(null);
+  await startOpening();
   autosave();
 }
 

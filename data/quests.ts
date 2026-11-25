@@ -1,4 +1,4 @@
-export type QuestStep = { flag: string; text: string };
+export type QuestStep = { flag: string; text: string; skipIf?: string };
 export type QuestDef = { id: string; title: string; act: number; steps: QuestStep[] };
 
 export const QUESTS: QuestDef[] = [
@@ -35,13 +35,24 @@ export const QUESTS: QuestDef[] = [
       { flag: "chapter2_complete", text: "Investigue a obra na saída norte de Ferrúria." },
     ],
   },
-  // JOÃO: título e textos provisórios do capítulo 3. Cada passo some quando a flag dele liga.
   {
     id: "act2_verdelume",
-    title: "Verdelume",
+    title: "Ecos sob a Pedra",
     act: 2,
     steps: [
-      { flag: "ch3_road_open", text: "Fale com os operários na saída norte de Ferrúria." },
+      ...[
+        { flag: "ch3_started", text: "Fale com os operários na saída norte de Ferrúria." },
+        { flag: "r2_grove_open", text: "Saia de Ferrúria pelo sul e fale com o guarda no leste da Rota 2." },
+        { flag: "ch3_grove_entered", text: "Entre na trilha ao fundo do Bosque do Orvalho, a leste da clareira." },
+        { flag: "r3_seen", text: "Atravesse o bosque até a saída norte para a Rota 3." },
+        { flag: "ch3_cave_help", text: "Encontre Nádia na entrada da galeria, no mirante leste da Rota 3." },
+        { flag: "beat_rocket_echo_1", text: "Entre na Galeria do Eco e passe pelo primeiro recruta." },
+        { flag: "beat_rocket_echo_2", text: "Atravesse a galeria e enfrente o segundo recruta." },
+        { flag: "beat_rocket_echo_lead", text: "Enfrente o encarregado na sala ao norte." },
+        { flag: "ch3_machine_off", text: "Desligue o painel na parede a leste do cercado." },
+        { flag: "ch3_bidoof_safe", text: "Entre no cercado e ajude Bidoof a sair." },
+        { flag: "ch3_cave_rescued", text: "Volte ao acampamento e entregue Bidoof a Nádia." },
+      ].map((step) => ({ ...step, skipIf: "ch3_arrived" })),
       { flag: "ch3_arrived", text: "Siga pela Rota 3 até a Cidade Verdelume." },
       { flag: "ch3_field", text: "Visite o Campo de treinamento, a sudeste de Verdelume." },
       { flag: "beat_leader_verdelume", text: "Vença os faixas do Dojo e enfrente o Líder." },
@@ -53,7 +64,7 @@ export const QUESTS: QuestDef[] = [
 export function questProgress(quest: QuestDef, flags: Record<string, unknown>): { done: number; current: QuestStep | null } {
   let done = 0;
   for (const step of quest.steps) {
-    if (!flags[step.flag]) return { done, current: step };
+    if (!flags[step.flag] && !(step.skipIf && flags[step.skipIf])) return { done, current: step };
     done += 1;
   }
   return { done, current: null };

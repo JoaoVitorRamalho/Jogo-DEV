@@ -1,4 +1,6 @@
 import type { TypeId } from "@/data/pokemon/types";
+import canonicalData from "@/data/pokemon/move-data.json";
+import descriptions from "@/data/pokemon/move-descriptions.pt.json";
 
 export type StatId = "atk" | "def" | "spa" | "spd" | "spe";
 export type StageStat = StatId | "accuracy" | "evasion";
@@ -23,6 +25,8 @@ export type MoveDef = {
   pp: number;
   priority?: number;
   hits?: number;
+  hitRange?: [number, number];
+  drain?: number;
   highCrit?: boolean;
   powder?: boolean;
   effects?: MoveEffect[];
@@ -70,7 +74,7 @@ const list: MoveDef[] = [
   { id: "sleep_powder", name: "Pó do Sono", type: "grass", category: "status", power: 0, accuracy: 75, pp: 15, powder: true, effects: [{ kind: "status", status: "sleep", chance: 1 }], description: "Faz o alvo dormir." },
   { id: "bubble", name: "Bolha", type: "water", category: "special", power: 40, accuracy: 100, pp: 30, effects: [{ kind: "stage", target: "foe", stat: "spe", stages: -1, chance: 0.1 }], description: "Pode reduzir a Velocidade." },
   { id: "water_gun", name: "Revólver d'Água", type: "water", category: "special", power: 40, accuracy: 100, pp: 25, description: "Jato de água sob pressão." },
-  { id: "water_pulse", name: "Pulso d'Água", type: "water", category: "special", power: 60, accuracy: 100, pp: 20, description: "Uma onda de água concentrada." },
+  { id: "water_pulse", name: "Pulso d'Água", type: "water", category: "special", power: 60, accuracy: 100, pp: 20, effects: [{ kind: "confuse", chance: 0.2 }], description: "Uma onda de água concentrada." },
   { id: "string_shot", name: "Fio de Seda", type: "bug", category: "status", power: 0, accuracy: 95, pp: 40, effects: [{ kind: "stage", target: "foe", stat: "spe", stages: -2 }], description: "Reduz muito a Velocidade." },
   { id: "poison_sting", name: "Ferrão Venenoso", type: "poison", category: "physical", power: 15, accuracy: 100, pp: 35, effects: [{ kind: "status", status: "poison", chance: 0.3 }], description: "Pode envenenar." },
   { id: "bug_bite", name: "Picada", type: "bug", category: "physical", power: 60, accuracy: 100, pp: 20, description: "Morde com mandíbulas." },
@@ -78,8 +82,8 @@ const list: MoveDef[] = [
   { id: "bite", name: "Mordida", type: "dark", category: "physical", power: 60, accuracy: 100, pp: 25, effects: [{ kind: "flinch", chance: 0.3 }], description: "Pode fazer o alvo hesitar." },
   { id: "dragon_rage", name: "Fúria do Dragão", type: "dragon", category: "special", power: 1, accuracy: 100, pp: 10, effects: [{ kind: "fixed", damage: 40 }], description: "Causa sempre 40 de dano." },
   { id: "dragon_breath", name: "Sopro do Dragão", type: "dragon", category: "special", power: 60, accuracy: 100, pp: 20, effects: [{ kind: "status", status: "paralysis", chance: 0.3 }], description: "Pode paralisar." },
-  { id: "confusion", name: "Confusão", type: "psychic", category: "special", power: 50, accuracy: 100, pp: 25, description: "Uma onda psíquica." },
-  { id: "psybeam", name: "Psicorraio", type: "psychic", category: "special", power: 65, accuracy: 100, pp: 20, description: "Um raio de energia psíquica." },
+  { id: "confusion", name: "Confusão", type: "psychic", category: "special", power: 50, accuracy: 100, pp: 25, effects: [{ kind: "confuse", chance: 0.1 }], description: "Uma onda psíquica." },
+  { id: "psybeam", name: "Psicorraio", type: "psychic", category: "special", power: 65, accuracy: 100, pp: 20, effects: [{ kind: "confuse", chance: 0.1 }], description: "Um raio de energia psíquica." },
   { id: "shadow_claw", name: "Garra Sombria", type: "ghost", category: "physical", power: 70, accuracy: 100, pp: 15, highCrit: true, description: "Garras de sombra. Crítico frequente." },
   { id: "flame_wheel", name: "Roda de Fogo", type: "fire", category: "physical", power: 60, accuracy: 100, pp: 25, effects: [{ kind: "status", status: "burn", chance: 0.1 }], description: "Rola envolto em chamas." },
   { id: "take_down", name: "Desmantelar", type: "normal", category: "physical", power: 90, accuracy: 85, pp: 20, description: "Avança com o corpo todo." },
@@ -90,7 +94,7 @@ const list: MoveDef[] = [
   { id: "flamethrower", name: "Lança-chamas", type: "fire", category: "special", power: 90, accuracy: 100, pp: 15, effects: [{ kind: "status", status: "burn", chance: 0.1 }], description: "Um jato de fogo. Pode queimar." },
   { id: "blaze_kick", name: "Chute Labareda", type: "fire", category: "physical", power: 85, accuracy: 90, pp: 10, highCrit: true, effects: [{ kind: "status", status: "burn", chance: 0.1 }], description: "Chute em chamas. Crítico frequente." },
   { id: "sky_uppercut", name: "Gancho Alto", type: "fighting", category: "physical", power: 85, accuracy: 90, pp: 15, description: "Um soco de baixo para cima." },
-  { id: "close_combat", name: "Combate Corpo a Corpo", type: "fighting", category: "physical", power: 120, accuracy: 100, pp: 5, effects: [{ kind: "stage", target: "self", stat: "def", stages: -1 }], description: "Ataque total. Baixa a própria Defesa." },
+  { id: "close_combat", name: "Combate Corpo a Corpo", type: "fighting", category: "physical", power: 120, accuracy: 100, pp: 5, effects: [{ kind: "stage", target: "self", stat: "def", stages: -1 }, { kind: "stage", target: "self", stat: "spd", stages: -1 }], description: "Ataque total. Baixa as próprias defesas." },
   { id: "surf", name: "Surfe", type: "water", category: "special", power: 90, accuracy: 100, pp: 15, description: "Uma onda enorme." },
   { id: "night_slash", name: "Talho Noturno", type: "dark", category: "physical", power: 70, accuracy: 100, pp: 15, highCrit: true, description: "Golpe nas sombras. Crítico frequente." },
   { id: "dark_pulse", name: "Pulso Sombrio", type: "dark", category: "special", power: 80, accuracy: 100, pp: 15, effects: [{ kind: "flinch", chance: 0.2 }], description: "Onda de energia sombria." },
@@ -100,11 +104,38 @@ const list: MoveDef[] = [
   { id: "bug_buzz", name: "Zumbido", type: "bug", category: "special", power: 90, accuracy: 100, pp: 10, effects: [{ kind: "stage", target: "foe", stat: "spd", stages: -1, chance: 0.1 }], description: "Vibração que fere os ouvidos." },
   { id: "dragon_claw", name: "Garra de Dragão", type: "dragon", category: "physical", power: 80, accuracy: 100, pp: 15, description: "Garras afiadas de dragão." },
   { id: "heat_wave", name: "Onda de Calor", type: "fire", category: "special", power: 95, accuracy: 90, pp: 10, effects: [{ kind: "status", status: "burn", chance: 0.1 }], description: "Explosão de ar quente." },
-  { id: "flare_blitz", name: "Labareda Sombria", type: "fire", category: "physical", power: 120, accuracy: 100, pp: 15, effects: [{ kind: "status", status: "burn", chance: 0.1 }], description: "Investida em chamas totais." },
+  { id: "flare_blitz", name: "Investida Flamejante", type: "fire", category: "physical", power: 120, accuracy: 100, pp: 15, effects: [{ kind: "status", status: "burn", chance: 0.1 }], description: "Investida em chamas totais." },
   { id: "water_shuriken", name: "Estrela Ninja", type: "water", category: "special", power: 15, accuracy: 100, pp: 20, hits: 3, priority: 1, description: "Shurikens d'água em rajada." },
 ];
 
-export const MOVES: Record<string, MoveDef> = Object.fromEntries(list.map((move) => [move.id, move]));
+/** Dados numéricos da PokéAPI; textos traduzidos e efeitos implementados ficam locais. */
+export const MOVES: Record<string, MoveDef> = Object.fromEntries(list.map((definition) => {
+  const canonical = canonicalData[definition.id as keyof typeof canonicalData];
+  const min = canonical.minHits, max = canonical.maxHits;
+  return [definition.id, {
+    ...definition,
+    type: canonical.type as TypeId,
+    category: canonical.category as MoveCategory,
+    power: canonical.power ?? 0,
+    accuracy: canonical.accuracy,
+    pp: canonical.pp,
+    priority: canonical.priority,
+    hits: min && min === max ? min : undefined,
+    hitRange: min && max && max > min ? [min, max] : undefined,
+    drain: Math.max(0, canonical.drain) / 100,
+    description: descriptions[definition.id as keyof typeof descriptions],
+  } satisfies MoveDef];
+}));
+
+export const CATEGORY_NAME: Record<MoveCategory, string> = { physical: "Físico", special: "Especial", status: "Status" };
+
+export function movePower(definition: MoveDef): string {
+  return definition.power > 0 ? String(definition.power) : "—";
+}
+
+export function moveAccuracy(definition: MoveDef): string {
+  return definition.accuracy === null ? "—" : `${definition.accuracy}%`;
+}
 
 export function move(id: string): MoveDef {
   const found = MOVES[id];

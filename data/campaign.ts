@@ -44,7 +44,7 @@ export const CHAPTERS: ChapterDef[] = [
     status: "jogável",
   },
   { id: "c2_aster", act: 2, title: "Floresta de Aster e Ferrúria", unlock: { flags: ["reached_forest"] }, beats: ["Floresta de Aster", "Rota 2 (dois caminhos e o bosque)", "Primeiro ginásio (Inseto)"], status: "jogável" },
-  { id: "c3_verdelume", act: 2, title: "Verdelume", unlock: { badges: 1 }, beats: ["Patrocínio de Thomas", "Segundo ginásio (Lutador)"], status: "planejado" },
+  { id: "c3_verdelume", act: 2, title: "Ecos sob a Pedra", unlock: { badges: 1 }, beats: ["Bosque do Orvalho", "Resgate na Galeria do Eco", "Primeiro confronto com a Rocket reorganizada, ainda sem identidade confirmada", "Patrocínio de Thomas em Verdelume", "Segundo ginásio (Lutador)"], status: "planejado" },
   { id: "c4_porto", act: 2, title: "Porto Coral", unlock: { badges: 2 }, beats: ["Navio de pesquisa", "Terceiro ginásio (Voador)"], status: "planejado" },
   { id: "c5_oraculo", act: 2, title: "Oráculo", unlock: { badges: 3 }, beats: ["Sonhos compartilhados", "Quarto ginásio (Psíquico)"], status: "planejado" },
   { id: "c6_velaria", act: 3, title: "Velária", unlock: { badges: 4 }, beats: ["Arquivos sobre distorção", "Quinto ginásio (Fantasma)"], status: "planejado" },

@@ -99,6 +99,11 @@ export async function blackout(): Promise<void> {
     await talk(NPCS.v_nurse.name, "Pronto, todos recuperados.", "Volte quando precisar.");
     return;
   }
+  if (flag("ch3_camp") && !flag("ch3_cave_rescued")) {
+    await world().warp("route3", 28, 19, "down");
+    await talk("Pesquisadora Nádia", "Você voltou! Já cuidei da sua equipe.", "Respire um pouco. Bidoof precisa de você em segurança também.");
+    return;
+  }
   if (flag("ch2_center")) {
     await world().warp("ferruria_center", 4, 5, "up");
     await talk(undefined, `${hero()} correu até o Centro de Cura...`);

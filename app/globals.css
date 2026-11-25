@@ -642,9 +642,21 @@ canvas {
   margin-right: calc(var(--u) * 2);
 }
 
+.quest-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
 .quest-list li {
-  line-height: calc(var(--u) * 14);
-  font-size: calc(var(--u) * 9);
+  line-height: calc(var(--u) * 10);
+  font-size: calc(var(--u) * 7);
+  padding: calc(var(--u) * 2) 0;
+}
+
+.quest-list li.selected {
+  background: #fff1d0;
 }
 
 .quest-list .done {
@@ -817,10 +829,45 @@ canvas {
   margin: calc(var(--u) * -4) calc(var(--u) * -6) calc(var(--u) * -4) 0;
 }
 
-.move-info span:last-child {
-  font-weight: 700;
-  text-shadow: var(--u) var(--u) 0 var(--ink);
+.battle-text.is-moves {
+  height: calc(var(--u) * 68);
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  grid-template-rows: calc(var(--u) * 36) 1fr;
+  gap: calc(var(--u) * 3);
+  padding: calc(var(--u) * 4) calc(var(--u) * 6);
 }
+
+.battle-hud:has(.battle-text.is-moves) .hud-box.mine { top: calc(var(--u) * 52); }
+.is-moves .move-grid { min-width: 0; margin: 0; padding: var(--u); }
+.is-moves .move-grid button { font-size: calc(var(--u) * 8); line-height: calc(var(--u) * 8.5); padding: var(--u); }
+.is-moves .move-grid .gba-cursor { width: calc(var(--u) * 5); flex-shrink: 0; }
+.is-moves .move-info { width: auto; min-width: 0; margin: 0; padding: calc(var(--u) * 2); gap: var(--u); }
+
+.move-details { min-width: 0; font-size: calc(var(--u) * 7); }
+.move-tags { display: flex; align-items: center; flex-wrap: wrap; gap: calc(var(--u) * 3); font-size: calc(var(--u) * 6.5); }
+.move-tags b { padding: 0 calc(var(--u) * 2); border-radius: var(--u); color: #fff; font-weight: 400; }
+.move-tags span[data-category="physical"] { color: #b34833; }
+.move-tags span[data-category="special"] { color: #4667a0; }
+.move-tags span[data-category="status"] { color: #745a88; }
+.move-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--u); margin: calc(var(--u) * 2) 0 0; }
+.move-stats div { display: grid; gap: 0; }
+.move-stats dt { color: #625d71; font-size: calc(var(--u) * 5.5); }
+.move-stats dd { margin: 0; font-size: calc(var(--u) * 7); line-height: calc(var(--u) * 8); }
+.move-description { margin: calc(var(--u) * 2) 0 0; font-size: calc(var(--u) * 7); line-height: calc(var(--u) * 8); }
+.battle-text p.battle-move-description { grid-column: 1 / -1; font-size: calc(var(--u) * 7); line-height: calc(var(--u) * 8); color: #fff4da; }
+.mon-summary { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; padding-right: calc(var(--u) * 2); }
+.summary-tabs { display: flex; gap: calc(var(--u) * 3); margin-bottom: calc(var(--u) * 3); }
+.summary-tabs button { padding: 0 calc(var(--u) * 5); font-size: calc(var(--u) * 7); border: var(--u) solid #c5c2d6; border-radius: var(--u); background: #eeedf3; }
+.summary-tabs button[aria-pressed="true"] { background: #d8d5ed; border-color: #776aa5; color: #44396a; }
+.summary-data { min-height: 0; overflow-y: auto; }
+.summary-move-heading { font-weight: 400; font-size: calc(var(--u) * 8); margin-bottom: calc(var(--u) * 3); }
+.summary-move-view { display: grid; grid-template-columns: 1fr 1.1fr; gap: calc(var(--u) * 4); min-height: 0; flex: 1; }
+.summary-move-view > ul { list-style: none; padding: 0; margin: 0; font-size: calc(var(--u) * 7); overflow-y: auto; }
+.mon-summary .summary-move-view .move-details { margin-top: 0; overflow-y: auto; }
+.mon-summary .move-details { margin-top: calc(var(--u) * 3); padding: calc(var(--u) * 3); background: #e8e8f0; border-radius: calc(var(--u) * 2); }
+.summary-move button { display: block; width: 100%; border: 0; background: transparent; text-align: left; padding: var(--u); font-size: inherit; color: inherit; }
+.summary-move.selected button { background: #dddaf0; color: #403870; }
 
 .mega-ready {
   color: var(--accent-2);
@@ -1499,6 +1546,23 @@ canvas {
 .ts-modal-card .ts-modal-note {
   margin-top: calc(var(--m) * 3);
   color: var(--muted);
+}
+
+.ts-saves-card {
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.ts-save-copy {
+  margin-top: calc(var(--m) * 3);
+  padding-top: calc(var(--m) * 3);
+  border-top: var(--line) solid rgba(169, 155, 201, 0.3);
+  overflow-wrap: anywhere;
+}
+
+.ts-save-copy p + p {
+  margin-top: calc(var(--m) * 1.5);
 }
 
 .ts-modal-actions {

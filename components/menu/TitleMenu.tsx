@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type CSSProperties, type MouseEvent } from
 import { formatTime } from "@/components/menus/PauseMenu";
 import { useBackdrop, usePoke } from "@/components/menu/title/backdrop";
 import { PartyIcon, Portrait } from "@/components/menu/title/pixels";
+import { SaveManager } from "@/components/menu/SaveManager";
 import { CITIES } from "@/data/cities";
 import { TYPE_COLOR } from "@/data/pokemon/types";
 import { useGame, type GameState } from "@/game/state/store";
@@ -13,8 +14,8 @@ import { playSfx, setContextTrack } from "@/lib/audio/engine";
 import { useSession } from "@/lib/game/session";
 import { createRepeater, useInputFrame } from "@/lib/input/engine";
 
-type Entry = { id: "continue" | "new" | "options"; label: string; sub: string };
-type Stage = "press" | "menu" | "overwrite" | "test" | "complete";
+type Entry = { id: "continue" | "new" | "options" | "saves"; label: string; sub: string };
+type Stage = "press" | "menu" | "overwrite" | "test" | "complete" | "saves";
 
 /** ↑ ↑ ↓ ↓ ← → ← → X Z abre o save de teste. */
 const CHEAT = ["up", "up", "down", "down", "left", "right", "left", "right", "cancel", "confirm"] as const;
@@ -90,6 +91,7 @@ export function TitleMenu() {
     ...(slot ? [{ id: "continue", label: "Continuar", sub: "Volta de onde você parou" } as Entry] : []),
     { id: "new", label: "Novo jogo", sub: slot ? "Começa outra jornada do zero" : "Crie seu personagem" },
     { id: "options", label: "Opções", sub: "Som, controles e créditos" },
+    { id: "saves", label: "Saves e backups", sub: "Importe, baixe ou recupere sua jornada" },
   ];
   // Voltando das opções ou do criador, o menu já está aberto e no item de onde veio.
   const [stage, setStage] = useState<Stage>(() => {
@@ -108,7 +110,7 @@ export function TitleMenu() {
 
   useEffect(() => {
     // O fundo trata o save completo como o de teste: mesmo modal por cima.
-    useBackdrop.getState().setStage(stage === "complete" ? "test" : stage);
+    useBackdrop.getState().setStage(stage === "complete" || stage === "saves" ? "test" : stage);
   }, [stage]);
 
   /** Clique no fundo: a cena reage; na tela de "aperte", fora das surpresas, abre o menu. */
@@ -158,7 +160,7 @@ export function TitleMenu() {
       setStage("menu");
       return;
     }
-    useGame.getState().loadState(testSave(slot?.appearance));
+    useGame.getState().loadState(testSave(slot?.appearance), "test");
     playSfx("confirm");
     setScreen("field");
   }
@@ -171,7 +173,7 @@ export function TitleMenu() {
       setStage("menu");
       return;
     }
-    useGame.getState().loadState(completeSave(slot ?? testSave()));
+    useGame.getState().loadState(completeSave(slot ?? testSave()), "complete");
     playSfx("confirm");
     setScreen("field");
   }
@@ -189,6 +191,11 @@ export function TitleMenu() {
   function activate(index: number) {
     const entry = entries[index];
     if (!entry) return;
+    if (entry.id === "saves") {
+      playSfx("confirm");
+      setStage("saves");
+      return;
+    }
     if (entry.id === "continue") {
       if (!useGame.getState().continueGame()) {
         playSfx("cancel");
@@ -221,6 +228,7 @@ export function TitleMenu() {
   }
 
   useInputFrame((frame, dt) => {
+    if (stage === "saves") return;
     const next = repeat.current;
     for (const key of CHEAT_KEYS) {
       if (frame.pressed[key]) typed.current = [...typed.current, key].slice(-CHEAT.length);
@@ -312,7 +320,7 @@ export function TitleMenu() {
           <div className="ts-modal-card">
             <p className="ts-modal-title">Começar do zero?</p>
             <p>
-              A jornada de <strong>{slot?.appearance.name || "Viajante"}</strong> será apagada quando você criar o novo personagem.
+              A jornada de <strong>{slot?.appearance.name || "Viajante"}</strong> ficará guardada em Saves e backups quando você criar o novo personagem.
             </p>
             <div className="ts-modal-actions">
               {["Começar do zero", "Voltar"].map((label, index) => (
@@ -343,7 +351,7 @@ export function TitleMenu() {
             </ul>
             {slot ? (
               <p className="ts-modal-note">
-                Ele toma o lugar da jornada de <strong>{slot.appearance.name || "Viajante"}</strong>.
+                A jornada de <strong>{slot.appearance.name || "Viajante"}</strong> ficará guardada em Saves e backups.
               </p>
             ) : null}
             <div className="ts-modal-actions">
@@ -375,7 +383,7 @@ export function TitleMenu() {
             <p className="ts-modal-note">
               {slot ? (
                 <>
-                  Vale para a jornada de <strong>{slot.appearance.name || "Viajante"}</strong>.
+                  Vale para a jornada de <strong>{slot.appearance.name || "Viajante"}</strong>. O save original ficará guardado em Saves e backups.
                 </>
               ) : (
                 "Sem jogo salvo: começa pelo save de teste."
@@ -397,6 +405,7 @@ export function TitleMenu() {
           </div>
         </div>
       ) : null}
+      {stage === "saves" ? <SaveManager onClose={() => setStage("menu")} /> : null}
     </div>
   );
 }
