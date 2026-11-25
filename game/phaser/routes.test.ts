@@ -20,6 +20,15 @@ describe.each(cases)("integridade de $name", ({ map, start, end }) => {
   const key = ({ x, y }: Point) => `${x},${y}`;
   const neighbors = ({ x, y }: Point) => [{ x: x + 1, y }, { x: x - 1, y }, { x, y: y + 1 }, { x, y: y - 1 }];
 
+  // Obstáculo de golpe de campo (camada fields) conta como limpo: com todos limpos, nada pode ficar preso.
+  const openable = new Set(
+    (map.layers.find((layer) => layer.name === "fields")?.objects ?? []).flatMap((object) => {
+      const tiles: string[] = [];
+      for (let y = object.y / 16; y < (object.y + object.height) / 16; y += 1) for (let x = object.x / 16; x < (object.x + object.width) / 16; x += 1) tiles.push(key({ x, y }));
+      return tiles;
+    }),
+  );
+
   it("mantém conectadas as entradas com todos os NPCs presentes", () => {
     const occupied = new Set(npcs.map((npc) => key({ x: npc.x / 16, y: npc.y / 16 })));
     const seen = new Set<string>();
@@ -27,7 +36,7 @@ describe.each(cases)("integridade de $name", ({ map, start, end }) => {
     for (let i = 0; i < queue.length; i += 1) {
       const tile = queue[i];
       if (tile.x < 0 || tile.y < 0 || tile.x >= map.width || tile.y >= map.height) continue;
-      if (data("collision")[tile.y * map.width + tile.x] || occupied.has(key(tile)) || seen.has(key(tile))) continue;
+      if ((data("collision")[tile.y * map.width + tile.x] && !openable.has(key(tile))) || occupied.has(key(tile)) || seen.has(key(tile))) continue;
       seen.add(key(tile));
       queue.push(...neighbors(tile));
     }

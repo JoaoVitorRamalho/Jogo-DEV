@@ -17,6 +17,7 @@ export class BootScene extends Phaser.Scene {
     this.load.image("kenney_extra", "/assets/tilesets/kenney_extra.png");
     this.load.image("cave_entrance", "/assets/tilesets/cave_entrance.png");
     this.load.image("cave_interior", "/assets/tilesets/cave_interior.png");
+    this.load.image("field_obstacles", "/assets/tilesets/field_obstacles.png");
     for (const key of MAP_KEYS) this.load.tilemapTiledJSON(`map_${key}`, `/assets/maps/${key}.json`);
     for (const sprite of MON_SPRITES) {
       this.load.image(`mon_${sprite}`, `/assets/sprites/pokemon/${sprite}.png`);
@@ -36,6 +37,7 @@ export class BootScene extends Phaser.Scene {
     // Tilesets ampliados (ou não) conforme "Gráficos" nas Opções; extra_sheet são os tiles soltos.
     addArt(this, "extra_sheet", 16, 16, true, undefined, "extra");
     addArt(this, "kenney_sheet", 16, 16, true, undefined, "kenney_town");
+    addArt(this, "field_sheet", 16, 16, true, undefined, "field_obstacles");
     for (const key of TILESET_KEYS) addArt(this, key, 16, 16, false);
     const state = useGame.getState().live;
     if (!state) return;

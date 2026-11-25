@@ -215,6 +215,17 @@ class Map:
     def event(self, id: str, c: int, r: int, w: int = 1, h: int = 1) -> None:
         self.obj("events", id, c, r, w, h)
 
+    def field(self, id: str, c: int, r: int, kind: str, w: int = 1, h: int = 1) -> None:
+        """Obstáculo de golpe de campo (id e tipo em data/field/obstacles.ts).
+
+        Fica sólido no mapa; o jogo desenha o obstáculo e libera a passagem quando a flag dele liga.
+        A camada `fields` só existe nos mapas que têm obstáculo."""
+        self.objects.setdefault("fields", [])
+        self.obj("fields", id, c, r, w, h, kind=kind)
+        for y in range(r, r + h):
+            for x in range(c, c + w):
+                self.solid(x, y)
+
     def spawn(self, id: str, c: int, r: int, dir: str = "down") -> None:
         self.obj("spawns", id, c, r, dir=dir)
 
@@ -1011,7 +1022,14 @@ def build_route2() -> Map:
         rect(22, 12, 10, 10), rect(8, 12, 24, 4), rect(16, 0, 4, 12), rect(22, 2, 10, 8), rect(24, 10, 2, 2),
     ):
         open_cells |= area
+    # Clareira escondida a leste do começo. A passagem (20-21, 58-59) fica fechada pela moita
+    # route2_bush_shortcut, que só sai com Corte (data/field/obstacles.ts).
+    open_cells |= rect(20, 58, 2, 2) | rect(22, 58, 6, 4)
     woods(m, open_cells)
+    # A fileira de cima de cada árvore é andável (o herói passa atrás da copa). Fecha as duas
+    # copas que encostam no começo da rota, senão elas dariam a volta na moita.
+    m.solid(20, 60)
+    m.solid(20, 62)
     # As copas junto à abertura também fecham as laterais do corredor.
     for c in range(32, 36):
         m.solid(c, 5)
@@ -1046,6 +1064,9 @@ def build_route2() -> Map:
     m.npc("item_r2_ball", 20, 40)
     m.npc("item_r2_candy", 30, 3)
     m.npc("item_r2_garchompite", 22, 2)  # pedra mega no bosque do Gible
+    m.field("route2_bush_shortcut", 20, 58, "cut_bush", h=2)
+    m.npc("item_r2_cut", 26, 60)  # prêmio da clareira atrás da moita
+    flowers(m, [(23, 59), (27, 58), (22, 61)])
     return m
 
 
@@ -1626,8 +1647,8 @@ def render_preview(m: Map) -> None:
                         tile = sheet.crop((sx, sy, sx + T, sy + T))
                         img.alpha_composite(tile, (c * T, r * T))
                         break
-    for group, color in (("npcs", (255, 60, 60, 200)), ("warps", (60, 120, 255, 140)), ("signs", (255, 220, 0, 160))):
-        for o in m.objects[group]:
+    for group, color in (("npcs", (255, 60, 60, 200)), ("warps", (60, 120, 255, 140)), ("signs", (255, 220, 0, 160)), ("fields", (60, 255, 120, 200))):
+        for o in m.objects.get(group, []):
             for y in range(int(o["y"]), int(o["y"] + o["height"])):
                 for x in range(int(o["x"]), int(o["x"] + o["width"])):
                     if (x + y) % 3 == 0 and 0 <= x < img.width and 0 <= y < img.height:

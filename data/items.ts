@@ -16,12 +16,20 @@ export type ItemId =
   | "charizardite_y"
   | "blazikenite"
   | "garchompite"
-  | "greninja_ash";
+  | "greninja_ash"
+  | "hm01"
+  | "hm02"
+  | "hm03"
+  | "hm04"
+  | "hm05"
+  | "hm06"
+  | "hm07"
+  | "hm08";
 
 export type ItemDef = {
   id: ItemId;
   name: string;
-  pocket: "medicine" | "balls" | "training" | "mega";
+  pocket: "medicine" | "balls" | "training" | "mega" | "hm";
   price: number;
   icon: string;
   heal?: number;
@@ -57,6 +65,15 @@ const list: ItemDef[] = [
     icon: "greninja_ash",
     description: "Concede Laço de Batalha e libera a opção manual Forma Ash para Greninja durante a batalha.",
   },
+  // HMs: ensinar não gasta o disco (data/field/hms.ts). Ícones originais de scripts/build_field_tiles.py.
+  { id: "hm01", name: "HM01 Corte", pocket: "hm", price: 0, icon: "disc/hm01", description: "Ensina Corte. No mapa, corta moitas finas que fecham o caminho." },
+  { id: "hm02", name: "HM02 Voo", pocket: "hm", price: 0, icon: "disc/hm02", description: "Ensina Voo a um Pokémon Voador. No mapa, leva a uma cidade já visitada." },
+  { id: "hm03", name: "HM03 Surfe", pocket: "hm", price: 0, icon: "disc/hm03", description: "Ensina Surfe a um Pokémon de Água. No mapa, atravessa água funda." },
+  { id: "hm04", name: "HM04 Força", pocket: "hm", price: 0, icon: "disc/hm04", description: "Ensina Força. No mapa, empurra pedregulhos pesados." },
+  { id: "hm05", name: "HM05 Flash", pocket: "hm", price: 0, icon: "disc/hm05", description: "Ensina Flash. No mapa, ilumina cavernas escuras." },
+  { id: "hm06", name: "HM06 Pedrada", pocket: "hm", price: 0, icon: "disc/hm06", description: "Ensina Pedrada. No mapa, quebra rochas rachadas." },
+  { id: "hm07", name: "HM07 Cascata", pocket: "hm", price: 0, icon: "disc/hm07", description: "Ensina Cascata a um Pokémon de Água. No mapa, sobe cachoeiras." },
+  { id: "hm08", name: "HM08 Mergulho", pocket: "hm", price: 0, icon: "disc/hm08", description: "Ensina Mergulho a um Pokémon de Água. No mapa, desce em água calma e funda." },
 ];
 
 export const ITEMS: Record<ItemId, ItemDef> = Object.fromEntries(list.map((item) => [item.id, item])) as Record<ItemId, ItemDef>;

@@ -19,12 +19,15 @@ export function PartyList({
   index,
   active,
   marked,
+  notes,
   onPick,
 }: {
   party: Mon[];
   index: number;
   active?: number;
   marked?: number | null;
+  /** Etiqueta curta ao lado do nome, por Pokémon (ex.: "pode" aprender a HM). */
+  notes?: (string | null)[];
   onPick?: (index: number) => void;
 }) {
   return (
@@ -35,6 +38,7 @@ export function PartyList({
           <div className="party-info">
             <strong>
               {displayName(mon)} {i === active ? <em>em campo</em> : null}
+              {notes?.[i] ? <em>{notes[i]}</em> : null}
             </strong>
             <div className="party-meta">
               <span>Nv. {mon.level} {mon.status ? <i className="status">{STATUS_NAME[mon.status]}</i> : null}</span>

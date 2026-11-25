@@ -227,6 +227,7 @@ export const NPCS: Record<string, NpcLook> = {
   item_r2_super: { name: "Item", sprite: "ball" },
   item_r2_ball: { name: "Item", sprite: "ball" },
   item_r2_candy: { name: "Item", sprite: "ball" },
+  item_r2_cut: { name: "Item", sprite: "ball" },
   item_r2_garchompite: { name: "Item", sprite: "ball" },
   item_ferruria_blazikenite: { name: "Item", sprite: "ball" },
   ferruria_kid: {

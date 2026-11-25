@@ -690,6 +690,64 @@ canvas {
   font-size: calc(var(--u) * 7);
 }
 
+.fly-body {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: calc(var(--u) * 6);
+  align-items: start;
+  min-height: 0;
+}
+
+.fly-map {
+  display: block;
+  width: calc(var(--u) * 108);
+  height: calc(var(--u) * 108);
+  box-shadow: 0 0 0 calc(var(--u) * 1) var(--ink);
+}
+
+.fly-side {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(var(--u) * 108);
+}
+
+.fly-list li {
+  line-height: calc(var(--u) * 11);
+}
+
+.fly-places {
+  list-style: none;
+  margin: auto 0 0;
+  padding: calc(var(--u) * 3) 0 0;
+  border-top: calc(var(--u) * 1) solid #ddd3bd;
+  font-size: calc(var(--u) * 7);
+  line-height: calc(var(--u) * 10);
+  color: #6a6478;
+}
+
+.fly-list em {
+  margin-left: auto;
+  font-style: normal;
+  font-size: calc(var(--u) * 7);
+  color: var(--accent-2);
+}
+
+.fly-cursor {
+  animation: fly-blink 0.8s steps(2) infinite;
+}
+
+@keyframes fly-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fly-cursor {
+    animation: none;
+  }
+}
+
 .card-panel dl {
   display: grid;
   grid-template-columns: auto 1fr;

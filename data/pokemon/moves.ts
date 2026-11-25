@@ -106,6 +106,15 @@ const list: MoveDef[] = [
   { id: "heat_wave", name: "Onda de Calor", type: "fire", category: "special", power: 95, accuracy: 90, pp: 10, effects: [{ kind: "status", status: "burn", chance: 0.1 }], description: "Explosão de ar quente." },
   { id: "flare_blitz", name: "Investida Flamejante", type: "fire", category: "physical", power: 120, accuracy: 100, pp: 15, effects: [{ kind: "status", status: "burn", chance: 0.1 }], description: "Investida em chamas totais." },
   { id: "water_shuriken", name: "Estrela Ninja", type: "water", category: "special", power: 15, accuracy: 100, pp: 20, hits: 3, priority: 1, description: "Shurikens d'água em rajada." },
+  // Golpes das HMs (data/field/hms.ts). Na batalha são ataques comuns de um turno; Voo e
+  // Mergulho não sobem nem afundam antes de bater. Surfe já estava acima.
+  { id: "cut", name: "Corte", type: "normal", category: "physical", power: 50, accuracy: 95, pp: 30, description: "Corta o alvo." },
+  { id: "fly", name: "Voo", type: "flying", category: "physical", power: 90, accuracy: 95, pp: 15, description: "Mergulha do alto." },
+  { id: "strength", name: "Força", type: "normal", category: "physical", power: 80, accuracy: 100, pp: 15, description: "Golpe com toda a força." },
+  { id: "flash", name: "Flash", type: "normal", category: "status", power: 0, accuracy: 100, pp: 20, effects: [{ kind: "stage", target: "foe", stat: "accuracy", stages: -1 }], description: "Luz que reduz a precisão." },
+  { id: "rock_smash", name: "Pedrada", type: "fighting", category: "physical", power: 40, accuracy: 100, pp: 15, effects: [{ kind: "stage", target: "foe", stat: "def", stages: -1, chance: 0.5 }], description: "Soco que quebra pedras." },
+  { id: "waterfall", name: "Cascata", type: "water", category: "physical", power: 80, accuracy: 100, pp: 15, effects: [{ kind: "flinch", chance: 0.2 }], description: "Investida de cachoeira." },
+  { id: "dive", name: "Mergulho", type: "water", category: "physical", power: 80, accuracy: 100, pp: 10, description: "Ataca de baixo d'água." },
 ];
 
 /** Dados numéricos da PokéAPI; textos traduzidos e efeitos implementados ficam locais. */

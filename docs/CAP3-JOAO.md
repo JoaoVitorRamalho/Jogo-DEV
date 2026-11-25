@@ -90,6 +90,11 @@ A missão `act2_verdelume` segue a mesma lista: cada passo some quando a flag de
 - **Desmaio**: depois de falar com a Enfermeira de Verdelume (`ch3_center`), quem perde volta para o
   Centro de Verdelume.
 - **Itens no chão**: `pickup(flag, item, quantidade)` em `CH3_TALK`; o item some depois de pego.
+- **HMs e Voo**: `await giveHm("hm01", "Nádia")` (de `game/story/field.ts`) entrega a HM uma vez
+  só (flag `got_hm01`) e explica como ensinar. A HM01 abre a moita do começo da Rota 2, que guarda
+  2 Doces Raros. A HM02 faz aparecer "Voo" na pausa. Cada cidade entra no mapa do Voo sozinha na
+  primeira visita (`fly_unlock_verdelume`, por exemplo). Nenhuma HM é entregue ainda: a hora de
+  cada uma é sua. Sugestão de capítulo e passo a passo em `docs/HM-TM-CAMPO.md`.
 
 ## Mudar alguém de lugar ou criar NPC novo
 

@@ -13,7 +13,7 @@ export type BattleRequest = { config: BattleConfig; resolve: (outcome: Outcome) 
 export type EvolutionRequest = { from: string; to: string; resolve: () => void };
 export type DemoMon = { name: string; level: number; hp: number; max: number; status?: string };
 export type DemoHud = { title: string; foe: DemoMon | null; mine: DemoMon | null };
-export type Panel = null | "pause" | "party" | "pc" | "bag" | "dex" | "quests" | "save" | "card" | "options";
+export type Panel = null | "pause" | "party" | "pc" | "bag" | "dex" | "quests" | "save" | "card" | "options" | "fly";
 
 type Ui = {
   lastLine: Line | null;

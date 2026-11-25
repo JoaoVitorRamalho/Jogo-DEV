@@ -1,5 +1,6 @@
 import * as Phaser from "phaser";
 import { ENCOUNTERS } from "@/data/encounters";
+import { flyFlagForMap } from "@/data/field/fly";
 import { NPCS } from "@/data/npcs";
 import { type Sfx, playCry, playSfx, setContextTrack } from "@/lib/audio/engine";
 import { subscribeInput } from "@/lib/input/engine";
@@ -15,6 +16,7 @@ import { say } from "@/game/core/ui";
 import { TALL_GRASS_GID, TALL_GRASS_TOP_FRAME, TILE, TILESET_KEYS, tileSpriteFrame, VIEW_H, VIEW_W } from "@/game/phaser/constants";
 import { rebuildArt, tileGap } from "@/game/phaser/smooth";
 import { addFountains } from "@/game/phaser/fountain";
+import { type FieldObstacle, clearFieldObstacle, obstacleAt, offerFieldMove, placeFieldObstacles } from "@/game/phaser/field";
 import { addCaveAtmosphere } from "@/game/phaser/cave";
 import { addLeaves, addWaterLife, grassBurst } from "@/game/phaser/life";
 import { grassSway } from "@/game/core/mapLife";
@@ -116,6 +118,8 @@ export class WorldScene extends Phaser.Scene {
   warps: MapObject[] = [];
   signs: MapObject[] = [];
   areaEvents: MapObject[] = [];
+  /** Obstáculos de golpe de campo ainda de pé (camada `fields`). */
+  fields: FieldObstacle[] = [];
   npcs = new Map<string, Npc>();
   player!: Actor;
   grassTop!: Phaser.GameObjects.Image;
@@ -171,6 +175,13 @@ export class WorldScene extends Phaser.Scene {
     });
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.teardown());
     bridge.world = this.api();
+    // Primeira vez numa cidade com pouso: ela entra no mapa do Voo.
+    const flyFlag = flyFlagForMap(this.mapKey);
+    if (flyFlag && !useGame.getState().live?.flags[flyFlag]) {
+      useGame.getState().update((s) => {
+        s.flags[flyFlag] = true;
+      });
+    }
     const music = this.mapProp("music");
     setContextTrack(typeof music === "string" ? music : "town");
     this.persistPosition();
@@ -259,6 +270,7 @@ export class WorldScene extends Phaser.Scene {
     this.signs = read("signs");
     this.areaEvents = read("events");
     this.npcObjects = read("npcs");
+    this.fields = placeFieldObstacles(this, read("fields"), this.blocked);
     for (const tileset of this.tilemap.tilesets) {
       const data = tileset.tileData as Record<string, { animation?: { tileid: number; duration: number }[] }>;
       for (const [local, info] of Object.entries(data ?? {})) {
@@ -862,13 +874,13 @@ export class WorldScene extends Phaser.Scene {
     return { x: this.player.tx + dx, y: this.player.ty + dy };
   }
 
-  interactTarget(): { npc: Npc | null; sign: MapObject | null } {
+  interactTarget(): { npc: Npc | null; sign: MapObject | null; field: FieldObstacle | null } {
     const { x, y } = this.facing();
-    return { npc: this.npcAt(x, y), sign: this.objectAt(this.signs, x, y) };
+    return { npc: this.npcAt(x, y), sign: this.objectAt(this.signs, x, y), field: obstacleAt(this.fields, x, y) };
   }
 
   interact(): void {
-    const { npc, sign } = this.interactTarget();
+    const { npc, sign, field } = this.interactTarget();
     if (npc && story.hooks) {
       this.runScript(async () => {
         if (npc.animated) this.faceToward(npc, this.player);
@@ -878,6 +890,14 @@ export class WorldScene extends Phaser.Scene {
     }
     if (sign && story.hooks) {
       this.runScript(() => story.hooks?.sign(sign.name));
+      return;
+    }
+    if (field) {
+      this.runScript(async () => {
+        if (!(await offerFieldMove(field))) return;
+        await clearFieldObstacle(this, field, this.blocked);
+        this.fields = this.fields.filter((item) => item !== field);
+      });
       return;
     }
     const pet = this.pet;
@@ -918,8 +938,9 @@ export class WorldScene extends Phaser.Scene {
     this.grassTop.setScale(sway.sx, sway.sy);
     this.grassTop.setDepth(p.depth() + 0.1);
     if (!p.moving && !this.busy()) {
-      const { npc, sign } = this.interactTarget();
-      const target = npc ? { x: npc.tx, y: npc.ty, tall: npc.animated } : sign ? { x: sign.x, y: sign.y, tall: false } : null;
+      const { npc, sign, field } = this.interactTarget();
+      const ahead = this.facing();
+      const target = npc ? { x: npc.tx, y: npc.ty, tall: npc.animated } : sign ? { x: sign.x, y: sign.y, tall: false } : field ? { ...ahead, tall: false } : null;
       if (target) {
         const bob = Math.floor(this.time.now / 300) % 2;
         this.bubble.setVisible(true).setPosition(target.x * TILE + 8, target.y * TILE + (target.tall ? -8 : 0) - bob);

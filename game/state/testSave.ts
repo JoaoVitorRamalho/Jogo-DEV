@@ -60,6 +60,9 @@ const BAG: Partial<Record<ItemId, number>> = {
   blazikenite: 1,
   garchompite: 1,
   greninja_ash: 1,
+  // Corte e Voo para testar os golpes de campo: a moita fica logo a leste do ponto de partida.
+  hm01: 1,
+  hm02: 1,
 };
 
 export function testSave(appearance?: Appearance): GameState {
@@ -70,6 +73,9 @@ export function testSave(appearance?: Appearance): GameState {
   state.y = 61;
   state.dir = "up";
   for (const flag of CHAPTER1_FLAGS) state.flags[flag] = true;
+  // Cidades que o Voo já conhece neste ponto da viagem.
+  state.flags.fly_unlock_brisamar = true;
+  state.flags.fly_unlock_ferruria = true;
   state.party = TEAM.map(([id, level], index) => createMon(id, level, rng, { perfect: true, battleBond: id === "greninja", metAt: index === 0 ? "Vila Brisamar" : "Rota 2" }));
   state.box = BOX.map(([id, level]) => createMon(id, level, rng, { perfect: true, metAt: "Rota 2" }));
   state.bag = { ...BAG };

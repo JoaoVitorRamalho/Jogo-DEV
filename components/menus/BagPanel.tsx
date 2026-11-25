@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { PartyList } from "@/components/menus/PartyPanel";
 import { useMenu } from "@/components/menus/useMenu";
+import { canLearnHm, hmDefFromItem } from "@/data/field/logic";
 import { ITEMS, type ItemDef, type ItemId } from "@/data/items";
 import { move } from "@/data/pokemon/moves";
 import { ask, say, playEvolution } from "@/game/core/ui";
@@ -15,7 +16,10 @@ const POCKETS: { id: ItemDef["pocket"]; label: string }[] = [
   { id: "balls", label: "Pokébolas" },
   { id: "training", label: "Treino" },
   { id: "mega", label: "Pedras Mega" },
+  { id: "hm", label: "HMs" },
 ];
+
+const LEARN_NOTE = { ok: "pode", knows: "já sabe", cant: "não pode" } as const;
 
 export function ItemIcon({ id }: { id: ItemId }) {
   // eslint-disable-next-line @next/next/no-img-element
@@ -68,11 +72,41 @@ export function BagPanel({ onClose }: { onClose: () => void }) {
     await say(`${name} esqueceu ${options[choice]} e aprendeu ${moveName}!`);
   }
 
+  /** HM: ensina o golpe sem gastar o disco. Com quatro golpes, pergunta qual esquecer. */
+  async function teach(index: number, hmId: ItemId) {
+    const hm = hmDefFromItem(hmId);
+    const mon = live?.party[index];
+    if (!hm || !mon) return;
+    const name = displayName(mon);
+    const moveName = move(hm.battleMoveId).name;
+    const check = canLearnHm(mon, hm.id);
+    if (check !== "ok") {
+      playSfx("cancel");
+      await say(check === "knows" ? `${name} já sabe ${moveName}.` : `${name} não consegue aprender ${moveName}.`);
+      return;
+    }
+    setTarget(null);
+    if (mon.moves.length >= 4) {
+      await forgetMove(mon.uid, hm.battleMoveId);
+      return;
+    }
+    useGame.getState().update((state) => {
+      const targetMon = state.party.find((entry) => entry.uid === mon.uid);
+      if (targetMon) learnMove(targetMon, hm.battleMoveId, null);
+    });
+    playSfx("levelup");
+    await say(`${name} aprendeu ${moveName}!`);
+  }
+
   async function applyTo(index: number) {
     if (!target || !live) return;
     const def = ITEMS[target];
     const mon = live.party[index];
     let message = "Não terá efeito.";
+    if (def.pocket === "hm") {
+      await teach(index, target);
+      return;
+    }
     if (target === "greninja_ash") {
       if (mon.species !== "greninja") message = "Este cristal só reage a Greninja.";
       else {
@@ -150,6 +184,7 @@ export function BagPanel({ onClose }: { onClose: () => void }) {
   });
   const targetMenu = useMenu({ count: live?.party.length ?? 0, columns: 2, enabled: target !== null, onSelect: applyTo, onCancel: () => setTarget(null) });
   const selected = items[list.index];
+  const targetHm = target ? hmDefFromItem(target) : null;
 
   return (
     <div className="gba-panel bag-panel">
@@ -158,8 +193,8 @@ export function BagPanel({ onClose }: { onClose: () => void }) {
       </h2>
       {target !== null && live ? (
         <>
-          <p className="panel-sub">Usar {ITEMS[target].name} em qual Pokémon?</p>
-          <PartyList party={live.party} index={targetMenu.index} />
+          <p className="panel-sub">{targetHm ? `Ensinar ${move(targetHm.battleMoveId).name} a qual Pokémon?` : `Usar ${ITEMS[target].name} em qual Pokémon?`}</p>
+          <PartyList party={live.party} index={targetMenu.index} notes={targetHm ? live.party.map((mon) => LEARN_NOTE[canLearnHm(mon, targetHm.id)]) : undefined} />
         </>
       ) : (
         <>

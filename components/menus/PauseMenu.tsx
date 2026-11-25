@@ -3,16 +3,24 @@
 import { useState } from "react";
 import { BagPanel } from "@/components/menus/BagPanel";
 import { DexPanel } from "@/components/menus/DexPanel";
+import { FlyPanel } from "@/components/menus/FlyPanel";
 import { PartyPanel } from "@/components/menus/PartyPanel";
 import { PcPanel } from "@/components/menus/PcPanel";
 import { QuestPanel } from "@/components/menus/QuestPanel";
 import { useMenu } from "@/components/menus/useMenu";
-import { ask, useUi } from "@/game/core/ui";
+import { canOpenFlyMap, type FieldFail } from "@/data/field/logic";
+import { OUTDOOR_MAPS } from "@/game/core/daytime";
+import { ask, say, useUi } from "@/game/core/ui";
 import { useGame } from "@/game/state/store";
 import { dexEntries } from "@/data/pokemon/species";
 import { useSession } from "@/lib/game/session";
 
 type Entry = { id: string; label: string };
+
+const FLY_FAIL: Partial<Record<FieldFail, string>> = {
+  no_pokemon_move: "Ninguém do time sabe Voo. Ensine com a HM02: Mochila, bolso HMs.",
+  no_fly_destinations: "Ainda não há cidade conhecida para voar.",
+};
 
 export function formatTime(seconds: number): string {
   const h = Math.floor(seconds / 3600);
@@ -29,6 +37,7 @@ export function PauseMenu() {
   if (live && live.party.length > 0) entries.push({ id: "party", label: "Pokémon" });
   if (live && live.party.length > 0) entries.push({ id: "pc", label: "PC" });
   entries.push({ id: "bag", label: "Mochila" });
+  if (live?.bag.hm02) entries.push({ id: "fly", label: "Voo" });
   entries.push({ id: "quests", label: "Diário" });
   entries.push({ id: "card", label: live?.appearance.name || "Treinador" });
   entries.push({ id: "save", label: "Salvar" });
@@ -47,6 +56,20 @@ export function PauseMenu() {
         useGame.getState().save();
         useUi.getState().showToast("Progresso salvo");
       }
+      setBusy(false);
+      return;
+    }
+    if (entry.id === "fly") {
+      const state = useGame.getState().live;
+      if (!state) return;
+      const check = canOpenFlyMap(state.flags, state.bag, state.party);
+      const problem = !OUTDOOR_MAPS.has(state.map) ? "Aqui dentro não dá para voar." : check.ok ? null : (FLY_FAIL[check.code] ?? "Ainda não dá para voar.");
+      if (!problem) {
+        useUi.getState().setPanel("fly");
+        return;
+      }
+      setBusy(true);
+      await say(problem);
       setBusy(false);
       return;
     }
@@ -72,6 +95,7 @@ export function PauseMenu() {
   if (panel === "bag") return <BagPanel onClose={() => useUi.getState().setPanel("pause")} />;
   if (panel === "dex") return <DexPanel onClose={() => useUi.getState().setPanel("pause")} />;
   if (panel === "quests") return <QuestPanel onClose={() => useUi.getState().setPanel("pause")} />;
+  if (panel === "fly") return <FlyPanel onClose={() => useUi.getState().setPanel("pause")} />;
   if (panel === "card") return <TrainerCard onClose={() => useUi.getState().setPanel("pause")} />;
   if (panel !== "pause") return null;
   return (

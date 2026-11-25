@@ -294,6 +294,10 @@ export const CH2_TALK: Record<string, () => Promise<void>> = {
   item_r2_candy: async () => {
     if (await giveOnce("r2_item_candy", "rare_candy", 1)) world().refreshNpcs();
   },
+  // Prêmio da clareira atrás da moita do começo da Rota 2 (só se chega com Corte).
+  item_r2_cut: async () => {
+    if (await giveOnce("r2_item_cut", "rare_candy", 2)) world().refreshNpcs();
+  },
   // Pedras mega espalhadas: a do Garchomp no bosque onde o Gible aparece, a do Blaziken no
   // canto de Ferrúria, perto do lago.
   item_r2_garchompite: async () => {
@@ -372,6 +376,7 @@ export const CH2_VISIBLE: Record<string, () => boolean> = {
   item_r2_super: () => !flag("r2_item_super"),
   item_r2_ball: () => !flag("r2_item_ball"),
   item_r2_candy: () => !flag("r2_item_candy"),
+  item_r2_cut: () => !flag("r2_item_cut"),
   item_r2_garchompite: () => !flag("r2_item_garchompite"),
   item_ferruria_blazikenite: () => !flag("ferruria_item_blazikenite"),
   web_a_1: WEB_A,

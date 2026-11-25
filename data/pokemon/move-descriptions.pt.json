@@ -70,5 +70,12 @@
   "dragon_claw": "Corta o alvo com garras grandes e afiadas.",
   "heat_wave": "Uma onda de ar quente com 10% de chance de causar queimadura.",
   "flare_blitz": "Uma investida em chamas. Pode queimar o alvo e causa recuo de um terço do dano.",
-  "water_shuriken": "Lança de duas a cinco estrelas de água no mesmo turno, com prioridade."
+  "water_shuriken": "Lança de duas a cinco estrelas de água no mesmo turno, com prioridade.",
+  "cut": "Corta o alvo com garras ou lâminas. Fora da batalha, abre arbustos finos.",
+  "fly": "Sobe alto e mergulha no alvo. Fora da batalha, leva a uma cidade já visitada.",
+  "strength": "Um golpe com toda a força do corpo. Fora da batalha, empurra pedras pesadas.",
+  "flash": "Um clarão que reduz a precisão do alvo. Fora da batalha, ilumina cavernas escuras.",
+  "rock_smash": "Um soco que parte pedras. Tem 50% de chance de baixar a Defesa. Fora da batalha, quebra rochas rachadas.",
+  "waterfall": "Investe com a força de uma cachoeira. Tem 20% de chance de fazer o alvo hesitar.",
+  "dive": "Mergulha e ataca de baixo d'água."
 }
